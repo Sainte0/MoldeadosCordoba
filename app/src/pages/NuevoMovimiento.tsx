@@ -47,9 +47,10 @@ export function NuevoMovimiento() {
       titulo: tipo === 'cobro' ? '¿Quién pagó?' : '¿A quién le pagaste?',
       ayuda: tipo === 'cobro' ? 'Elegí el cliente que pagó.' : 'Elegí el proveedor al que le pagaste.',
       contenido: tipo === 'cobro'
-        ? <ElegirCliente valor={quien as Cliente | null} onChange={(c) => setQuien(c)} />
+        ? <ElegirCliente conDeuda valor={quien as Cliente | null} onChange={(c) => setQuien(c)} />
         : <ElegirProveedor valor={quien as Proveedor | null} onChange={(p) => setQuien(p)} />,
       listo: quien ? true : 'Elegí uno para seguir',
+      rapido: true,
     } as Paso]),
     {
       titulo: '¿Cómo?',
@@ -58,6 +59,7 @@ export function NuevoMovimiento() {
         valor: m, titulo: LABEL_MEDIO[m], detalle: m === 'endoso' ? `${cartera.length} en cartera` : undefined,
       }))} />,
       listo: medio ? true : 'Elegí el medio',
+      rapido: true,
     },
     ...(medio === 'endoso' ? [] : [{
       titulo: `¿Cuánto ${verbo}?`,
@@ -65,6 +67,7 @@ export function NuevoMovimiento() {
       contenido: (
         <>
           <EntradaNumero enorme unidad="$" value={monto} onChange={(e) => setMonto(e.target.value)} autoFocus aria-label="Monto" />
+          {saldo > 0 && centavos !== null && centavos > saldo && <p className="atencion-item atencion" style={{ display: "block" }}>Es más de lo que {tipo === 'cobro' ? 'debe' : 'le debemos'}: quedan {formatPesos(centavos - saldo)} a favor.</p>}
           {saldo > 0 && <button type="button" className="boton secundario" style={{ justifySelf: 'start' }} onClick={() => setMonto(String(saldo / 100).replace('.', ','))}>Todo el saldo: {formatPesos(saldo)}</button>}
         </>
       ),
@@ -101,7 +104,7 @@ export function NuevoMovimiento() {
           <dl className="resumen hoja relleno">
             <dt>{tipo === 'cobro' ? 'Cliente' : 'Proveedor'}</dt><dd>{quien?.nombre}</dd>
             <dt>Medio</dt><dd>{medio && LABEL_MEDIO[medio]}{endosado ? ` · ${endosado.banco ?? ''} n.º ${endosado.chequeNumero ?? ''}, de ${endosado.contraparte}` : ''}{medio !== 'endoso' && bancoId ? ` · ${bancos?.find((b) => b.id === bancoId)?.nombre}` : ''}{nro ? ` n.º ${nro}` : ''}{fechaCobro ? `, cobro ${verFecha(fechaCobro)}` : ''}</dd>
-            {centavos !== null && saldo > 0 && <><dt>Saldo después</dt><dd>{formatPesos(saldo - centavos)}</dd></>}
+            {centavos !== null && saldo > 0 && <><dt>Después</dt><dd>{saldo - centavos > 0 ? `${tipo === 'cobro' ? 'Sigue debiendo' : 'Le seguimos debiendo'} ${formatPesos(saldo - centavos)}` : saldo === centavos ? 'Queda al día' : `Queda ${formatPesos(centavos - saldo)} a favor ${tipo === 'cobro' ? 'del cliente' : 'nuestro'}`}</dd></>}
           </dl>
           <div className="lectura"><span>{tipo === 'cobro' ? 'Cobrado' : 'Pagado'}</span><span className="cifra">{centavos !== null && formatPesos(centavos)}</span></div>
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}><Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} /></Campo>

@@ -43,6 +43,7 @@ export function NuevoGasto() {
       ayuda: 'Elegí la categoría. Así el tablero muestra en qué se va la plata.',
       contenido: <Opciones columnas valor={categoriaId} onChange={setCategoriaId} opciones={(categorias ?? []).filter((c) => c.activo).map((c) => ({ valor: c.id, titulo: c.nombre }))} />,
       listo: categoriaId ? true : 'Elegí una categoría',
+      rapido: true,
     },
     {
       titulo: '¿Cuánto y qué se pagó?',

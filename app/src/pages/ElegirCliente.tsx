@@ -1,18 +1,24 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { formatPesos } from '@moldeados/shared/base';
 import { Plus } from 'lucide-react';
 import { api, useSesion, verFecha } from '../api';
 import { useClientes, type Cliente } from '../datos';
 import { Aviso, Buscador, Cargando, Entrada, Opciones } from '../ui';
 
 /** Paso "¿para quién es?": buscar, tocar, o dar de alta en el momento con el nombre. */
-export function ElegirCliente({ valor, onChange }: { valor: Cliente | null; onChange: (c: Cliente) => void }) {
+/** `conDeuda`: para cobrar. Muestra cuánto debe cada uno y pone primero a los que deben. */
+export function ElegirCliente({ valor, onChange, conDeuda }: { valor: Cliente | null; onChange: (c: Cliente) => void; conDeuda?: boolean }) {
   const [q, setQ] = useState('');
   const [nuevo, setNuevo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { puede } = useSesion();
   const qc = useQueryClient();
-  const { data, isLoading } = useClientes(q);
+  const { data: lista, isLoading } = useClientes(q);
+  const { data: saldos } = useQuery({ queryKey: ['cuentas', 'cliente'], queryFn: () => api<{ id: string; debe: number; haber: number }[]>('/cuentas/cliente'), enabled: !!conDeuda });
+  const deuda = new Map((saldos ?? []).map((s) => [s.id, s.debe - s.haber]));
+  const debe = (id: string) => deuda.get(id) ?? 0;
+  const data = conDeuda && lista ? [...lista].sort((a, b) => debe(b.id) - debe(a.id)) : lista;
 
   const crear = async () => {
     if (!nuevo?.trim()) return;
@@ -34,7 +40,7 @@ export function ElegirCliente({ valor, onChange }: { valor: Cliente | null; onCh
         <Opciones
           valor={valor?.id ?? null}
           onChange={(id) => { const c = data?.find((x) => x.id === id); if (c) onChange(c); }}
-          opciones={(data ?? []).map((c) => ({ valor: c.id, titulo: c.nombre, detalle: c.ultimaVenta ? `Última compra: ${verFecha(c.ultimaVenta)}` : 'Cliente nuevo' }))}
+          opciones={(data ?? []).map((c) => ({ valor: c.id, titulo: c.nombre, detalle: conDeuda && debe(c.id) > 0 ? `Debe ${formatPesos(debe(c.id))}` : conDeuda && debe(c.id) < 0 ? `A favor ${formatPesos(-debe(c.id))}` : conDeuda ? 'Al día' : c.ultimaVenta ? `Última compra: ${verFecha(c.ultimaVenta)}` : 'Cliente nuevo' }))}
         />
       )}
       {data?.length === 0 && <p className="tenue">{q ? 'No hay clientes con ese nombre.' : 'Todavía no hay clientes cargados.'}</p>}

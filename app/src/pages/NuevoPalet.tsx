@@ -50,19 +50,22 @@ export function NuevoPalet() {
   const pasos: Paso[] = [
     {
       titulo: '¿Qué maple va en el palet?',
-      ayuda: 'Un palet lleva un solo código de maple. Al lado de cada uno ves cuántos paquetes hay sueltos.',
+      ayuda: 'Un palet lleva un solo código de maple. Al lado de cada uno ves cuántos paquetes hay producidos sin paletizar.',
       contenido: (
         <div className="opciones">
-          {stock?.filter((x) => x.activo || x.producido - x.enPalets > 0).map((x) => (
+          {stock?.filter((x) => x.activo || x.producido - x.enPalets > 0).sort((a, b) => (b.producido - b.enPalets) - (a.producido - a.enPalets)).map((x) => (
             <button type="button" key={x.id} className="opcion" aria-pressed={x.id === varianteId} onClick={() => setVarianteId(x.id)}>
               <Muestra color={x.colorHex} grande />
               <span style={{ flex: 1 }}><b>{x.codigo}</b><small>{x.nombre}</small></span>
-              <span className="cifra">{x.producido - x.enPalets} paq.</span>
+              {x.producido - x.enPalets > 0
+                ? <span className="derecha"><span className="cifra">{(x.producido - x.enPalets).toLocaleString('es-AR')}</span><br /><small>sin paletizar</small></span>
+                : <small>Nada sin paletizar</small>}
             </button>
           ))}
         </div>
       ),
       listo: !varianteId ? 'Elegí el maple' : sueltos <= 0 ? 'No hay paquetes sueltos de este maple: primero cargá el parte de producción' : true,
+      rapido: true,
     },
     {
       titulo: '¿Cómo se arma?',

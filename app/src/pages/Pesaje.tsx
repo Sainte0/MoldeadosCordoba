@@ -51,12 +51,14 @@ export function Pesaje() {
       ayuda: 'Elegí el proveedor del camión que está en la báscula. Si es la primera vez que viene, agregalo con el nombre y seguí.',
       contenido: <ElegirProveedor tipo="carton" valor={proveedor} onChange={setProveedor} />,
       listo: proveedor ? true : 'Elegí un proveedor para seguir',
+      rapido: true,
     },
     ...(cartones.length > 1 ? [{
       titulo: '¿Qué cartón es?',
       ayuda: 'Elegí el tipo de cartón que descarga.',
       contenido: <Opciones valor={materiaId} onChange={setMateriaId} opciones={cartones.map((c) => ({ valor: c.id, titulo: c.nombre }))} />,
       listo: materiaId ? true : 'Elegí el tipo de cartón',
+      rapido: true,
     }] : []),
     {
       titulo: 'Anotá la pesada',

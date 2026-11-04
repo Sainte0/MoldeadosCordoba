@@ -78,6 +78,7 @@ export function NuevaCompra() {
       ayuda: 'Elegí el proveedor. Para cargar cartón que llega en camión usá Pesaje de cartón.',
       contenido: <ElegirProveedor valor={proveedor} onChange={setProveedor} />,
       listo: proveedor ? true : 'Elegí un proveedor para seguir',
+      rapido: true,
     },
     {
       titulo: '¿Qué compraste?',

@@ -99,7 +99,7 @@ export function NuevoPedido() {
   );
 
   const pasos: Paso[] = [
-    { titulo: '¿Quién pide?', ayuda: 'El cliente que hace el pedido. Si es nuevo, agregalo con el nombre.', contenido: <ElegirCliente valor={cliente} onChange={(c) => { setCliente(c); setVehiculo((v) => v ?? c.vehiculoHabitual); }} />, listo: cliente ? true : 'Elegí el cliente' },
+    { titulo: '¿Quién pide?', ayuda: 'El cliente que hace el pedido. Si es nuevo, agregalo con el nombre.', contenido: <ElegirCliente valor={cliente} onChange={(c) => { setCliente(c); setVehiculo((v) => v ?? c.vehiculoHabitual); }} />, listo: cliente ? true : 'Elegí el cliente', rapido: true },
     {
       titulo: '¿Qué pide?',
       ayuda: `Elegí el maple y cuánto. Podés anotarlo en palets (de ${porPalet} paquetes) o en paquetes sueltos. Te avisamos si hay stock o falta producir.`,

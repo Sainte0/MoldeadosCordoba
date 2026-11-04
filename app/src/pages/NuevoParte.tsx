@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { aMili, aMinutos, consumoTeorico, formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, TURNOS, type Turno } from '@moldeados/shared/base';
@@ -24,6 +24,7 @@ export function NuevoParte() {
   const [maquinaId, setMaquinaId] = useState<string | null>(null);
   const [varianteId, setVarianteId] = useState<string | null>(null);
   const [personal, setPersonal] = useState<string[]>([]);
+  const [tocoPersonal, setTocoPersonal] = useState(false);
   const [horas, setHoras] = useState('');
   const [pulpeadas, setPulpeadas] = useState('');
   const [paquetes, setPaquetes] = useState('');
@@ -47,6 +48,11 @@ export function NuevoParte() {
     return { ...r, teorico, real, stock };
   }) : []), [variante, minutos, correcciones, materias]);
 
+  // Arranca con la gente del turno marcada; si alguien tocó la lista, no se pisa más.
+  useEffect(() => {
+    if (!tocoPersonal && empleados) setPersonal(empleados.filter((e) => e.activo && e.turnoHabitual === turno).map((e) => e.id));
+  }, [turno, empleados, tocoPersonal]);
+
   const pasos: Paso[] = [
     {
       titulo: '¿Qué turno es?',
@@ -64,6 +70,7 @@ export function NuevoParte() {
       ayuda: 'La papelera de la que es este parte.',
       contenido: <Opciones valor={maquinaId} onChange={(id) => { setMaquinaId(id); setVarianteId(null); }} opciones={activas.map((m) => ({ valor: m.id, titulo: m.codigo, detalle: m.nombre }))} />,
       listo: maquinaId ? true : 'Elegí la máquina',
+      rapido: true,
     },
     {
       titulo: '¿Qué maple se hizo?',
@@ -79,14 +86,15 @@ export function NuevoParte() {
         </div>
       ) : <p className="tenue">Esta máquina no tiene códigos de maple cargados. Se agregan en Maples y recetas.</p>,
       listo: varianteId ? true : 'Elegí el maple',
+      rapido: true,
     },
     {
       titulo: '¿Quiénes trabajaron?',
-      ayuda: 'Tocá a cada persona que estuvo en la máquina este turno.',
+      ayuda: 'Ya marcamos a los de este turno. Tocá para sacar a quien faltó o sumar a quien vino de otro turno.',
       contenido: (
         <div className="opciones dos">
           {(empleados ?? []).filter((e) => e.activo).sort((a, b) => Number(b.turnoHabitual === turno) - Number(a.turnoHabitual === turno)).map((e) => (
-            <button type="button" key={e.id} className="opcion" aria-pressed={personal.includes(e.id)} onClick={() => setPersonal(personal.includes(e.id) ? personal.filter((x) => x !== e.id) : [...personal, e.id])}>
+            <button type="button" key={e.id} className="opcion" aria-pressed={personal.includes(e.id)} onClick={() => { setTocoPersonal(true); setPersonal(personal.includes(e.id) ? personal.filter((x) => x !== e.id) : [...personal, e.id]); }}>
               <span className="marca-op" aria-hidden /><span><b>{e.nombre}</b>{e.turnoHabitual && <small>Turno {LABEL_TURNO[e.turnoHabitual].toLowerCase()}</small>}</span>
             </button>
           ))}
@@ -121,7 +129,7 @@ export function NuevoParte() {
       ),
       listo: nPaquetes === null || Number.isNaN(nPaquetes) ? 'Ingresá los paquetes (0 si no salió nada)' : true,
     },
-    {
+    ...(consumos.length === 0 ? [] : [{
       titulo: '¿Se usó lo de siempre?',
       ayuda: 'Esto es lo que gasta la receta en ese tiempo. Si se usó distinto, corregí solo esa línea.',
       contenido: consumos.length ? (
@@ -131,16 +139,16 @@ export function NuevoParte() {
               <div>
                 <div className="principal">{c.nombre}</div>
                 <div className="chico tenue">Receta: {formatCantidad(c.teorico, c.unidad)} · en stock {formatCantidad(c.stock, c.unidad)}</div>
-                {c.real !== null && c.real > c.stock && <span className="marca-texto alerta">No alcanza lo que hay cargado: avisá a administración que falta cargar una compra</span>}
+                {c.real !== null && c.real > c.stock && <span className="atencion-item atencion" style={{ display: "block", marginTop: 6 }}>No alcanza lo que hay cargado: avisá a administración que falta cargar una compra</span>}
               </div>
               <EntradaNumero unidad={c.unidad === 'kg' ? 'kg' : 'L'} placeholder={formatCantidad(c.teorico, c.unidad).split(' ')[0]} aria-label={`${c.nombre} usado`}
                 value={correcciones[c.materiaPrimaId] ?? ''} onChange={(e) => setCorrecciones({ ...correcciones, [c.materiaPrimaId]: e.target.value })} />
             </div>
           ))}
         </div>
-      ) : <p className="tenue">Este maple no tiene receta cargada, así que no se descuenta materia prima.</p>,
+      ) : null,
       listo: consumos.some((c) => c.real === null || c.real < 0) ? 'Revisá las cantidades corregidas' : true,
-    },
+    } as Paso]),
     {
       titulo: 'Revisá y guardá',
       ayuda: 'Al guardar se suman los paquetes al stock de maples y se descuenta la materia prima.',

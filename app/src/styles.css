@@ -275,7 +275,7 @@ button.fila:last-child { border-bottom: 0; }
 }
 
 /* ---------- Producción ---------- */
-.maple-vista { position: relative; border-radius: var(--radio-m); background: radial-gradient(ellipse at 50% 40%, #1f3150, var(--tinta) 75%); overflow: hidden; }
+.maple-vista { position: relative; border-radius: var(--radio-m); background: radial-gradient(ellipse at 50% 30%, #ffffff, #e8ebf0 80%); border: 1px solid var(--linea); overflow: hidden; }
 .muestra { flex: none; width: 24px; height: 24px; border-radius: 50%; background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--c) 55%, #fff) 0 25%, var(--c) 70%, color-mix(in srgb, var(--c) 70%, #000)); box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.22); }
 .muestra.grande { width: 36px; height: 36px; }
 .con-muestra { display: flex; align-items: center; gap: 12px; min-width: 0; }

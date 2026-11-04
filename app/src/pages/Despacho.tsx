@@ -171,6 +171,7 @@ export function Despacho() {
       ayuda: 'El cliente que compra. Si es la primera vez, agregalo con el nombre.',
       contenido: <ElegirCliente valor={cliente} onChange={setCliente} />,
       listo: cliente ? true : 'Elegí el cliente',
+      rapido: true,
     },
     ...(!params.get('pedido') && pedidosCliente?.length ? [{
       titulo: '¿Es de un pedido?',
@@ -182,6 +183,7 @@ export function Despacho() {
         ]} />
       ),
       listo: true,
+      rapido: true,
     } as Paso] : []),
     {
       titulo: '¿Quién se lo lleva?',

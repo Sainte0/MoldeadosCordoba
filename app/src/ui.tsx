@@ -81,6 +81,8 @@ export interface Paso {
   contenido: ReactNode;
   /** Si es false, no se puede seguir. Opcional: mensaje de por qué. */
   listo: boolean | string;
+  /** Paso de una sola elección: al tocar una opción pasa solo al siguiente (un toque en vez de dos). */
+  rapido?: boolean;
 }
 
 /** Asistente: un paso por pantalla, con su instructivo y el avance en alvéolos. */
@@ -100,6 +102,13 @@ export function Asistente({ proceso, pasos, onTerminar, textoTerminar, guardando
   const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => titulo.current?.focus(), [i]);
   const puedeSeguir = paso.listo === true;
+  const [toque, setToque] = useState(0);
+  useEffect(() => {
+    if (!toque || !paso.rapido || paso.listo !== true || ultimo) return;
+    const t = setTimeout(() => setI((x) => x + 1), 200); // un instante para que se vea la opción marcada
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo reacciona al toque
+  }, [toque]);
 
   const seguir = () => {
     if (!puedeSeguir) return;
@@ -110,7 +119,7 @@ export function Asistente({ proceso, pasos, onTerminar, textoTerminar, guardando
   return (
     <form className="asistente columna" onSubmit={(e) => { e.preventDefault(); seguir(); }}>
       <Alveolos total={pasos.length} actual={i} />
-      <div className="paso-cuerpo" key={i}>
+      <div className="paso-cuerpo" key={i} onClickCapture={(e) => { if ((e.target as HTMLElement).closest('.opcion')) setToque((n) => n + 1); }}>
         <h1 ref={titulo} tabIndex={-1}>{paso.titulo}</h1>
         <Instructivo clave={`${proceso}:${paso.titulo}`} original={paso.ayuda} />
         {paso.contenido}
