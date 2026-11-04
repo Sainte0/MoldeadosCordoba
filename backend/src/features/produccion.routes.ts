@@ -16,6 +16,14 @@ const uuidOk = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined)
 const COLS_VARIANTE = ['v.id', 'v.codigo', 'v.nombre', 'v.tamano', 'v.color', 'v.color_hex as colorHex', 'v.maquina_id as maquinaId', 'v.maples_por_paquete as maplesPorPaquete', 'v.maples_por_hora as maplesPorHora', 'v.activo', 'm.codigo as maquina'];
 
 export async function produccionRoutes(app: FastifyInstance): Promise<void> {
+  // ---------- Catálogo para la pantalla de entrada (sin sesión) ----------
+  // Solo nombre, color y tamaño de los maples que se fabrican: el producto, lo mismo que muestran en su web. Ni
+  // códigos ni nada interno.
+  app.get('/publico/maples', async () => {
+    const filas = await db('variantes').whereNull('deleted_at').where({ activo: true }).orderBy('codigo').limit(6).select('nombre', 'color_hex as colorHex', 'tamano');
+    return { data: filas };
+  });
+
   // ---------- Empresa ----------
   app.get('/empresa', async (req) => {
     sesion(req);

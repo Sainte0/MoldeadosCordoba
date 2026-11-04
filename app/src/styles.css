@@ -568,3 +568,10 @@ select.entrada { appearance: none; -webkit-appearance: none; font-size: 16px; ba
 @media (max-width: 760px) { .barra-arriba { display: none; } }
 .campana .globito.ambar { background: var(--atencion-c); }
 
+.login-maple-etiqueta { position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(14, 26, 48, 0.72); backdrop-filter: blur(4px); color: #fff; font-size: 0.9rem; white-space: nowrap; animation: etiqueta-entra 0.3s ease-out; }
+.login-maple-etiqueta i { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35); }
+.login-maple-etiqueta span { color: #fff; }
+.login-maple-etiqueta em { font-style: normal; color: #b9c4d6; }
+@keyframes etiqueta-entra { from { opacity: 0; transform: translate(-50%, 6px); } }
+@media (prefers-reduced-motion: reduce) { .login-maple-etiqueta { animation: none; } }
+@media (max-width: 900px) { .login-maple-etiqueta { font-size: 0.78rem; padding: 4px 10px; } .login-maple-etiqueta em { display: none; } }

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { ArrowLeft, Eye, EyeOff, LogIn, Mail } from 'lucide-react';
 import { api, useSesion } from '../api';
 import { Aviso, Campo, Entrada } from '../ui';
@@ -6,6 +6,9 @@ import { Aviso, Campo, Entrada } from '../ui';
 const Maple3D = lazy(() => import('../Maple3D'));
 // El rojo de los maples de sus fotos.
 const ROJO_MAPLE = '#b3262a';
+interface MapleCatalogo { nombre: string; colorHex: string | null; tamano?: 'chico' | 'grande' }
+// Sin catálogo (sin señal): la pila con los colores de sus maples.
+const SIN_CATALOGO: MapleCatalogo[] = [{ nombre: 'Maple grande rojo', colorHex: ROJO_MAPLE }, { nombre: 'Maple grande natural', colorHex: null }];
 
 // El último usuario que entró en este dispositivo: el mismo equipo lo usa siempre, que no haya que tipearlo.
 const CLAVE_USUARIO = 'moldeados:ultimo-usuario';
@@ -30,6 +33,13 @@ export function Login() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [trabajando, setTrabajando] = useState(false);
+  // Los maples que fabrican (lo mismo que su web): se apilan y se muestran de a uno.
+  const [catalogo, setCatalogo] = useState<MapleCatalogo[]>(SIN_CATALOGO);
+  const [mostrando, setMostrando] = useState(0);
+  useEffect(() => {
+    api<MapleCatalogo[]>('/publico/maples').then((m) => { if (m.length) setCatalogo(m); }).catch(() => {});
+  }, []);
+  const actual = catalogo[mostrando] ?? catalogo[0];
 
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +88,15 @@ export function Login() {
           <img src="/logo.webp" width={40} height={39} alt="" />
           <span>Planta y administración</span>
         </div>
-        <div className="login-maple"><Suspense fallback={null}><Maple3D color={ROJO_MAPLE} /></Suspense></div>
+        <div className="login-maple">
+          <Suspense fallback={null}><Maple3D colores={catalogo.map((m) => m.colorHex)} chicos={catalogo.map((m) => m.tamano === 'chico')} onMostrando={setMostrando} /></Suspense>
+          {actual && (
+            <div className="login-maple-etiqueta" key={actual.nombre}>
+              <i style={{ background: actual.colorHex ?? '#c9b490' }} />
+              <span>{actual.nombre}<em> · 30 huevos</em></span>
+            </div>
+          )}
+        </div>
         <div className="login-pie">
           <p className="nombre">Moldeados<span>Córdoba</span></p>
           <p className="bajada">Maples de pulpa moldeada, de cartón reciclado.</p>
