@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { CircleHelp, Home, LogOut, Menu, Search, X } from 'lucide-react';
 import { AJUSTES, AREAS, enArea, type Area } from './navegacion';
+import { Reloj } from './Reloj';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
@@ -76,7 +77,8 @@ export function App() {
     <div className="marco">
       <div className="barra-movil">
         <Marca />
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <Reloj />
           <button className="boton icono" onClick={() => setBuscando(true)} aria-label="Buscar"><Search size={22} /></button>
           {pathname !== '/ayuda' && <NavLink className="boton icono" to={`/ayuda?desde=${encodeURIComponent(pathname)}`} aria-label="Ayuda"><CircleHelp size={24} /></NavLink>}
           <button className="boton icono" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={26} /></button>
@@ -102,6 +104,7 @@ export function App() {
         })}
         <NavLink to={`/ayuda?desde=${encodeURIComponent(pathname === '/ayuda' ? '' : pathname)}`} className={() => `nav-link${pathname === '/ayuda' ? ' activo' : ''}`}><CircleHelp size={20} aria-hidden /> Ayuda</NavLink>
         <div className="nav-pie">
+          <Reloj conFecha />
           <div>{sesion.usuario.nombre}</div>
           <div>{LABEL_ROL[sesion.usuario.rol]}</div>
           <button onClick={salir}><LogOut size={16} aria-hidden /> Salir</button>

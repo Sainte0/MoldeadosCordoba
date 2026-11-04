@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Copy, MessageCircle } from 'lucide-react';
 import { formatCantidad, formatMinutos, formatPesos, type Unidad } from '@moldeados/shared/base';
 import { api, hoy, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { Muestra } from '../MapleVista';
 import { BotonExportar } from './Exportar';
-import { Cabecera, Cargando } from '../ui';
+import { Cabecera, Cargando, Dialogo } from '../ui';
 
 // Dos series, siempre en este orden y color (validados para daltonismo con el validador de paleta):
 // ingresos = azul de la marca, egresos = naranja cartón.
@@ -53,6 +53,7 @@ const PERIODOS = [['mes', 'Este mes'], ['mes-pasado', 'Mes pasado'], ['30', 'Úl
 /** El tablero del dueño: cuánto entró, cuánto salió, qué se hizo, quién debe. */
 export function Tablero() {
   const [f, setF] = useFiltros({ periodo: 'mes' });
+  const [resumen, setResumen] = useState(false);
   const clave = f.periodo;
   const [desde, hasta] = periodo(clave);
   const { data: t, isLoading } = useQuery({ queryKey: ['tablero', desde, hasta], queryFn: () => api<Datos>(`/tablero?desde=${desde}&hasta=${hasta}`) });
@@ -65,7 +66,9 @@ export function Tablero() {
           {PERIODOS.map(([k, l]) => <button key={k} aria-pressed={clave === k} onClick={() => setF({ periodo: k })}>{l}</button>)}
         </div>
         <BotonExportar que="todo" desde={desde} hasta={hasta} texto="Descargar el período (.zip)" />
+        <button className="boton secundario" onClick={() => setResumen(true)}><MessageCircle size={18} aria-hidden /> Resumen del día</button>
       </Cabecera>
+      {resumen && <ResumenDelDia onCerrar={() => setResumen(false)} />}
       {isLoading || !t ? <Cargando /> : (
         <>
           <div className="cifras">
@@ -264,5 +267,21 @@ function CostoYMargen({ c }: { c: Datos['costos'] }) {
         ))}
       </section>
     </div>
+  );
+}
+
+/** El resumen del día listo para mandar por WhatsApp (el mismo que llega por mail si está configurado). */
+function ResumenDelDia({ onCerrar }: { onCerrar: () => void }) {
+  const { data } = useQuery({ queryKey: ['resumen'], queryFn: () => api<{ titulo: string; texto: string }>('/resumen'), staleTime: 0 });
+  const [copiado, setCopiado] = useState(false);
+  return (
+    <Dialogo titulo="Resumen del día" onCerrar={onCerrar}>
+      {!data ? <Cargando /> : <pre className="resumen-texto">{data.texto.replace(/\*/g, '')}</pre>}
+      <p className="chico tenue">Para recibirlo solo todas las noches por mail: Ajustes › Equipo › Datos de la empresa.</p>
+      <div className="acciones">
+        <button className="boton secundario" disabled={!data} onClick={async () => { await navigator.clipboard.writeText(data!.texto); setCopiado(true); }}><Copy size={18} aria-hidden /> {copiado ? 'Copiado' : 'Copiar'}</button>
+        <a className="boton primario" href={data ? `https://wa.me/?text=${encodeURIComponent(data.texto)}` : undefined} target="_blank" rel="noreferrer"><MessageCircle size={18} aria-hidden /> Compartir por WhatsApp</a>
+      </div>
+    </Dialogo>
   );
 }

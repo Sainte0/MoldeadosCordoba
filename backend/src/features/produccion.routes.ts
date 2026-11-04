@@ -18,14 +18,14 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
   // ---------- Empresa ----------
   app.get('/empresa', async (req) => {
     sesion(req);
-    return { data: await db('empresa').first('razon_social as razonSocial', 'direccion', 'telefono', 'email', 'cuit') };
+    return { data: await db('empresa').first('razon_social as razonSocial', 'direccion', 'telefono', 'email', 'cuit', 'resumen_emails as resumenEmails', 'resumen_hora as resumenHora') };
   });
   app.put('/empresa', async (req) => {
     const s = await requerir(db, req, 'usuarios', 3);
     const i = empresaSchema.parse(req.body);
     await db.transaction(async (trx) => {
       const antes = await trx('empresa').first();
-      await trx('empresa').where({ id: 1 }).update({ razon_social: i.razonSocial, direccion: i.direccion, telefono: i.telefono, email: i.email, cuit: i.cuit, updated_at: trx.fn.now() });
+      await trx('empresa').where({ id: 1 }).update({ razon_social: i.razonSocial, direccion: i.direccion, telefono: i.telefono, email: i.email, cuit: i.cuit, resumen_emails: i.resumenEmails, resumen_hora: i.resumenHora, updated_at: trx.fn.now() });
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'empresa', antes, despues: i });
     });
     return { data: { ok: true } };

@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { cajaSchema, gastoSchema } from '@moldeados/shared';
 import { db } from '../src/db.js';
 import { anularGasto, crearGasto, saldoCaja, tablero } from '../src/features/gastos.service.js';
+import { armarResumen, toca } from '../src/features/resumen.js';
 
 describe('gastos, caja chica y tablero (moldeados_test)', () => {
   let u: string, cat: string, cliente: string, prov: string;
@@ -48,5 +49,18 @@ describe('gastos, caja chica y tablero (moldeados_test)', () => {
     expect(t.serie).toHaveLength(7);
     expect(t.serie.find((s) => s.inicio === '2026-11-02')).toMatchObject({ ingresos: 10_000_000, egresos: 3_000_000 });
     expect((await tablero(db, '2026-01-01', '2026-11-07')).paso).toBe('week');
+  });
+
+  it('resumen diario: una sola vez por día, desde la hora elegida; con lo del día y los avisos', async () => {
+    expect(toca(20, 19, null, '2026-11-04')).toBe(false);
+    expect(toca(20, 20, '2026-11-03', '2026-11-04')).toBe(true);
+    expect(toca(20, 23, '2026-11-04', '2026-11-04')).toBe(false);
+    await db('ventas').insert({ cliente_id: cliente, fecha: '2026-11-04', con_factura: false, neto_centavos: 9_000_000, iva_centavos: 0, total_centavos: 9_000_000, usuario_id: u });
+    await db('movimientos_dinero').insert({ tipo: 'pago', proveedor_id: prov, fecha: '2026-11-01', monto_centavos: 2_500_000, medio: 'echeq', banco_id: (await db('bancos').first('id')).id, cheque_numero: '1', cheque_fecha_cobro: '2026-11-05', usuario_id: u });
+    const r = await armarResumen(db, '2026-11-04');
+    expect(r.texto).toContain('*Ventas:* 1 despacho,');
+    expect(r.texto).toContain('Granja: $');
+    expect(r.texto).toContain('Cheque nuestro a cubrir el 05/11');
+    expect(r.texto).toContain('sin partes cargados');
   });
 });

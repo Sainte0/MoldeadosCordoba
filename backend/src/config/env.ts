@@ -11,6 +11,13 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(4800),
   APP_URL: z.string().url().default('http://localhost:4801'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET debe tener al menos 16 caracteres'),
+  // Mail del resumen diario: 'log' (no manda, imprime) o 'smtp' (Hostinger u otra casilla).
+  EMAIL_PROVIDER: z.enum(['log', 'smtp']).default('log'),
+  SMTP_HOST: z.string().default('smtp.hostinger.com'),
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().default('Moldeados Córdoba <sistema@moldeadoscordoba.com.ar>'),
 });
 
 const parsed = schema.safeParse(process.env);

@@ -83,7 +83,7 @@ p { margin: 0; max-width: 68ch; }
 .nav-link.activo svg { color: var(--accion); }
 .nav-ajustes { margin-top: auto; }
 .nav-pie { padding: 12px; margin-top: 8px; border-top: 1px solid var(--linea); font-size: 0.875rem; color: var(--tinta-3); }
-.nav-pie > div:first-child { color: var(--tinta); font-weight: 600; }
+.nav-pie > div:first-of-type { color: var(--tinta); font-weight: 600; }
 .nav-pie button { background: none; border: 0; color: var(--tinta-2); padding: 8px 0 0; cursor: pointer; display: flex; gap: 8px; align-items: center; }
 .nav-pie button:hover { color: var(--accion); }
 .columna { max-width: 720px; }
@@ -380,8 +380,18 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
   .buscador-global { width: 100%; max-height: none; height: 100dvh; border-radius: 0; padding-top: env(safe-area-inset-top); }
 }
 
+/* Resumen del día */
+.resumen-texto { white-space: pre-wrap; font: inherit; font-size: 0.92rem; margin: 0; padding: 14px 16px; background: var(--superficie-2); border-radius: var(--radio-s); max-height: 50dvh; overflow: auto; }
+
 /* Firma en pantalla */
 .firma-pad { position: relative; }
 .firma-pad canvas { display: block; width: 100%; background: #fff; border: 1px dashed var(--linea-fuerte); border-radius: var(--radio-s); touch-action: none; cursor: crosshair; }
 .firma-guia { position: absolute; left: 16px; bottom: 14px; color: var(--tinta-3); pointer-events: none; }
 .firma-borrar { position: absolute; right: 6px; top: 6px; }
+
+/* Reloj (hora de Argentina) */
+.reloj { display: inline-flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; color: var(--tinta-2); white-space: nowrap; }
+.reloj b { font-variation-settings: 'wdth' 82; font-weight: 700; color: var(--tinta); font-size: 0.95rem; }
+.reloj span { font-size: 0.8rem; text-transform: capitalize; }
+.nav-pie .reloj { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--linea); }
+.barra-movil .reloj { margin-right: 4px; }

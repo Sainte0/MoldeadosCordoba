@@ -287,6 +287,7 @@ export const GUIAS: Guia[] = [
       'El gráfico muestra entradas y salidas por día o semana; tocá una barra para ver los montos.',
       '"Costo y margen" dice cuánto cuesta en materia prima cada maple y cuánto deja cada cliente.',
       '"Descargar el período" baja todo en un .zip para el contador.',
+      '"Resumen del día" arma un resumen de ventas, producción, plata y avisos para mandar por WhatsApp. Para recibirlo solo cada noche por mail, cargá los mails en Ajustes › Equipo › Datos de la empresa.',
     ],
   },
   {

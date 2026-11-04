@@ -158,6 +158,8 @@ export const empresaSchema = z.object({
   telefono: opcional(40),
   email: opcional(120),
   cuit: opcional(20),
+  resumenEmails: opcional(500).refine((v) => v === null || v.split(/[,;\s]+/).filter(Boolean).every((m) => /^\S+@\S+\.\S+$/.test(m)), 'Revisá los mails del resumen (separalos con comas)'),
+  resumenHora: z.number().int().min(0).max(23).default(20),
 });
 
 export const clienteSchema = z.object({
