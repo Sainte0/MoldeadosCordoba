@@ -266,3 +266,6 @@ export function ocurrencias(r: { fecha: string; repetir: Repeticion }, desde: st
   for (; f <= hasta && fuera.length < 400; f = sumarDias(f, paso)) fuera.push(f);
   return fuera;
 }
+
+/** Cliente donde quedan las ventas de la planilla que no tienen nombre. No es un cliente real: no entra en "Para vender". */
+export const CLIENTE_SIN_NOMBRE = 'Clientes sin nombre (planilla)';

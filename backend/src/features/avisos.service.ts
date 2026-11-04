@@ -1,5 +1,5 @@
 import type { Knex } from 'knex';
-import { estadoStock, formatPesos, ORDEN_NIVEL, ritmoCliente, type Nivel3, type Unidad } from '@moldeados/shared';
+import { CLIENTE_SIN_NOMBRE, estadoStock, formatPesos, ORDEN_NIVEL, ritmoCliente, type Nivel3, type Unidad } from '@moldeados/shared';
 
 // Avisos que el sistema saca solo de lo que ya se carga: a quién llamar para vender, qué materia prima se está
 // por acabar y cuánto cuesta hacer cada maple. Nada de esto se carga a mano.
@@ -8,7 +8,7 @@ import { estadoStock, formatPesos, ORDEN_NIVEL, ritmoCliente, type Nivel3, type 
 export async function recompra(db: Knex, hoy: string) {
   const filas: { id: string; nombre: string; telefono: string | null; contactado_at: Date | null; fechas: string[]; ultimo_total: number; ultimo_maples: number }[] = await db('clientes as c')
     .join('ventas as v', 'v.cliente_id', 'c.id')
-    .whereNull('c.deleted_at').whereNull('v.anulado_at')
+    .whereNull('c.deleted_at').whereNull('v.anulado_at').whereNot('c.nombre', CLIENTE_SIN_NOMBRE)
     .groupBy('c.id', 'c.nombre', 'c.telefono', 'c.contactado_at')
     .select('c.id', 'c.nombre', 'c.telefono', 'c.contactado_at',
       db.raw("array_agg(to_char(v.fecha, 'YYYY-MM-DD') order by v.fecha) as fechas"),

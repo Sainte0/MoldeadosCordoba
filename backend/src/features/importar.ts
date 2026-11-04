@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Knex } from 'knex';
 import { z } from 'zod';
-import { aCentavos, aMili, type Modulo, type Nivel } from '@moldeados/shared';
+import { aCentavos, aMili, CLIENTE_SIN_NOMBRE, type Modulo, type Nivel } from '@moldeados/shared';
 import { db } from '../db.js';
 import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
@@ -227,7 +227,7 @@ const TIPOS: Record<string, Tipo> = {
         const remito = /^(\d{1,9})\b/.exec(comp)?.[1] ? Number(/^(\d{1,9})\b/.exec(comp)![1]) : null;
         const conFactura = !!factura;
         const neto = conFactura ? Math.round(total / 1.21) : total;
-        const nombre = txt(f.cliente) || 'Clientes sin nombre (planilla)';
+        const nombre = txt(f.cliente) || CLIENTE_SIN_NOMBRE;
         const cli = (await porNombre(trx, 'clientes', nombre, true))!;
         let varianteId = porDefecto;
         if (txt(f.codigo)) {
