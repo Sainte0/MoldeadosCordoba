@@ -192,7 +192,7 @@ export const GUIAS: Guia[] = [
   },
   {
     id: 'agenda', area: 'Primeros pasos', titulo: 'Agenda y recordatorios para el equipo', pantallas: ['/agenda', '/'],
-    palabras: 'recordatorio recordar tarea pendiente calendario agenda aviso alarma avisar equipo empleados',
+    palabras: 'recordatorio recordar tarea pendiente calendario agenda mes mensual aviso alarma avisar equipo empleados personas',
     pasos: [
       'Abrí la Agenda desde Inicio (arriba, "Agenda") o desde la campana.',
       'Tocá "Nuevo recordatorio": escribí qué hay que hacer, el día y, si importa, la hora.',
@@ -200,6 +200,8 @@ export const GUIAS: Guia[] = [
       'A cada persona le aparece en su agenda y en el inicio, y le llega un aviso a la hora (sin hora, a las 8).',
       'Cuando alguien lo hace, toca el círculo: queda hecho para todos y a quien lo creó le llega el aviso.',
       'Lo que pasó de fecha sin hacer aparece en rojo como "Atrasado". Para cambiarlo o borrarlo, tocá el lápiz.',
+      'Vista "Mes": un calendario con lo de cada día (en el teléfono, puntitos: azul pendiente, rojo atrasado, verde hecho). Tocá un día para ver el detalle o "Agendar este día". Con las flechas pasás de mes.',
+      'El dueño puede ver la agenda de otras personas: arriba, en "Ver la agenda de", tocá una o varias, o "Todo el equipo".',
     ],
   },
   {

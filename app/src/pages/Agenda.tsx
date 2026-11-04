@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarPlus, Trash2 } from 'lucide-react';
+import { CalendarPlus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { LABEL_REPETIR, REPETICIONES, type Repeticion } from '@moldeados/shared/base';
 import { api, hoy, useSesion, verFecha } from '../api';
 import { useFiltros } from '../filtros';
@@ -14,39 +14,79 @@ const masDias = (iso: string, n: number) => { const d = new Date(`${iso}T12:00:0
 const fmtDia = new Intl.DateTimeFormat('es-AR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const nombreDia = (iso: string, h: string) => (iso === h ? 'Hoy' : iso === masDias(h, 1) ? 'Mañana' : fmtDia.format(new Date(`${iso}T12:00:00Z`)).replace(/^./, (c) => c.toUpperCase()));
 
-/** Agenda: lo atrasado primero, después día por día (próximos 30 días, o desde la fecha que venga en la dirección). */
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const ultimoDia = (mes: string) => { const [a, m] = mes.split('-').map(Number); return `${mes}-${String(new Date(Date.UTC(a!, m!, 0)).getUTCDate()).padStart(2, '0')}`; };
+const mover = (mes: string, n: number) => { const [a, m] = mes.split('-').map(Number); const d = new Date(Date.UTC(a!, m! - 1 + n, 1)); return d.toISOString().slice(0, 7); };
+const nombreMes = (mes: string) => `${MESES[Number(mes.slice(5, 7)) - 1]} ${mes.slice(0, 4)}`;
+
+/**
+ * Agenda: en lista (lo atrasado primero, después día por día) o en mes (calendario; se toca un día para ver lo
+ * suyo). Se puede ir mes por mes. Quien maneja el equipo elige de quién ver la agenda: suya, de una o varias
+ * personas, o de todo el equipo. Todo queda en la dirección.
+ */
 export function Agenda() {
-  const { puede } = useSesion();
+  const { puede, sesion } = useSesion();
   const ir = useNavigate();
-  const [f, setF] = useFiltros({ ver: 'mios', fecha: '' });
+  const jefe = puede('usuarios', 3);
+  const [f, setF] = useFiltros({ vista: 'lista', mes: '', dia: '', quien: '', fecha: '' });
   const h = hoy();
-  const desde = f.fecha && f.fecha > h ? f.fecha : h;
-  const todos = f.ver === 'todos' && puede('usuarios', 3);
-  const { data, isLoading } = useAgenda(desde, masDias(desde, DIAS), todos);
+  const esteMes = h.slice(0, 7);
+  const mes = /^\d{4}-\d{2}$/.test(f.mes) ? f.mes : f.fecha ? f.fecha.slice(0, 7) : esteMes;
+  const porMes = f.vista === 'mes' || !!f.mes || !!f.fecha;
+  // Lista sin mes elegido: los próximos 30 días desde hoy. Con mes (o vista mes): ese mes entero.
+  const desde = porMes ? `${mes}-01` : h;
+  const hasta = porMes ? ultimoDia(mes) : masDias(h, DIAS);
+  const quien = jefe ? f.quien : '';
+  const { data, isLoading } = useAgenda(desde, hasta, quien);
+  const { data: personas } = useQuery({ queryKey: ['agenda', 'personas'], queryFn: () => api<Persona[]>('/agenda/personas'), enabled: jefe });
 
   const items = data?.items ?? [];
-  const atrasados = items.filter((x) => x.atrasado);
+  const atrasados = items.filter((x) => x.atrasado && x.fecha < desde);
+  const delRango = items.filter((x) => !(x.atrasado && x.fecha < desde));
   const porDia = new Map<string, ItemAgenda[]>();
-  for (const x of items.filter((y) => !y.atrasado)) porDia.set(x.fecha, [...(porDia.get(x.fecha) ?? []), x]);
+  for (const x of delRango) porDia.set(x.fecha, [...(porDia.get(x.fecha) ?? []), x]);
+
+  const elegidos = quien && quien !== 'todos' ? quien.split(',') : [];
+  const alternar = (id: string) => {
+    const n = elegidos.includes(id) ? elegidos.filter((x) => x !== id) : [...elegidos, id];
+    setF({ quien: n.join(',') });
+  };
+  const deQuien = quien === 'todos' ? 'de todo el equipo' : elegidos.length ? `de ${(personas ?? []).filter((p) => elegidos.includes(p.id)).map((p) => p.nombre.split(' ')[0]).join(', ')}` : 'tuya';
 
   return (
-    <div className="ancho columna" style={{ display: 'grid', gap: 24 }}>
+    <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       <Cabecera titulo="Agenda" bajada="Recordatorios para vos o para el equipo. Les llega un aviso a la hora; lo marca hecho uno y queda hecho para todos.">
-        <button className="boton primario" onClick={() => ir('/agenda/nuevo')}><CalendarPlus size={18} aria-hidden /> Nuevo recordatorio</button>
+        <button className="boton primario" onClick={() => ir(`/agenda/nuevo${f.dia ? `?fecha=${f.dia}` : ''}`)}><CalendarPlus size={18} aria-hidden /> Nuevo recordatorio</button>
       </Cabecera>
-      {puede('usuarios', 3) && (
-        <div className="pestanas" role="group" aria-label="Qué ver">
-          <button aria-pressed={!todos} onClick={() => setF({ ver: 'mios' })}>Los míos</button>
-          <button aria-pressed={todos} onClick={() => setF({ ver: 'todos' })}>De todo el equipo</button>
+
+      {jefe && (
+        <div className="hoja relleno" style={{ display: 'grid', gap: 10 }}>
+          <span className="chico tenue">Ver la agenda de</span>
+          <div className="chips" role="group" aria-label="De quién">
+            <button aria-pressed={!quien} onClick={() => setF({ quien: '' })}>Mía</button>
+            <button aria-pressed={quien === 'todos'} onClick={() => setF({ quien: 'todos' })}>Todo el equipo</button>
+            {(personas ?? []).filter((p) => p.id !== sesion?.usuario.id).map((p) => <button key={p.id} aria-pressed={elegidos.includes(p.id)} onClick={() => alternar(p.id)}>{p.nombre}</button>)}
+          </div>
         </div>
       )}
-      {f.fecha && f.fecha > h && <p className="tenue">Desde el {verFecha(f.fecha)} · <button className="enlace" onClick={() => setF({ fecha: '' })}>Ver desde hoy</button></p>}
-      {isLoading ? <Cargando /> : !items.length ? (
-        <div className="hoja relleno vacio">
-          <p>No hay nada agendado para los próximos {DIAS} días.</p>
-          <button className="boton secundario" onClick={() => ir('/agenda/nuevo')}><CalendarPlus size={18} aria-hidden /> Agendar algo</button>
+
+      <div className="barra-agenda">
+        <div className="pestanas" role="group" aria-label="Vista">
+          <button aria-pressed={!porMes} onClick={() => setF({ vista: 'lista', mes: '', dia: '', fecha: '' })}>Próximos días</button>
+          <button aria-pressed={porMes} onClick={() => setF({ vista: 'mes', fecha: '' })}>Mes</button>
         </div>
-      ) : (
+        {porMes && (
+          <div className="navegar-mes">
+            <button className="boton icono" aria-label="Mes anterior" onClick={() => setF({ mes: mover(mes, -1), dia: '', fecha: '' })}><ChevronLeft size={22} /></button>
+            <b>{nombreMes(mes)}</b>
+            <button className="boton icono" aria-label="Mes siguiente" onClick={() => setF({ mes: mover(mes, 1), dia: '', fecha: '' })}><ChevronRight size={22} /></button>
+            {mes !== esteMes && <button className="boton fantasma" onClick={() => setF({ mes: '', dia: '', fecha: '' })}>Este mes</button>}
+          </div>
+        )}
+      </div>
+
+      {isLoading ? <Cargando /> : (
         <>
           {atrasados.length > 0 && (
             <section className="hoja">
@@ -54,15 +94,63 @@ export function Agenda() {
               {atrasados.map((x) => <RenglonAgenda key={x.id + x.fecha} x={x} />)}
             </section>
           )}
-          {[...porDia].map(([dia, lista]) => (
-            <section className="hoja" key={dia}>
-              <div className="fila"><h3>{nombreDia(dia, h)}</h3>{dia === h && <span className="chico tenue">{((n) => (n ? `${n} sin hacer` : 'Todo hecho'))(lista.filter((x) => !x.hecho).length)}</span>}</div>
-              {lista.map((x) => <RenglonAgenda key={x.id + x.fecha} x={x} />)}
-            </section>
-          ))}
+          {porMes
+            ? <VistaMes mes={mes} hoy={h} porDia={porDia} dia={f.dia} onDia={(d) => setF({ dia: d })} deQuien={deQuien} onNuevo={(d) => ir(`/agenda/nuevo?fecha=${d}`)} />
+            : !delRango.length ? (
+              <div className="hoja relleno vacio">
+                <p>No hay nada agendado {quien ? deQuien : ''} para los próximos {DIAS} días.</p>
+                <button className="boton secundario" onClick={() => ir('/agenda/nuevo')}><CalendarPlus size={18} aria-hidden /> Agendar algo</button>
+              </div>
+            ) : [...porDia].map(([d, lista]) => (
+              <section className="hoja" key={d}>
+                <div className="fila"><h3>{nombreDia(d, h)}</h3>{d === h && <span className="chico tenue">{((n) => (n ? `${n} sin hacer` : 'Todo hecho'))(lista.filter((x) => !x.hecho).length)}</span>}</div>
+                {lista.map((x) => <RenglonAgenda key={x.id + x.fecha} x={x} />)}
+              </section>
+            ))}
         </>
       )}
     </div>
+  );
+}
+
+/** Calendario del mes: cada día con sus recordatorios (en el teléfono, puntitos); tocando un día se ve el detalle. */
+function VistaMes({ mes, hoy: h, porDia, dia, onDia, deQuien, onNuevo }: { mes: string; hoy: string; porDia: Map<string, ItemAgenda[]>; dia: string; onDia: (d: string) => void; deQuien: string; onNuevo: (d: string) => void }) {
+  const primero = new Date(`${mes}-01T12:00:00Z`);
+  const corrimiento = (primero.getUTCDay() + 6) % 7; // lunes = 0
+  const ultimo = Number(ultimoDia(mes).slice(8));
+  const celdas: (string | null)[] = [...Array(corrimiento).fill(null), ...Array.from({ length: ultimo }, (_, i) => `${mes}-${String(i + 1).padStart(2, '0')}`)];
+  while (celdas.length % 7) celdas.push(null);
+  const elegido = dia && dia.startsWith(mes) ? dia : h.startsWith(mes) ? h : `${mes}-01`;
+  const delDia = porDia.get(elegido) ?? [];
+  const estado = (x: ItemAgenda) => (x.hecho ? 'hecho' : x.atrasado ? 'atrasado' : 'pendiente');
+
+  return (
+    <>
+      <section className="hoja calendario" aria-label={`Agenda ${deQuien} de ${nombreMes(mes)}`}>
+        {DIAS_SEMANA.map((d) => <div key={d} className="dia-semana">{d}</div>)}
+        {celdas.map((c, i) => {
+          if (!c) return <div key={i} className="celda vacia" />;
+          const lista = porDia.get(c) ?? [];
+          return (
+            <button key={c} className={`celda${c === h ? ' hoy' : ''}${c === elegido ? ' elegida' : ''}`} onClick={() => onDia(c)} aria-label={`${nombreDia(c, h)}: ${lista.length ? `${lista.length} recordatorios` : 'nada agendado'}`}>
+              <span className="numero">{Number(c.slice(8))}</span>
+              <span className="items">
+                {lista.slice(0, 3).map((x) => <span key={x.id} className={`item ${estado(x)}`}>{x.hora && <b>{x.hora} </b>}{x.titulo}</span>)}
+                {lista.length > 3 && <span className="mas">+{lista.length - 3}</span>}
+              </span>
+              <span className="puntos" aria-hidden>{lista.slice(0, 4).map((x) => <i key={x.id} className={estado(x)} />)}</span>
+            </button>
+          );
+        })}
+      </section>
+      <section className="hoja">
+        <div className="fila">
+          <h3>{nombreDia(elegido, h)}</h3>
+          <button className="boton fantasma" onClick={() => onNuevo(elegido)}><CalendarPlus size={18} aria-hidden /> Agendar este día</button>
+        </div>
+        {delDia.length ? delDia.map((x) => <RenglonAgenda key={x.id + x.fecha} x={x} />) : <p className="tenue" style={{ padding: '0 18px 18px' }}>Nada agendado {deQuien === 'tuya' ? '' : deQuien} este día.</p>}
+      </section>
+    </>
   );
 }
 
@@ -85,7 +173,8 @@ export function NuevoRecordatorio() {
 
   const [titulo, setTitulo] = useState('');
   const [detalle, setDetalle] = useState('');
-  const [fecha, setFecha] = useState(hoy());
+  const [params] = useSearchParams();
+  const [fecha, setFecha] = useState(() => (/^\d{4}-\d{2}-\d{2}$/.test(params.get('fecha') ?? '') ? params.get('fecha')! : hoy()));
   const [hora, setHora] = useState('');
   const [repetir, setRepetir] = useState<Repeticion>('no');
   const [para, setPara] = useState<ParaQuien>('yo');
@@ -111,7 +200,7 @@ export function NuevoRecordatorio() {
       const body = { titulo, detalle: detalle || undefined, fecha, hora: hora || null, repetir, paraTodos: para === 'todos', usuarios };
       await api(id ? `/agenda/${id}` : '/agenda', { method: id ? 'PUT' : 'POST', body });
       await qc.invalidateQueries({ queryKey: ['agenda'] });
-      ir(`/agenda${fecha > hoy() ? `?fecha=${fecha}` : ''}`, { replace: true });
+      ir(`/agenda${fecha.slice(0, 7) !== hoy().slice(0, 7) ? `?vista=mes&mes=${fecha.slice(0, 7)}&dia=${fecha}` : fecha > hoy() ? `?vista=mes&dia=${fecha}` : ''}`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
       setGuardando(false);

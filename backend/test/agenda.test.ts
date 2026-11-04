@@ -70,6 +70,19 @@ describe('agenda (moldeados_test)', () => {
     expect(l[0].titulo).toBe('Service compresor');
   });
 
+  it('el dueño ve la agenda de una o varias personas; un operario no puede pedir la de otro', async () => {
+    await pedir('dueno', 'POST', '/agenda', { titulo: 'Para Ana', fecha: hoy, usuarios: [u.ana!.id] });
+    await pedir('dueno', 'POST', '/agenda', { titulo: 'Para Luis', fecha: hoy, usuarios: [u.luis!.id] });
+    await pedir('carla', 'POST', '/agenda', { titulo: 'De Carla para ella', fecha: hoy, usuarios: [u.carla!.id] });
+    await pedir('dueno', 'POST', '/agenda', { titulo: 'Para todos', fecha: hoy, paraTodos: true });
+    const titulos = async (quien: string, q: string) => ((await pedir(quien, 'GET', `/agenda?desde=${hoy}${q}`)).data.items as { titulo: string }[]).map((x) => x.titulo).sort();
+    expect(await titulos('dueno', `&de=${u.ana!.id}`)).toEqual(['Para Ana', 'Para todos']);
+    expect(await titulos('dueno', `&de=${u.ana!.id},${u.carla!.id}`)).toEqual(['De Carla para ella', 'Para Ana', 'Para todos']);
+    expect(await titulos('dueno', '&todos=1')).toHaveLength(4);
+    // Luis pide la de Ana: el pedido se ignora y ve solo la suya.
+    expect(await titulos('luis', `&de=${u.ana!.id}`)).toEqual(['Para Luis', 'Para todos']);
+  });
+
   it('marcar leídas', async () => {
     await pedir('dueno', 'POST', '/agenda', { titulo: 'X', fecha: hoy, usuarios: [u.ana!.id] });
     await pedir('ana', 'POST', '/notificaciones/leer', {});

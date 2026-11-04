@@ -18,13 +18,17 @@ interface Rec { id: string; titulo: string; detalle: string | null; fecha: strin
 
 const esJefe = async (s: Sesion) => (await matriz(db))[s.rol].usuarios >= 3;
 
-/** Recordatorios vigentes que ve esta persona (o todos si `todos`). */
-function visibles(k: Knex, s: Sesion, todos: boolean) {
+/**
+ * Recordatorios vigentes que ve esta persona, o todos si `todos`. Con `de` (solo el dueño): la agenda de esas
+ * personas, o sea lo que ve cada una (lo suyo, lo que creó y lo de todo el equipo).
+ */
+function visibles(k: Knex, s: Sesion, todos: boolean, de: string[] = []) {
   const q = k('recordatorios as r').join('usuarios as u', 'u.id', 'r.creado_por').whereNull('r.deleted_at')
     .select('r.id', 'r.titulo', 'r.detalle', k.raw("to_char(r.fecha, 'YYYY-MM-DD') as fecha"), 'r.hora', 'r.repetir', 'r.para_todos as paraTodos', 'r.creado_por as creadoPor', 'u.nombre as creador');
-  if (!todos) {
-    q.where((w) => w.where('r.para_todos', true).orWhere('r.creado_por', s.usuarioId)
-      .orWhereExists(k('recordatorio_usuarios as ru').whereRaw('ru.recordatorio_id = r.id').where('ru.usuario_id', s.usuarioId)));
+  const quienes = todos ? de : [s.usuarioId];
+  if (quienes.length) {
+    q.where((w) => w.where('r.para_todos', true).orWhereIn('r.creado_por', quienes)
+      .orWhereExists(k('recordatorio_usuarios as ru').whereRaw('ru.recordatorio_id = r.id').whereIn('ru.usuario_id', quienes)));
   }
   return q;
 }
@@ -107,14 +111,17 @@ export async function agendaRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // Lo que cae entre desde y hasta, más lo atrasado sin hacer de los últimos 30 días.
-  app.get<{ Querystring: { desde?: string; hasta?: string; todos?: string } }>('/agenda', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; todos?: string; de?: string } }>('/agenda', async (req) => {
     const s = await usuarioActivo(db, req);
     const { rows: [t] } = await db.raw<{ rows: { hoy: string; atras: string }[] }>(`select to_char(now(), 'YYYY-MM-DD') as hoy, to_char(now() - interval '${DIAS_ATRASO} days', 'YYYY-MM-DD') as atras`);
     const iso = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null);
     const desde = iso(req.query.desde) ?? t!.hoy;
     const hasta = iso(req.query.hasta) ?? desde;
-    const todos = req.query.todos === '1' && (await esJefe(s));
-    const recs: Rec[] = await visibles(db, s, todos);
+    const jefeVe = await esJefe(s);
+    const de = jefeVe ? (req.query.de ?? '').split(',').filter((x) => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 50) : [];
+    // "de" = agenda de esas personas (solo quien maneja el equipo); "todos" = la de todo el equipo.
+    const todos = jefeVe && (req.query.todos === '1' || de.length > 0);
+    const recs: Rec[] = await visibles(db, s, todos, de);
     if (!recs.length) return { data: { hoy: t!.hoy, items: [] } };
     const ids = recs.map((r) => r.id);
     const [personas, hechos] = await Promise.all([

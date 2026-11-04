@@ -9,9 +9,10 @@ export interface ItemAgenda {
   creador: string; personas: { id: string; nombre: string }[]; puedeEditar: boolean; hecho: { por: string; at: string } | null; atrasado: boolean;
 }
 
-export const useAgenda = (desde?: string, hasta?: string, todos = false) => useQuery({
-  queryKey: ['agenda', desde ?? 'hoy', hasta ?? '', todos],
-  queryFn: () => api<{ hoy: string; items: ItemAgenda[] }>(`/agenda?${new URLSearchParams({ ...(desde && { desde }), ...(hasta && { hasta }), ...(todos && { todos: '1' }) })}`),
+/** `quien`: '' = la mía, 'todos' = la de todo el equipo, o ids separados por coma (agenda de esas personas). */
+export const useAgenda = (desde?: string, hasta?: string, quien = '') => useQuery({
+  queryKey: ['agenda', desde ?? 'hoy', hasta ?? '', quien],
+  queryFn: () => api<{ hoy: string; items: ItemAgenda[] }>(`/agenda?${new URLSearchParams({ ...(desde && { desde }), ...(hasta && { hasta }), ...(quien === 'todos' ? { todos: '1' } : quien ? { de: quien } : {}) })}`),
 });
 
 const paraQuien = (x: ItemAgenda) => (x.paraTodos ? 'Todo el equipo' : x.personas.map((p) => p.nombre.split(' ')[0]).join(', '));
