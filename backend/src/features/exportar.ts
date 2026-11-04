@@ -90,12 +90,14 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
   cuentas: { titulo: 'Saldos de cuentas corrientes (hoy)', modulo: 'cuentas', periodo: false, armar: async () => {
     const r = await db.raw(`
       select 'Cliente' as tipo, c.nombre, c.cuit,
-        coalesce((select sum(total_centavos) from ventas where cliente_id = c.id and anulado_at is null), 0) as debe,
+        coalesce((select sum(total_centavos) from ventas where cliente_id = c.id and anulado_at is null), 0)
+          + coalesce((select sum(monto_centavos) from saldos_iniciales where cliente_id = c.id and anulado_at is null), 0) as debe,
         coalesce((select sum(monto_centavos) from movimientos_dinero where cliente_id = c.id and anulado_at is null), 0) as haber
       from clientes c where c.deleted_at is null
       union all
       select 'Proveedor', p.nombre, p.cuit,
-        coalesce((select sum(total_centavos) from compras where proveedor_id = p.id and anulada_at is null), 0),
+        coalesce((select sum(total_centavos) from compras where proveedor_id = p.id and anulada_at is null), 0)
+          + coalesce((select sum(monto_centavos) from saldos_iniciales where proveedor_id = p.id and anulado_at is null), 0),
         coalesce((select sum(monto_centavos) from movimientos_dinero where proveedor_id = p.id and anulado_at is null), 0)
       from proveedores p where p.deleted_at is null order by 1, 2`);
     return csv(r.rows.map((x: { debe: string; haber: string }) => ({ ...x, saldo: Number(x.debe) - Number(x.haber) })),

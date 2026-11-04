@@ -96,13 +96,15 @@ export async function anularMovimiento(db: Knex, usuarioId: string, id: string, 
 export async function saldos(db: Knex, de: 'cliente' | 'proveedor') {
   if (de === 'cliente') {
     return db('clientes as c').whereNull('c.deleted_at').select('c.id', 'c.nombre',
-      db.raw('coalesce((select sum(v.total_centavos) from ventas v where v.cliente_id = c.id and v.anulado_at is null), 0)::bigint as debe'),
+      db.raw(`(coalesce((select sum(v.total_centavos) from ventas v where v.cliente_id = c.id and v.anulado_at is null), 0)
+        + coalesce((select sum(s.monto_centavos) from saldos_iniciales s where s.cliente_id = c.id and s.anulado_at is null), 0))::bigint as debe`),
       db.raw(`coalesce((select sum(m.monto_centavos) from movimientos_dinero m where m.cliente_id = c.id and m.anulado_at is null), 0)::bigint as haber`),
       db.raw('(select max(v.fecha) from ventas v where v.cliente_id = c.id and v.anulado_at is null) as "ultimoMovimiento"'))
       .orderBy('c.nombre');
   }
   return db('proveedores as p').whereNull('p.deleted_at').select('p.id', 'p.nombre',
-    db.raw('coalesce((select sum(c.total_centavos) from compras c where c.proveedor_id = p.id and c.anulada_at is null), 0)::bigint as debe'),
+    db.raw(`(coalesce((select sum(c.total_centavos) from compras c where c.proveedor_id = p.id and c.anulada_at is null), 0)
+      + coalesce((select sum(s.monto_centavos) from saldos_iniciales s where s.proveedor_id = p.id and s.anulado_at is null), 0))::bigint as debe`),
     db.raw(`coalesce((select sum(m.monto_centavos) from movimientos_dinero m where m.proveedor_id = p.id and m.anulado_at is null), 0)::bigint as haber`),
     db.raw('(select max(c.fecha) from compras c where c.proveedor_id = p.id and c.anulada_at is null) as "ultimoMovimiento"'))
     .orderBy('p.nombre');
@@ -116,7 +118,10 @@ export async function cuentaCorriente(db: Knex, de: 'cliente' | 'proveedor', id:
   const dinero = await db('movimientos_dinero as m').leftJoin('bancos as b', 'b.id', 'm.banco_id').where(de === 'cliente' ? { 'm.cliente_id': id } : { 'm.proveedor_id': id })
     .select('m.id', 'm.numero', 'm.fecha', 'm.created_at', 'm.monto_centavos as monto', 'm.medio', 'b.nombre as banco', 'm.cheque_numero as chequeNumero',
       'm.cheque_fecha_cobro as chequeFechaCobro', 'm.referencia', 'm.anulado_at as anuladoAt', 'm.tipo');
+  const iniciales = await db('saldos_iniciales').where(de === 'cliente' ? { cliente_id: id } : { proveedor_id: id })
+    .select('id', db.raw('0 as numero'), 'fecha', 'created_at', 'monto_centavos as monto', db.raw('null as "conFactura"'), 'anulado_at as anuladoAt', db.raw("'saldo_inicial' as tipo"), 'nota as referencia');
   const todos = [
+    ...iniciales.map((c) => ({ ...c, signo: 1 as const })),
     ...comprobantes.map((c) => ({ ...c, signo: 1 as const })),
     ...dinero.map((d) => ({ ...d, signo: -1 as const })),
   ].sort((a, b) => (a.fecha === b.fecha ? +new Date(a.created_at) - +new Date(b.created_at) : a.fecha < b.fecha ? -1 : 1));

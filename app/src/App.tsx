@@ -38,6 +38,7 @@ const Gastos = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.Gas
 const NuevoGasto = lazy(() => import('./pages/NuevoGasto').then((m) => ({ default: m.NuevoGasto })));
 const Caja = lazy(() => import('./pages/Caja').then((m) => ({ default: m.Caja })));
 const Ayuda = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.Ayuda })));
+const Importar = lazy(() => import('./pages/Importar').then((m) => ({ default: m.Importar })));
 const Exportar = lazy(() => import('./pages/Exportar').then((m) => ({ default: m.Exportar })));
 
 function Marca() {
@@ -139,6 +140,7 @@ export function App() {
           {p('auditoria') && <Route path="/registro" element={<Registro />} />}
           <Route path="/ayuda" element={<Ayuda />} />
           {p('tablero') && <Route path="/exportar" element={<Exportar />} />}
+          {p('tablero') && <Route path="/importar" element={<Importar />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>

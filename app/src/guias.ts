@@ -309,6 +309,18 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
+    id: 'importar', area: 'Ajustes', titulo: 'Importar planillas de Excel', pantallas: ['/importar'],
+    palabras: 'importar excel planilla subir cargar masivo clientes proveedores saldos stock precios csv',
+    pasos: [
+      'En Ajustes › Importar planillas elegí qué tiene la planilla: clientes, proveedores, stock inicial, saldos iniciales o precios.',
+      'Si no sabés cómo armarla, bajá la planilla modelo y completala.',
+      'Subí el Excel (.xlsx) o un CSV. Si es un Excel viejo (.xls), guardalo como .xlsx primero.',
+      'Revisá qué columna es cada dato: el sistema ya propone las que se parecen por el nombre.',
+      'El sistema la prueba sin guardar nada y te dice qué va a crear y qué filas tienen errores. Corregí el Excel y volvé a subirlo si hace falta.',
+      'Tocá "Importar". Si la volvés a subir, no se duplica nada.',
+    ],
+  },
+  {
     id: 'registro', area: 'Ajustes', titulo: 'Ver quién hizo cada cosa', pantallas: ['/registro'],
     palabras: 'registro auditoria historial quien cambio borro anulo',
     pasos: [
@@ -327,5 +339,4 @@ export const GUIAS: Guia[] = [
   },
 ];
 
-/** Sin acentos ni mayúsculas, para buscar como escribe la gente. */
-export const normalizar = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+export { normalizar } from './filtros';

@@ -24,8 +24,8 @@ export function CuentaDetalle() {
   if (!data) return <Aviso>{error instanceof Error ? error.message : 'No encontramos esa cuenta'}</Aviso>;
   const saldo = data.movimientos.at(-1)?.saldo ?? 0;
   const esCliente = de === 'cliente';
-  const enlace = (m: Mov) => (m.signo === 1 ? (esCliente ? `/ventas/${m.id}` : `/compras/${m.id}`) : null);
-  const nombre = (m: Mov) => (m.signo === 1 ? (m.tipo === 'venta' ? 'Remito' : m.tipo === 'pesaje' ? 'Ticket de pesaje' : 'Compra') : esCliente ? 'Cobro' : 'Pago');
+  const enlace = (m: Mov) => (m.tipo === 'saldo_inicial' ? null : m.signo === 1 ? (esCliente ? `/ventas/${m.id}` : `/compras/${m.id}`) : null);
+  const nombre = (m: Mov) => (m.tipo === 'saldo_inicial' ? 'Saldo inicial' : m.signo === 1 ? (m.tipo === 'venta' ? 'Remito' : m.tipo === 'pesaje' ? 'Ticket de pesaje' : 'Compra') : esCliente ? 'Cobro' : 'Pago');
 
   const anular = async () => {
     if (!anulando) return;
@@ -59,10 +59,10 @@ export function CuentaDetalle() {
           const contenido = (
             <>
               <div>
-                <div className="principal">{nombre(m)} {nroTicket(m.numero)}</div>
+                <div className="principal">{nombre(m)}{m.tipo !== 'saldo_inicial' && ` ${nroTicket(m.numero)}`}</div>
                 <div className="chico tenue">
                   {verFecha(m.fecha)}
-                  {m.signo === 1 ? ` · ${m.conFactura ? 'con factura' : 'sin factura'}` : ` · ${LABEL_MEDIO[m.medio!]}${m.banco ? ` ${m.banco}` : ''}${m.chequeNumero ? ` n.º ${m.chequeNumero}` : ''}${m.chequeFechaCobro ? `, cobro ${verFecha(m.chequeFechaCobro)}` : ''}${m.referencia ? ` · ${m.referencia}` : ''}`}
+                  {m.tipo === 'saldo_inicial' ? (m.referencia ? ` · ${m.referencia}` : '') : m.signo === 1 ? ` · ${m.conFactura ? 'con factura' : 'sin factura'}` : ` · ${LABEL_MEDIO[m.medio!]}${m.banco ? ` ${m.banco}` : ''}${m.chequeNumero ? ` n.º ${m.chequeNumero}` : ''}${m.chequeFechaCobro ? `, cobro ${verFecha(m.chequeFechaCobro)}` : ''}${m.referencia ? ` · ${m.referencia}` : ''}`}
                 </div>
                 {m.anuladoAt && <span className="marca-texto peligro">Anulado</span>}
               </div>
@@ -76,7 +76,7 @@ export function CuentaDetalle() {
           return a ? <Link key={m.id} to={a} className={`fila${m.anuladoAt ? ' anulada' : ''}`}>{contenido}</Link> : (
             <div key={m.id} className={`fila${m.anuladoAt ? ' anulada' : ''}`} style={{ gridTemplateColumns: '1fr auto auto' }}>
               {contenido}
-              {!m.anuladoAt && puede('cuentas', 3) && <button className="boton icono" aria-label="Anular" onClick={() => setAnulando(m)}><Ban size={18} /></button>}
+              {!m.anuladoAt && m.tipo !== 'saldo_inicial' && puede('cuentas', 3) && <button className="boton icono" aria-label="Anular" onClick={() => setAnulando(m)}><Ban size={18} /></button>}
             </div>
           );
         })}

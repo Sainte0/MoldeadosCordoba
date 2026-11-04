@@ -101,8 +101,8 @@ export async function tablero(db: Knex, desde: string, hasta: string) {
   );
 
   const [porCobrar, porPagar, caja, bajoMinimo, palets] = await Promise.all([
-    db.raw(`select (coalesce((select sum(total_centavos) from ventas where anulado_at is null), 0) - coalesce((select sum(monto_centavos) from movimientos_dinero where tipo = 'cobro' and anulado_at is null), 0))::bigint as s`),
-    db.raw(`select (coalesce((select sum(total_centavos) from compras where anulada_at is null), 0) - coalesce((select sum(monto_centavos) from movimientos_dinero where tipo = 'pago' and anulado_at is null), 0))::bigint as s`),
+    db.raw(`select (coalesce((select sum(total_centavos) from ventas where anulado_at is null), 0) + coalesce((select sum(monto_centavos) from saldos_iniciales where cliente_id is not null and anulado_at is null), 0) - coalesce((select sum(monto_centavos) from movimientos_dinero where tipo = 'cobro' and anulado_at is null), 0))::bigint as s`),
+    db.raw(`select (coalesce((select sum(total_centavos) from compras where anulada_at is null), 0) + coalesce((select sum(monto_centavos) from saldos_iniciales where proveedor_id is not null and anulado_at is null), 0) - coalesce((select sum(monto_centavos) from movimientos_dinero where tipo = 'pago' and anulado_at is null), 0))::bigint as s`),
     saldoCaja(db),
     db.raw(`select count(*)::int as n from materias_primas m where m.deleted_at is null and m.activo and m.stock_minimo > 0
             and (select coalesce(sum(cantidad), 0) from movimientos_stock s where s.materia_prima_id = m.id) < m.stock_minimo`),

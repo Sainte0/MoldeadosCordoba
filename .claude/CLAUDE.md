@@ -46,6 +46,8 @@ en el **mismo VPS que Centrolab y Hassuru**.
 - **Rendimiento:** pantallas con carga diferida (`lazy` en App.tsx); la app importa `@moldeados/shared/base`
   (sin Zod), nunca `@moldeados/shared`. Antes de tocar una consulta pesada, medirla con
   `DATABASE_URL=…/moldeados_test pnpm exec tsx src/scripts/bench.ts --sembrar` (volumen de años).
+- **Importar:** cada tipo de planilla es una entrada en `TIPOS` de `backend/src/features/importar.ts` (campos con
+  `parecidos` para proponer la columna). Reglas: probar sin guardar, todo o nada, reimportar no duplica.
 - **Instructivos:** cada paso de asistente tiene su ayuda; el dueño la edita ahí mismo con el lápiz (`instructivos`,
   clave `proceso:título del paso`). Todo `<Asistente>` lleva `proceso`.
 - **Marca del cliente:** logo (`app/public/logo.png`) y azul `#004FBC` de moldeadoscordoba.com.ar, azul marino

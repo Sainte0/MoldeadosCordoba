@@ -68,5 +68,10 @@ que se renueva sola. Bundle inicial de 643 KB a 52 KB de código propio + 206 KB
 52 KB a 2 KB (WebP); tablero anual de 78 a 26 ms con datos de años; índices y un N+1 corregidos tras EXPLAIN.
 Config de nginx con gzip y caché larga en `deploy/nginx.conf.example`.
 
+**Importar planillas (hecho):** Ajustes › Importar planillas: clientes, proveedores, stock inicial, saldos iniciales
+de clientes y proveedores, y precios. Lee .xlsx (sin dependencias: DecompressionStream + DOMParser) y CSV; detecta la
+fila de títulos, propone columnas por nombre, prueba en seco con errores por n.º de fila del Excel, importa todo o
+nada, y reimportar no duplica. Saldos iniciales nuevos en cuentas corrientes, tablero y exportación.
+
 Próximo: deploy al VPS (pendiente: dominio con HTTPS). Ideas para más adelante: resumen automático al dueño por
 WhatsApp/mail, cobranzas con recordatorio, service de máquinas por horas, consultas en lenguaje natural con IA.

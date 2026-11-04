@@ -3,6 +3,8 @@
 
 /** "1.234,56" | "1234.56" | 1234.56 → enteros escalados. null si no es un número válido. */
 function escalar(valor: string | number, factor: number): number | null {
+  // Un número de verdad (por ejemplo una celda numérica de Excel) ya está bien: 1.234 kg son 1.234 kg, no 1234.
+  if (typeof valor === 'number') return Number.isFinite(valor) ? Math.round(valor * factor) : null;
   let s = String(valor).trim().replace(/\s/g, '');
   // Formato argentino: la coma es decimal y el punto separa miles ("8.420" = ocho mil cuatrocientos veinte,
   // como lo muestra la báscula). Sin coma, el punto es decimal solo si no forma grupos de miles ("12.5").

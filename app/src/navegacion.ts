@@ -33,6 +33,7 @@ export const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
   { a: '/maples', texto: 'Maples y recetas', modulo: 'productos' },
   { a: '/equipo', texto: 'Equipo y permisos', modulo: 'usuarios' },
   { a: '/registro', texto: 'Registro de cambios', modulo: 'auditoria' },
+  { a: '/importar', texto: 'Importar planillas', modulo: 'tablero' },
   { a: '/exportar', texto: 'Exportar datos', modulo: 'tablero' },
 ] };
 export const enArea = (area: Area, path: string) => [...area.pestanas.map((x) => x.a), ...(area.tambien ?? [])].some((r) => path === r || path.startsWith(r + '/'));

@@ -29,3 +29,6 @@ export function useDemorado<T>(valor: T, ms = 300): T {
   }, [valor, ms]);
   return v;
 }
+
+/** Sin acentos ni mayúsculas, para buscar como escribe la gente. */
+export const normalizar = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
