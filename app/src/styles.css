@@ -244,18 +244,41 @@ button.fila:last-child { border-bottom: 0; }
 }
 
 /* ---------- Login ---------- */
-.login { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100dvh; background: var(--superficie); }
-.login-escena { background: var(--tinta); color: #fff; position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px; }
-.login-escena canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-.login-escena .nombre { position: relative; font-variation-settings: 'wdth' 62; font-weight: 800; font-size: clamp(3rem, 7vw, 6rem); line-height: 0.88; letter-spacing: -0.02em; pointer-events: none; }
-.login-escena .nombre span { display: block; color: var(--kraft-claro); }
-.login-form { display: grid; place-items: center; padding: 32px 20px; }
-.login-form form { width: min(380px, 100%); display: grid; gap: 18px; }
-@media (max-width: 760px) {
-  .login { grid-template-columns: 1fr; grid-template-rows: 300px 1fr; }
-  .login-escena { padding: 20px; }
-  .login-escena .nombre { font-size: 3rem; }
+/* Escena (navy, el maple que baja y encastra) + formulario. Computadora: lado a lado. iPad vertical y teléfono: apilado,
+   la escena compacta arriba y el formulario enseguida, sin huecos. */
+.login { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); min-height: 100dvh; background: var(--superficie); }
+.login-escena {
+  position: relative; overflow: hidden; color: #fff; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: max(32px, env(safe-area-inset-top)) clamp(24px, 4vw, 56px) 40px;
+  background: radial-gradient(ellipse 70% 55% at 55% 48%, #1d3157 0%, var(--tinta) 70%);
 }
+.login-marca { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; color: #b9c4d6; }
+.login-marca img { border-radius: 9px; }
+.login-maple { position: relative; min-height: 0; margin: 8px -24px; }
+.login-pie { display: grid; gap: 14px; }
+.login-escena .nombre { font-variation-settings: 'wdth' 62; font-weight: 800; font-size: clamp(3.2rem, 6.4vw, 6rem); line-height: 0.86; letter-spacing: -0.02em; }
+.login-escena .nombre span { display: block; color: var(--kraft-claro); }
+.login-escena .bajada { color: #b9c4d6; font-size: 1rem; max-width: 34ch; }
+.login-form { display: grid; grid-template-rows: 1fr auto; justify-items: center; padding: 32px 24px max(24px, env(safe-area-inset-bottom)); }
+.login-form form { width: min(400px, 100%); display: grid; gap: 18px; align-self: center; }
+.login-form h1 { font-size: clamp(1.9rem, 3vw, 2.4rem); }
+.login-logo { display: none; border-radius: 11px; }
+.login-contacto { text-align: center; }
+.con-ojo { position: relative; }
+.con-ojo .entrada { padding-right: 52px; }
+.con-ojo .boton.icono { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); }
+@media (max-width: 900px) {
+  .login { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .login-escena { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 8px; padding: max(20px, env(safe-area-inset-top)) 24px 24px; min-height: clamp(260px, 36vh, 460px); }
+  .login-marca { grid-column: 1 / -1; }
+  .login-pie { grid-row: 2; grid-column: 1; align-self: end; gap: 8px; }
+  .login-maple { grid-row: 2; grid-column: 2; margin: 0 -24px 0 -16px; min-height: 180px; }
+  .login-escena .nombre { font-size: clamp(2.6rem, 9vw, 4rem); }
+  .login-escena .bajada { font-size: 0.88rem; }
+  .login-form { padding-top: 28px; }
+  .login-form form { align-self: start; }
+}
+@media (max-width: 420px) { .login-escena .bajada { display: none; } }
 
 /* ---------- Ticket y remito imprimibles ---------- */
 .ticket { background: #fff; border: 1px solid var(--linea); border-radius: var(--radio-m); box-shadow: var(--sombra-1); padding: 24px; display: grid; gap: 16px; min-width: 0; overflow-wrap: anywhere; }
