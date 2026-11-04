@@ -11,19 +11,22 @@ interface Sesion { token: string; usuario: Usuario; permisos: Permisos }
 let token: string | null = null;
 let alExpirar: () => void = () => {};
 
-export class ErrorApi extends Error {}
+/** sinConexion: no hubo respuesta del servidor (sin señal). Es la única falla que se puede reintentar más tarde. */
+export class ErrorApi extends Error {
+  constructor(message: string, readonly sinConexion = false) { super(message); }
+}
 
 /** fetch a la API con el token. Devuelve `data`; si falla lanza ErrorApi con el mensaje ya pensado para el usuario. */
-export async function api<T>(ruta: string, opciones: { method?: string; body?: unknown } = {}): Promise<T> {
+export async function api<T>(ruta: string, opciones: { method?: string; body?: unknown; clave?: string } = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(BASE + ruta, {
       method: opciones.method ?? 'GET',
-      headers: { ...(opciones.body !== undefined && { 'Content-Type': 'application/json' }), ...(token && { Authorization: `Bearer ${token}` }) },
+      headers: { ...(opciones.body !== undefined && { 'Content-Type': 'application/json' }), ...(token && { Authorization: `Bearer ${token}` }), ...(opciones.clave && { 'Idempotency-Key': opciones.clave }) },
       body: opciones.body !== undefined ? JSON.stringify(opciones.body) : undefined,
     });
   } catch {
-    throw new ErrorApi('No hay conexión con el sistema. Revisá internet y probá de nuevo.');
+    throw new ErrorApi('No hay conexión con el sistema. Revisá internet y probá de nuevo.', true);
   }
   const json = await res.json().catch(() => null);
   if (res.status === 401 && token) alExpirar();

@@ -395,3 +395,9 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
 .reloj span { font-size: 0.8rem; text-transform: capitalize; }
 .nav-pie .reloj { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--linea); }
 .barra-movil .reloj { margin-right: 4px; }
+
+/* Cargas sin señal */
+.cola { display: grid; gap: 8px; margin-bottom: 18px; }
+.cola-fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--radio-s); background: var(--alerta-claro); color: var(--alerta); font-weight: 500; }
+.cola-fila span { flex: 1; min-width: 200px; }
+.cola-error { background: var(--peligro-claro); color: var(--peligro); }

@@ -39,6 +39,25 @@ export async function buildApp(): Promise<FastifyInstance> {
     return reply.code(500).send({ error: { code: 'INTERNAL', message: 'Algo falló de nuestro lado. Probá de nuevo en un momento.' } });
   });
 
+  // Idempotencia para las cargas que el teléfono guardó sin señal y reenvía: misma clave → misma respuesta, sin
+  // volver a ejecutar. Solo POST con la cabecera Idempotency-Key; lo guardado se limpia a los 30 días.
+  app.addHook('onRequest', async (req, reply) => {
+    const clave = req.headers['idempotency-key'];
+    if (req.method !== 'POST' || typeof clave !== 'string') return;
+    if (!/^[\w-]{8,100}$/.test(clave)) return reply.code(400).send({ error: { code: 'VALIDATION', message: 'Clave de envío inválida' } });
+    const previa = await db('solicitudes_idempotentes').where({ clave }).first('status', 'respuesta', 'ruta');
+    if (previa && previa.ruta === req.url) return reply.code(previa.status).header('idempotent-replay', 'true').send(previa.respuesta);
+  });
+  app.addHook('onSend', async (req, reply, payload) => {
+    const clave = req.headers['idempotency-key'];
+    if (req.method !== 'POST' || typeof clave !== 'string' || reply.getHeader('idempotent-replay') || reply.statusCode >= 300) return payload;
+    let respuesta: unknown = null;
+    try { respuesta = typeof payload === 'string' ? JSON.parse(payload) : null; } catch { respuesta = null; }
+    await db('solicitudes_idempotentes').insert({ clave, ruta: req.url, status: reply.statusCode, respuesta: JSON.stringify(respuesta) }).onConflict('clave').ignore();
+    if (Math.random() < 0.02) await db('solicitudes_idempotentes').where('created_at', '<', db.raw("now() - interval '30 days'")).delete();
+    return payload;
+  });
+
   app.get('/health', async () => {
     await db.raw('select 1');
     return { ok: true };

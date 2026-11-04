@@ -6,6 +6,7 @@ import { aCentavos, calcularVenta, formatIva, formatPesos, LABEL_VEHICULO, VEHIC
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
 import { useStockMaples, type Cliente, type PaletDisponible } from '../datos';
 import type { PedidoDetalle } from './Pedidos';
+import { enviarOGuardar } from '../cola';
 import { Escaner, idDePalet } from '../Escaner';
 import { Firma } from '../Firma';
 import { Muestra } from '../MapleVista';
@@ -68,13 +69,12 @@ export function Despacho() {
   const sueltosLibres = (id: string) => { const v = stock?.find((x) => x.id === id); return v ? v.producido - v.enPalets - sueltos.filter((s) => s.varianteId === id).reduce((a, s) => a + s.paquetes, 0) : 0; };
 
   // Precio del cliente (o de lista) al elegirlo.
+  // (Va por useQuery para que quede guardado en el teléfono y sirva sin señal.)
+  const { data: preciosCliente } = useQuery({ queryKey: ['precios-cliente', cliente?.id], queryFn: () => api<Record<string, number>>(`/precios/cliente/${cliente!.id}`), enabled: !!cliente });
+  useEffect(() => { if (cliente) setVehiculo((v) => v ?? cliente.vehiculoHabitual); }, [cliente]);
   useEffect(() => {
-    if (!cliente) return;
-    setVehiculo((v) => v ?? cliente.vehiculoHabitual);
-    api<Record<string, number>>(`/precios/cliente/${cliente.id}`)
-      .then((p) => setPrecios(Object.fromEntries(Object.entries(p).map(([k, v]) => [k, aTexto(v)]))))
-      .catch(() => {});
-  }, [cliente]);
+    if (preciosCliente) setPrecios(Object.fromEntries(Object.entries(preciosCliente).map(([k, v]) => [k, aTexto(v)])));
+  }, [preciosCliente]);
 
   const leido = async (texto: string) => {
     const id = idDePalet(texto);
@@ -208,7 +208,8 @@ export function Despacho() {
           <div className="lectura"><span>Total sin IVA</span><span className="cifra">{formatPesos(totales.neto)}</span></div>
         </>
       ),
-      listo: faltaPrecio ? (cambiaPrecios ? `Falta el precio del ${faltaPrecio.codigo}` : `El ${faltaPrecio.codigo} no tiene precio cargado: pedile a administración que lo cargue en Precios.`) : true,
+      // Sin señal y sin precio guardado: se sigue igual; al subirse, el sistema usa el precio del cliente o el de lista.
+      listo: faltaPrecio && navigator.onLine ? (cambiaPrecios ? `Falta el precio del ${faltaPrecio.codigo}` : `El ${faltaPrecio.codigo} no tiene precio cargado: pedile a administración que lo cargue en Precios.`) : true,
     },
     {
       titulo: '¿Lleva factura?',
@@ -251,15 +252,14 @@ export function Despacho() {
     setGuardando(true);
     setError(null);
     try {
-      const r = await api<{ id: string }>('/ventas', {
-        method: 'POST',
-        body: {
-          clienteId: cliente!.id, fecha, palets: elegidos, sueltos, pedidoId, firma, retira, vehiculo, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura),
-          precios: cambiaPrecios ? codigos.map((c) => ({ varianteId: c.varianteId, precioMaple: aCentavos(precios[c.varianteId] ?? '') ?? 0 })) : [],
-        },
-      });
+      const r = await enviarOGuardar<{ id: string }>('/ventas', {
+        clienteId: cliente!.id, fecha, palets: elegidos, sueltos, pedidoId, firma, retira, vehiculo, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura),
+        // Solo los precios conocidos: si alguno falta (sin señal), el sistema usa el del cliente o el de lista.
+        precios: cambiaPrecios ? codigos.map((c) => ({ varianteId: c.varianteId, precioMaple: aCentavos(precios[c.varianteId] ?? '') ?? 0 })).filter((x) => x.precioMaple > 0) : [],
+      }, `despacho a ${cliente!.nombre}`);
+      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Despacho guardado en el teléfono: se sube solo cuando vuelva la señal. El remito se imprime después desde Ventas.' } }); return; }
       await qc.invalidateQueries();
-      navegar(`/ventas/${r.id}?nuevo=1`, { replace: true });
+      navegar(`/ventas/${r.data.id}?nuevo=1`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
       setGuardando(false);

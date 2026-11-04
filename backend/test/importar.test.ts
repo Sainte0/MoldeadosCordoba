@@ -60,4 +60,14 @@ describe('importar planillas (moldeados_test)', () => {
     expect([s.nombre, Number(s.debe) - Number(s.haber)]).toEqual(['Avícola Sur', 15_000_050]);
     expect(await db('saldos_iniciales').first('fecha')).toMatchObject({ fecha: '2026-10-31' });
   });
+
+  it('reenvío sin señal: la misma clave no carga dos veces y devuelve la misma respuesta', async () => {
+    const h = { authorization: `Bearer ${token}`, 'idempotency-key': `carga-${Date.now()}-telefono` };
+    const enviar = () => app.inject({ method: 'POST', url: '/api/clientes', headers: h, payload: { nombre: 'Granja Offline' } });
+    const [a, b] = [await enviar(), await enviar()];
+    expect([a.statusCode, b.statusCode]).toEqual([201, 201]);
+    expect(b.json().data.id).toBe(a.json().data.id);
+    expect(b.headers['idempotent-replay']).toBe('true');
+    expect(await db('clientes').count('* as n').first()).toMatchObject({ n: 1 });
+  });
 });

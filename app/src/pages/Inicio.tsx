@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
 import { formatCantidad, formatPesos, type Modulo } from '@moldeados/shared/base';
@@ -10,7 +10,8 @@ import { ParaVender, PedidosProximos, PorAcabarse, ServiceMaquinas } from './Avi
 
 function saludo(): string {
   const h = Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
-  return h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
+  // De madrugada (antes de las 6) también es de noche: "Buen día" a las 00:19 no corresponde.
+  return h < 6 ? 'Buenas noches' : h < 13 ? 'Buen día' : h < 20 ? 'Buenas tardes' : 'Buenas noches';
 }
 
 export function Inicio() {
@@ -21,8 +22,10 @@ export function Inicio() {
   const { data: deHoy } = useQuery({ queryKey: ['compras', 'hoy', hoyStr], queryFn: () => api<CompraFila[]>(`/compras?desde=${hoyStr}&hasta=${hoyStr}`), enabled: puede('compras') });
   const validas = (deHoy ?? []).filter((c) => !c.anuladaAt);
 
+  const aviso = (useLocation().state as { aviso?: string } | null)?.aviso;
   return (
     <div className="ancho" style={{ display: 'grid', gap: 32 }}>
+      {aviso && <div className="aviso ok" role="status">{aviso}</div>}
       <header>
         <h1>{saludo()}, {sesion?.usuario.nombre.split(' ')[0]}</h1>
         <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar?{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Ver el tablero</Link></>}</p>

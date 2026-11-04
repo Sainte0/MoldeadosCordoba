@@ -34,6 +34,17 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
+    id: 'sin-senal', area: 'Primeros pasos', titulo: 'Trabajar sin señal', pantallas: ['/'],
+    palabras: 'sin señal internet offline conexion wifi datos playon guardado telefono subir',
+    pasos: [
+      'Abrí el sistema al menos una vez con señal en cada teléfono o iPad: queda guardado lo necesario para trabajar sin conexión.',
+      'Sin señal podés cargar partes de producción, despachos (escaneando los palets) y pesajes. Arriba aparece un aviso amarillo.',
+      'Lo que cargás queda guardado en el teléfono y se sube solo cuando vuelve la señal. No hace falta hacer nada.',
+      'Si al subirse el sistema rechaza algo (por ejemplo, ese palet ya lo había despachado otra persona), aparece en rojo con el motivo para revisarlo.',
+      'Armar palets, cobrar y lo administrativo necesitan señal.',
+    ],
+  },
+  {
     id: 'buscar', area: 'Primeros pasos', titulo: 'Buscar cualquier cosa', pantallas: ['/'],
     palabras: 'buscar buscador encontrar lupa atajo comando cliente remito numero',
     pasos: [

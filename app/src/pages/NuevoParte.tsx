@@ -2,7 +2,8 @@ import { Fragment, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { aMili, aMinutos, consumoTeorico, formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, TURNOS, type Turno } from '@moldeados/shared/base';
-import { api, hoy, verFecha } from '../api';
+import { hoy, verFecha } from '../api';
+import { enviarOGuardar } from '../cola';
 import { useEmpleados, useMaquinas, useMaterias, useVariantes } from '../datos';
 import { Muestra } from '../MapleVista';
 import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
@@ -166,12 +167,11 @@ export function NuevoParte() {
     setError(null);
     try {
       const consumoReal = consumos.filter((c) => c.real !== c.teorico).map((c) => ({ materiaPrimaId: c.materiaPrimaId, cantidad: c.real }));
-      const r = await api<{ id: string }>('/partes', {
-        method: 'POST',
-        body: { fecha, turno, maquinaId, varianteId, empleadoIds: personal, minutos, pulpeadas: Number(pulpeadas || 0), paquetes: nPaquetes, consumoReal, notas: notas || undefined },
-      });
+      const body = { fecha, turno, maquinaId, varianteId, empleadoIds: personal, minutos, pulpeadas: Number(pulpeadas || 0), paquetes: nPaquetes, consumoReal, notas: notas || undefined };
+      const r = await enviarOGuardar<{ id: string }>('/partes', body, `parte ${maquinas?.find((m) => m.id === maquinaId)?.codigo ?? ''} ${LABEL_TURNO[turno].toLowerCase()}`);
+      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Parte guardado en el teléfono: se sube solo cuando vuelva la señal.' } }); return; }
       await qc.invalidateQueries();
-      navegar(`/produccion/${r.id}?nuevo=1`, { replace: true });
+      navegar(`/produccion/${r.data.id}?nuevo=1`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
       setGuardando(false);

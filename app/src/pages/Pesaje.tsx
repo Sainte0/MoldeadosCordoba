@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { aCentavos, aMili, calcularCompra, formatCantidad, formatIva, formatPesos } from '@moldeados/shared/base';
 import { api, hoy, verFecha } from '../api';
+import { enviarOGuardar } from '../cola';
 import { useMaterias, type Proveedor } from '../datos';
 import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
 import { ElegirProveedor } from './ElegirProveedor';
@@ -126,12 +127,11 @@ export function Pesaje() {
     setGuardando(true);
     setError(null);
     try {
-      const r = await api<{ id: string }>('/compras/pesaje', {
-        method: 'POST',
-        body: { proveedorId: proveedor!.id, materiaPrimaId: materiaId, fecha, brutoG, taraG, precioPorKg: precioC, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura) },
-      });
+      const body = { proveedorId: proveedor!.id, materiaPrimaId: materiaId, fecha, brutoG, taraG, precioPorKg: precioC, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura) };
+      const r = await enviarOGuardar<{ id: string }>('/compras/pesaje', body, `pesaje de ${proveedor!.nombre}`);
+      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Pesaje guardado en el teléfono: se sube solo cuando vuelva la señal (el ticket se imprime después).' } }); return; }
       await qc.invalidateQueries();
-      navegar(`/compras/${r.id}?nuevo=1`, { replace: true });
+      navegar(`/compras/${r.data.id}?nuevo=1`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
       setGuardando(false);

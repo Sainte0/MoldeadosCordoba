@@ -3,6 +3,9 @@ import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { CircleHelp, Home, LogOut, Menu, Search, X } from 'lucide-react';
 import { AJUSTES, AREAS, enArea, type Area } from './navegacion';
 import { Reloj } from './Reloj';
+import { ColaPendiente } from './ColaPendiente';
+import { precargar } from './persistencia';
+import { useQueryClient } from '@tanstack/react-query';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
@@ -58,6 +61,15 @@ export function App() {
   const { sesion, salir, puede } = useSesion();
   const [abierto, setAbierto] = useState(false);
   const [buscando, setBuscando] = useState(false);
+  const qc = useQueryClient();
+  // Al entrar (y al recuperar la señal): dejar guardado lo necesario para cargar sin conexión.
+  useEffect(() => {
+    if (!sesion) return;
+    const ya = () => precargar(qc, puede);
+    ya();
+    window.addEventListener('online', ya);
+    return () => window.removeEventListener('online', ya);
+  }, [sesion?.usuario.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // ⌘K / Ctrl+K abren el buscador desde cualquier pantalla (y "/" si no se está escribiendo en un campo).
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -112,6 +124,7 @@ export function App() {
       </nav>
       {buscando && <Suspense fallback={null}><BuscadorGlobal abierto onCerrar={() => setBuscando(false)} /></Suspense>}
       <main className="contenido">
+        <ColaPendiente />
         <Pestanas path={pathname} puede={p} />
         <Suspense fallback={<p className="tenue" role="status">Cargando…</p>}>
         <Routes>
