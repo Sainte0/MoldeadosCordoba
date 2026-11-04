@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { LABEL_ROL, LABEL_TURNO, MODULOS, NIVELES, ROLES, TURNOS, type MatrizPermisos, type Rol, type Turno } from '@moldeados/shared/base';
+import { aCentavos, LABEL_ROL, LABEL_TURNO, MODULOS, NIVELES, ROLES, TURNOS, type MatrizPermisos, type Rol, type Turno } from '@moldeados/shared/base';
 import { useEmpleados, useEmpresa, type Empleado } from '../datos';
 import { api, useSesion, type Usuario } from '../api';
-import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
+import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';
 
 export function Equipo() {
   const { puede, sesion } = useSesion();
@@ -149,11 +149,12 @@ function EditarEmpleado({ inicial, onCerrar }: { inicial: Partial<Empleado>; onC
   const qc = useQueryClient();
   const [nombre, setNombre] = useState(inicial.nombre ?? '');
   const [turno, setTurno] = useState<Turno | 'rota'>(inicial.turnoHabitual ?? 'rota');
+  const [valorHora, setValorHora] = useState(inicial.valorHora ? String(inicial.valorHora / 100).replace('.', ',') : '');
   const [activo, setActivo] = useState(inicial.activo ?? true);
   const [error, setError] = useState<string | null>(null);
   const guardar = async () => {
     try {
-      await api(inicial.id ? `/empleados/${inicial.id}` : '/empleados', { method: inicial.id ? 'PUT' : 'POST', body: { nombre, turnoHabitual: turno === 'rota' ? null : turno, activo } });
+      await api(inicial.id ? `/empleados/${inicial.id}` : '/empleados', { method: inicial.id ? 'PUT' : 'POST', body: { nombre, turnoHabitual: turno === 'rota' ? null : turno, valorHora: valorHora.trim() ? aCentavos(valorHora) : null, activo } });
       await qc.invalidateQueries({ queryKey: ['empleados'] });
       onCerrar();
     } catch (e) {
@@ -165,6 +166,9 @@ function EditarEmpleado({ inicial, onCerrar }: { inicial: Partial<Empleado>; onC
       <Campo etiqueta="Nombre y apellido"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus /></Campo>
       <Campo etiqueta="Turno habitual" ayuda="Aparece primero al cargar los partes de ese turno.">
         <Opciones<Turno | 'rota'> columnas valor={turno} onChange={setTurno} opciones={[...TURNOS.map((t) => ({ valor: t, titulo: LABEL_TURNO[t] })), { valor: 'rota', titulo: 'Rota' }]} />
+      </Campo>
+      <Campo etiqueta="Valor de la hora" ayuda="Opcional: para estimar cuánto corresponde pagar según las horas de los partes.">
+        <EntradaNumero unidad="$/h" value={valorHora} onChange={(e) => setValorHora(e.target.value)} />
       </Campo>
       {inicial.id && <Opciones columnas valor={activo} onChange={setActivo} opciones={[{ valor: true, titulo: 'Trabaja' }, { valor: false, titulo: 'Ya no trabaja' }]} />}
       <Aviso>{error}</Aviso>

@@ -3,7 +3,7 @@ import { calcularVenta, movimientoDineroSchema, ventaSchema } from '@moldeados/s
 import { db } from '../src/db.js';
 import { anularPalet } from '../src/features/produccion.service.js';
 import { buscar } from '../src/lib/buscar.js';
-import { anularMovimiento, anularVenta, crearMovimiento, crearVenta, cuentaCorriente, saldos } from '../src/features/ventas.service.js';
+import { anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, saldos } from '../src/features/ventas.service.js';
 
 describe('cálculo de venta', () => {
   it('maples × precio por maple + IVA', () => {
@@ -21,7 +21,7 @@ describe('despacho y cuentas (moldeados_test)', () => {
   let u: string, cliente: string, otro: string, variante: string, palet1: string, palet2: string, banco: string;
 
   beforeEach(async () => {
-    await db.raw('truncate movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
+    await db.raw('truncate saldos_iniciales, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
     [{ id: u }] = await db('usuarios').insert({ nombre: 'Test', usuario: 'test', password_hash: 'x', rol: 'dueno' }).returning('id');
     const [{ id: maq }] = await db('maquinas').insert({ codigo: 'MP-2', nombre: 'Grande' }).returning('id');
     [{ id: variante }] = await db('variantes').insert({ codigo: 'MGR-ROJ', nombre: 'Grande rojo', tamano: 'grande', maquina_id: maq, precio_maple_centavos: 15000 }).returning('id');
@@ -73,5 +73,21 @@ describe('despacho y cuentas (moldeados_test)', () => {
     expect(await nombres('AVÍCOLA sur')).toEqual(['Avícola Sur']);
     expect(await nombres('granja sur')).toEqual([]);
     expect(await nombres('100%')).toEqual([]); // los comodines del usuario no rompen nada
+  });
+
+  it('cheque de terceros: cartera → endosado a un proveedor; anular el pago lo devuelve a la cartera', async () => {
+    const [{ id: prov }] = await db('proveedores').insert({ nombre: 'Reciclados' }).returning('id');
+    const ch = await crearMovimiento(db, u, movimientoDineroSchema.parse({ tipo: 'cobro', clienteId: cliente, fecha: '2026-11-03', monto: 50_000_000, medio: 'cheque', bancoId: banco, chequeNumero: '777', chequeFechaCobro: '2026-12-10' }));
+    expect((await db('movimientos_dinero').where({ id: ch.id }).first()).cheque_estado).toBe('cartera');
+    const pagar = () => crearMovimiento(db, u, movimientoDineroSchema.parse({ tipo: 'pago', proveedorId: prov, fecha: '2026-11-04', monto: 1, medio: 'endoso', endosoDe: ch.id }));
+    const pago = await pagar();
+    expect((await db('movimientos_dinero').where({ id: pago.id }).first()).monto_centavos).toBe(50_000_000); // el monto es el del cheque
+    await expect(pagar()).rejects.toThrow('ya no está en cartera');
+    await expect(anularMovimiento(db, u, ch.id, 'rechazado')).rejects.toThrow('anulá primero ese pago');
+    await expect(cambiarEstadoCheque(db, u, ch.id, 'depositado')).rejects.toThrow('proveedor');
+    await anularMovimiento(db, u, pago.id, 'Volvió rechazado');
+    expect((await db('movimientos_dinero').where({ id: ch.id }).first()).cheque_estado).toBe('cartera');
+    await cambiarEstadoCheque(db, u, ch.id, 'depositado');
+    expect((await db('movimientos_dinero').where({ id: ch.id }).first()).cheque_estado).toBe('depositado');
   });
 });

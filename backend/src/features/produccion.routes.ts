@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import { anularSchema, empleadoSchema, empresaSchema, maquinaSchema, paletSchema, parteSchema, varianteSchema, type Rol } from '@moldeados/shared';
+import { anularSchema, empleadoSchema, empresaSchema, maquinaSchema, paletSchema, parteSchema, serviceSchema, varianteSchema, type Rol } from '@moldeados/shared';
 import { db } from '../db.js';
 import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno, sesion } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError, UnauthorizedError } from '../lib/errors.js';
-import { anularPalet, anularParte, crearPalet, crearParte, stockMaples, trazabilidad } from './produccion.service.js';
+import { anularPalet, anularParte, crearPalet, crearParte, horasPorPersona, maquinasConService, stockMaples, trazabilidad } from './produccion.service.js';
 
 // Máquinas, códigos de maple (variantes) con receta, personal de planta, partes, palets y datos de la empresa.
 // ponytail: los CRUD chicos van con la query en la ruta; la lógica con reglas vive en produccion.service.
@@ -34,13 +34,13 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
   // ---------- Máquinas ----------
   app.get('/maquinas', async (req) => {
     await requerirAlguno(db, req, [['produccion', 1], ['productos', 1]]);
-    return { data: await db('maquinas').whereNull('deleted_at').orderBy('codigo').select('id', 'codigo', 'nombre', 'activo') };
+    return { data: await maquinasConService(db) };
   });
   app.post('/maquinas', async (req, reply) => {
     const s = await requerir(db, req, 'productos', 3);
     const i = maquinaSchema.parse(req.body);
     const [m] = await db.transaction(async (trx) => {
-      const r = await trx('maquinas').insert(i).returning(['id']);
+      const r = await trx('maquinas').insert({ codigo: i.codigo, nombre: i.nombre, activo: i.activo, service_cada_horas: i.serviceCadaHoras }).returning(['id']);
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'crear', entidad: 'maquina', entidadId: r[0].id, despues: i });
       return r;
     });
@@ -52,10 +52,33 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
     return db.transaction(async (trx) => {
       const antes = await trx('maquinas').where({ id: uuidOk(req.params.id) ?? null }).whereNull('deleted_at').first('codigo', 'nombre', 'activo');
       if (!antes) throw new NotFoundError('No encontramos esa máquina');
-      await trx('maquinas').where({ id: req.params.id }).update({ ...i, updated_at: trx.fn.now() });
+      await trx('maquinas').where({ id: req.params.id }).update({ codigo: i.codigo, nombre: i.nombre, activo: i.activo, service_cada_horas: i.serviceCadaHoras, updated_at: trx.fn.now() });
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'maquina', entidadId: req.params.id, antes, despues: i });
       return { data: { ok: true } };
     });
+  });
+
+  // Registrar que se le hizo el service: el contador de horas vuelve a cero desde esa fecha.
+  app.post<{ Params: { id: string } }>('/maquinas/:id/service', async (req, reply) => {
+    const s = await requerirAlguno(db, req, [['produccion', 3], ['productos', 3]]);
+    const i = serviceSchema.parse(req.body);
+    const m = await db('maquinas').where({ id: uuidOk(req.params.id) ?? null }).whereNull('deleted_at').first('id');
+    if (!m) throw new NotFoundError('No encontramos esa máquina');
+    const [r] = await db('servicios_maquina').insert({ maquina_id: m.id, fecha: i.fecha, nota: i.nota, usuario_id: s.usuarioId }).returning('id');
+    await auditar(db, { usuarioId: s.usuarioId, accion: 'crear', entidad: 'maquina', entidadId: m.id, despues: i, motivo: 'Service registrado' });
+    return reply.code(201).send({ data: r });
+  });
+  app.get<{ Params: { id: string } }>('/maquinas/:id/services', async (req) => {
+    await requerirAlguno(db, req, [['produccion', 1], ['productos', 1]]);
+    return { data: await db('servicios_maquina as s').join('usuarios as u', 'u.id', 's.usuario_id').where('s.maquina_id', uuidOk(req.params.id) ?? null)
+      .orderBy('s.fecha', 'desc').limit(20).select('s.id', 's.fecha', 's.nota', 'u.nombre as usuario') };
+  });
+
+  // Horas de cada persona según los partes (las horas de máquina del turno en que figura) y lo estimado a pagar.
+  app.get<{ Querystring: { desde?: string; hasta?: string } }>('/horas', async (req) => {
+    await requerirAlguno(db, req, [['produccion', 1], ['usuarios', 1]]);
+    const desde = fechaOk(req.query.desde), hasta = fechaOk(req.query.hasta);
+    return { data: await horasPorPersona(db, desde, hasta) };
   });
 
   // ---------- Códigos de maple ----------
@@ -102,13 +125,13 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
   // ---------- Personal de planta ----------
   app.get('/empleados', async (req) => {
     await requerirAlguno(db, req, [['produccion', 1], ['usuarios', 1]]);
-    return { data: await db('empleados').whereNull('deleted_at').orderBy('nombre').select('id', 'nombre', 'turno_habitual as turnoHabitual', 'activo') };
+    return { data: await db('empleados').whereNull('deleted_at').orderBy('nombre').select('id', 'nombre', 'turno_habitual as turnoHabitual', 'valor_hora_centavos as valorHora', 'activo') };
   });
   app.post('/empleados', async (req, reply) => {
     const s = await requerirAlguno(db, req, [['produccion', 3], ['usuarios', 3]]);
     const i = empleadoSchema.parse(req.body);
     const id = await db.transaction(async (trx) => {
-      const [r] = await trx('empleados').insert({ nombre: i.nombre, turno_habitual: i.turnoHabitual, activo: i.activo }).returning('id');
+      const [r] = await trx('empleados').insert({ nombre: i.nombre, turno_habitual: i.turnoHabitual, valor_hora_centavos: i.valorHora, activo: i.activo }).returning('id');
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'crear', entidad: 'empleado', entidadId: r.id, despues: i });
       return r.id;
     });
@@ -120,7 +143,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
     return db.transaction(async (trx) => {
       const antes = await trx('empleados').where({ id: uuidOk(req.params.id) ?? null }).whereNull('deleted_at').first('nombre', 'turno_habitual', 'activo');
       if (!antes) throw new NotFoundError('No encontramos a esa persona');
-      await trx('empleados').where({ id: req.params.id }).update({ nombre: i.nombre, turno_habitual: i.turnoHabitual, activo: i.activo, updated_at: trx.fn.now() });
+      await trx('empleados').where({ id: req.params.id }).update({ nombre: i.nombre, turno_habitual: i.turnoHabitual, valor_hora_centavos: i.valorHora, activo: i.activo, updated_at: trx.fn.now() });
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'empleado', entidadId: req.params.id, antes, despues: i });
       return { data: { ok: true } };
     });

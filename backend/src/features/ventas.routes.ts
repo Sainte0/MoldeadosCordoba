@@ -6,7 +6,8 @@ import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { NotFoundError } from '../lib/errors.js';
 import { materiasPorAcabarse, recompra } from './avisos.service.js';
-import { anularMovimiento, anularVenta, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
+import { maquinasConService } from './produccion.service.js';
+import { anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
 
 // Clientes, precios, ventas (despacho de palets), bancos, cobros/pagos y cuentas corrientes.
 // ponytail: CRUD chico con la query en la ruta; las reglas viven en ventas.service.
@@ -90,13 +91,14 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
   // ---------- Avisos ----------
   // Lo que el sistema detecta solo. Cada sección sale según los permisos de quien mira.
   app.get('/avisos', async (req) => {
-    const s = await requerirAlguno(db, req, [['ventas', 1], ['materias', 1], ['compras', 1]]);
+    const s = await requerirAlguno(db, req, [['ventas', 1], ['materias', 1], ['compras', 1], ['produccion', 1]]);
     const m = (await matriz(db))[s.rol];
     const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
     return {
       data: {
         clientes: m.ventas >= 1 ? await recompra(db, hoy) : null,
         materias: m.materias >= 1 || m.compras >= 1 ? await materiasPorAcabarse(db) : null,
+        maquinas: m.produccion >= 1 || m.productos >= 1 ? (await maquinasConService(db)).filter((x) => x.activo && x.leTocaService) : null,
       },
     };
   });
@@ -214,15 +216,25 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
         .orderBy([{ column: 'm.fecha', order: 'desc' }, { column: 'm.numero', order: 'desc' }]).limit(100),
     };
   });
-  // Cheques y e-cheqs vigentes con fecha de cobro desde hoy: los que hay que depositar (recibidos) o cubrir (emitidos).
+  // Cheques: los recibidos en cartera (sin importar la fecha: hay que depositarlos o endosarlos) y los emitidos
+  // propios que todavía no vencieron (hay que tener fondos). Los endosados se ven en el pago al proveedor.
   app.get('/cheques', async (req) => {
     await requerir(db, req, 'cuentas', 1);
     return {
-      data: await db('movimientos_dinero as m').leftJoin('clientes as c', 'c.id', 'm.cliente_id').leftJoin('proveedores as p', 'p.id', 'm.proveedor_id').join('bancos as b', 'b.id', 'm.banco_id')
-        .whereIn('m.medio', ['cheque', 'echeq']).whereNull('m.anulado_at').whereNotNull('m.cheque_fecha_cobro').where('m.cheque_fecha_cobro', '>=', db.raw('current_date'))
-        .select('m.id', 'm.tipo', 'm.medio', 'm.monto_centavos as monto', 'm.cheque_numero as chequeNumero', 'm.cheque_fecha_cobro as chequeFechaCobro', 'b.nombre as banco', db.raw('coalesce(c.nombre, p.nombre) as contraparte'))
+      data: await db('movimientos_dinero as m').leftJoin('clientes as c', 'c.id', 'm.cliente_id').leftJoin('proveedores as p', 'p.id', 'm.proveedor_id').leftJoin('bancos as b', 'b.id', 'm.banco_id')
+        .whereIn('m.medio', ['cheque', 'echeq']).whereNull('m.anulado_at')
+        .where((w) => w.where('m.cheque_estado', 'cartera').orWhere((e) => e.where('m.tipo', 'pago').where('m.cheque_fecha_cobro', '>=', db.raw('current_date'))))
+        .select('m.id', 'm.tipo', 'm.medio', 'm.monto_centavos as monto', 'm.cheque_numero as chequeNumero', 'm.cheque_fecha_cobro as chequeFechaCobro', 'm.cheque_estado as estado',
+          'b.nombre as banco', db.raw('coalesce(c.nombre, p.nombre) as contraparte'))
         .orderBy('m.cheque_fecha_cobro'),
     };
+  });
+  app.post<{ Params: { id: string }; Body: { estado?: string } }>('/cheques/:id/estado', async (req) => {
+    const s = await requerir(db, req, 'cuentas', 2);
+    const estado = req.body?.estado === 'cartera' ? 'cartera' : 'depositado';
+    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese cheque');
+    await cambiarEstadoCheque(db, s.usuarioId, req.params.id, estado);
+    return { data: { ok: true } };
   });
   app.post('/dinero', async (req, reply) => {
     const s = await requerir(db, req, 'cuentas', 2);

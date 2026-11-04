@@ -98,7 +98,11 @@ export const maquinaSchema = z.object({
   codigo: texto(20).min(1, 'Ingresá el código, ej.: MP-1'),
   nombre: texto(80).min(2, 'Ingresá el nombre'),
   activo: z.boolean().default(true),
+  /** Cada cuántas horas de trabajo le toca service. null = sin aviso. */
+  serviceCadaHoras: z.number().int().min(1).max(100_000).nullable().default(null),
 });
+
+export const serviceSchema = z.object({ fecha, nota: opcional(500) });
 
 export const varianteSchema = z.object({
   codigo: texto(20).min(2, 'Ingresá el código, ej.: MGR-ROJ').regex(/^[A-Za-z0-9-]+$/, 'El código solo puede tener letras, números y guiones').transform((v) => v.toUpperCase()),
@@ -118,6 +122,8 @@ export const varianteSchema = z.object({
 
 export const empleadoSchema = z.object({
   nombre: texto(120).min(2, 'Ingresá el nombre'),
+  /** Para estimar lo que corresponde pagar según las horas de los partes. null = no se estima. */
+  valorHora: z.number().int().min(0).nullable().default(null),
   turnoHabitual: z.enum(TURNOS).nullable().default(null),
   activo: z.boolean().default(true),
 });
@@ -194,7 +200,9 @@ export const movimientoDineroSchema = z
     proveedorId: z.string().uuid().nullable().default(null),
     fecha,
     monto: z.number().int().positive('Ingresá el monto'),
-    medio: z.enum(MEDIOS),
+    medio: z.enum([...MEDIOS, 'endoso']),
+    /** Pago con un cheque de terceros: el cobro (cheque en cartera) que se endosa. */
+    endosoDe: z.string().uuid().nullable().default(null),
     bancoId: z.string().uuid().nullable().default(null),
     chequeNumero: opcional(30),
     chequeFechaCobro: fecha.nullable().default(null),
@@ -204,6 +212,7 @@ export const movimientoDineroSchema = z
   .superRefine((v, ctx) => {
     if (v.tipo === 'cobro' && !v.clienteId) ctx.addIssue({ code: 'custom', path: ['clienteId'], message: 'Elegí el cliente' });
     if (v.tipo === 'pago' && !v.proveedorId) ctx.addIssue({ code: 'custom', path: ['proveedorId'], message: 'Elegí el proveedor' });
+    if (v.medio === 'endoso' && (v.tipo !== 'pago' || !v.endosoDe)) ctx.addIssue({ code: 'custom', path: ['endosoDe'], message: 'Elegí el cheque de terceros que vas a entregar' });
     if ((v.medio === 'echeq' || v.medio === 'cheque') && !v.bancoId) ctx.addIssue({ code: 'custom', path: ['bancoId'], message: 'Elegí el banco del cheque' });
     if (v.medio === 'cheque' && (!v.chequeNumero || !v.chequeFechaCobro)) ctx.addIssue({ code: 'custom', path: ['chequeNumero'], message: 'Ingresá el número y la fecha de cobro del cheque' });
   });

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { aMili, formatCantidad, LABEL_TAMANO } from '@moldeados/shared/base';
-import { api, useSesion } from '../api';
+import { api, hoy, useSesion, verFecha } from '../api';
 import { useMaquinas, useMaterias, useVariantes, type Maquina, type Variante } from '../datos';
 import { MapleVista, Muestra } from '../MapleVista';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';
@@ -52,12 +52,15 @@ export function Maples() {
 
       <section>
         <Cabecera titulo="Máquinas">
-          {edita && <button className="boton secundario" onClick={() => setMaquina({ activo: true })}><Plus size={18} aria-hidden /> Agregar máquina</button>}
+          {edita && <button className="boton secundario" onClick={() => setMaquina({ activo: true, serviceCadaHoras: null, horasDesdeService: 0 })}><Plus size={18} aria-hidden /> Agregar máquina</button>}
         </Cabecera>
         <div className="hoja filas">
           {maquinas?.map((m) => (
-            <button key={m.id} className="fila" disabled={!edita} onClick={() => setMaquina(m)} style={{ opacity: m.activo ? 1 : 0.55 }}>
-              <div><div className="principal">{m.codigo}</div><div className="chico tenue">{m.nombre}</div></div>
+            <button key={m.id} className="fila" onClick={() => setMaquina(m)} style={{ opacity: m.activo ? 1 : 0.55 }}>
+              <div>
+                <div className="principal">{m.codigo} {m.leTocaService && <span className={`marca-texto ${m.servicePasado ? 'peligro' : 'alerta'}`}>{m.servicePasado ? 'Service vencido' : 'Le toca service'}</span>}</div>
+                <div className="chico tenue">{m.nombre} · {m.horasDesdeService} h trabajadas{m.ultimoService ? ` desde el service del ${verFecha(m.ultimoService)}` : ''}{m.serviceCadaHoras ? ` · service cada ${m.serviceCadaHoras} h` : ''}</div>
+              </div>
               <span className="chico tenue">{variantes?.filter((v) => v.maquinaId === m.id).length ?? 0} códigos</span>
             </button>
           ))}
@@ -168,13 +171,27 @@ function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Vari
 
 function EditarMaquina({ inicial, onCerrar }: { inicial: Partial<Maquina>; onCerrar: () => void }) {
   const qc = useQueryClient();
+  const { puede } = useSesion();
+  const edita = puede('productos', 3);
+  const registraService = puede('produccion', 3) || edita;
   const [codigo, setCodigo] = useState(inicial.codigo ?? '');
   const [nombre, setNombre] = useState(inicial.nombre ?? '');
   const [activo, setActivo] = useState(inicial.activo ?? true);
+  const [cada, setCada] = useState(inicial.serviceCadaHoras ? String(inicial.serviceCadaHoras) : '');
+  const [service, setService] = useState<{ fecha: string; nota: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { data: historial } = useQuery({ queryKey: ['services', inicial.id], queryFn: () => api<{ id: string; fecha: string; nota: string | null; usuario: string }[]>(`/maquinas/${inicial.id}/services`), enabled: !!inicial.id });
+  const registrar = async () => {
+    if (!service) return;
+    try {
+      await api(`/maquinas/${inicial.id}/service`, { method: 'POST', body: { fecha: service.fecha, nota: service.nota || undefined } });
+      await qc.invalidateQueries();
+      onCerrar();
+    } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo registrar'); }
+  };
   const guardar = async () => {
     try {
-      await api(inicial.id ? `/maquinas/${inicial.id}` : '/maquinas', { method: inicial.id ? 'PUT' : 'POST', body: { codigo, nombre, activo } });
+      await api(inicial.id ? `/maquinas/${inicial.id}` : '/maquinas', { method: inicial.id ? 'PUT' : 'POST', body: { codigo, nombre, activo, serviceCadaHoras: cada ? Number(cada) : null } });
       await qc.invalidateQueries({ queryKey: ['maquinas'] });
       onCerrar();
     } catch (e) {
@@ -184,12 +201,29 @@ function EditarMaquina({ inicial, onCerrar }: { inicial: Partial<Maquina>; onCer
   return (
     <Dialogo titulo={inicial.id ? `Máquina ${inicial.codigo}` : 'Nueva máquina'} onCerrar={onCerrar}>
       <Campo etiqueta="Código"><Entrada value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="MP-3" autoFocus /></Campo>
-      <Campo etiqueta="Nombre"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Papelera mediana" /></Campo>
-      {inicial.id && <Opciones columnas valor={activo} onChange={setActivo} opciones={[{ valor: true, titulo: 'En uso' }, { valor: false, titulo: 'Fuera de uso' }]} />}
+      {inicial.id && (
+        <div className="lectura"><span>Horas trabajadas desde el último service</span><span className="cifra">{inicial.horasDesdeService} h</span></div>
+      )}
+      <fieldset disabled={!edita} style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 14 }}>
+        <Campo etiqueta="Nombre"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Papelera mediana" /></Campo>
+        <Campo etiqueta="Service cada" ayuda="Horas de trabajo según los partes. Vacío = sin aviso."><EntradaNumero unidad="h" value={cada} onChange={(e) => setCada(e.target.value.replace(/\D/g, ''))} /></Campo>
+        {inicial.id && <Opciones columnas valor={activo} onChange={setActivo} opciones={[{ valor: true, titulo: 'En uso' }, { valor: false, titulo: 'Fuera de uso' }]} />}
+      </fieldset>
+      {inicial.id && registraService && (service ? (
+        <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+          <b>Registrar service</b>
+          <Campo etiqueta="Fecha"><Entrada type="date" value={service.fecha} max={hoy()} onChange={(e) => setService({ ...service, fecha: e.target.value })} /></Campo>
+          <Campo etiqueta="Qué se hizo" ayuda="Opcional"><Entrada value={service.nota} onChange={(e) => setService({ ...service, nota: e.target.value })} placeholder="Cambio de malla, engrase…" /></Campo>
+          <button className="boton primario" onClick={registrar}>Guardar service</button>
+        </div>
+      ) : <button className="boton secundario" style={{ justifySelf: 'start' }} onClick={() => setService({ fecha: hoy(), nota: '' })}>Registrar service</button>)}
+      {!!historial?.length && (
+        <div className="chico tenue">Services: {historial.map((s) => `${verFecha(s.fecha)}${s.nota ? ` (${s.nota})` : ''}`).join(' · ')}</div>
+      )}
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        <button className="boton secundario" onClick={onCerrar}>Cancelar</button>
-        <button className="boton primario" onClick={guardar}>Guardar</button>
+        <button className="boton secundario" onClick={onCerrar}>{edita ? 'Cancelar' : 'Cerrar'}</button>
+        {edita && <button className="boton primario" onClick={guardar}>Guardar</button>}
       </div>
     </Dialogo>
   );

@@ -18,13 +18,13 @@ export const useMaterias = () => useQuery({ queryKey: ['materias'], queryFn: () 
 export const useProveedores = (q = '', tipo = '') =>
   useQuery({ queryKey: ['proveedores', q, tipo], queryFn: () => api<Proveedor[]>(`/proveedores?q=${encodeURIComponent(q)}&tipo=${tipo}`) });
 
-export interface Maquina { id: string; codigo: string; nombre: string; activo: boolean }
+export interface Maquina { id: string; codigo: string; nombre: string; activo: boolean; serviceCadaHoras: number | null; ultimoService: string | null; horasDesdeService: number; leTocaService: boolean; servicePasado: boolean }
 export interface Variante {
   id: string; codigo: string; nombre: string; tamano: 'chico' | 'grande'; color: string | null; colorHex: string | null;
   maquinaId: string; maquina: string; maplesPorPaquete: number; maplesPorHora: number; activo: boolean;
   receta: { materiaPrimaId: string; cantidadPorHora: number; nombre: string; unidad: Unidad }[];
 }
-export interface Empleado { id: string; nombre: string; turnoHabitual: 'manana' | 'tarde' | null; activo: boolean }
+export interface Empleado { id: string; nombre: string; turnoHabitual: 'manana' | 'tarde' | null; valorHora: number | null; activo: boolean }
 export interface Empresa { razonSocial: string; direccion: string | null; telefono: string | null; email: string | null; cuit: string | null }
 export interface StockMaple { id: string; codigo: string; nombre: string; colorHex: string | null; maplesPorPaquete: number; activo: boolean; producido: number; enPalets: number; vendido: number }
 

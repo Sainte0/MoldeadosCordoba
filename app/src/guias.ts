@@ -229,7 +229,8 @@ export const GUIAS: Guia[] = [
       'En Plata › Cuentas corrientes elegí Clientes o Proveedores: ves cuánto debe o se le debe a cada uno.',
       'Tocá uno para ver todos los movimientos con el saldo después de cada uno.',
       'Si un cheque vino rechazado, anulá ese cobro con el motivo: vuelve a sumar a la deuda.',
-      'Abajo están los cheques por fecha de cobro y los bancos que se usan.',
+      'Abajo están los cheques: los que te dieron los clientes quedan "en cartera" hasta que los depositás (botón "Depositado") o se los das a un proveedor.',
+      'Para pagarle a un proveedor con un cheque de un cliente: Registrar pago › Cheque de terceros › elegí el cheque. Si después vuelve rechazado, anulá ese pago y el cheque vuelve a la cartera.',
     ],
   },
   {
@@ -275,6 +276,25 @@ export const GUIAS: Guia[] = [
       'Anotá cuántos maples por hora hace la máquina.',
       'En la receta agregá cada materia prima con su consumo por hora.',
       'Guardá. Desde ahora aparece al cargar partes.',
+    ],
+  },
+  {
+    id: 'service', area: 'Ajustes', titulo: 'Service de las máquinas', pantallas: ['/maples'],
+    palabras: 'service mantenimiento maquina horas aviso mp-1 mp-2 reparacion',
+    pasos: [
+      'En Ajustes › Maples y recetas, en Máquinas, tocá la máquina y poné cada cuántas horas le toca service.',
+      'Las horas se cuentan solas con los partes de producción. Cuando falta poco, aparece el aviso en el Inicio.',
+      'Cuando se hace el service, tocá "Registrar service", la fecha y qué se hizo: el contador vuelve a cero.',
+    ],
+  },
+  {
+    id: 'horas', area: 'Planta', titulo: 'Horas trabajadas por persona', pantallas: ['/produccion'],
+    palabras: 'horas empleado operario sueldo quincena pago personal asistencia',
+    pasos: [
+      'En Planta › Producción elegí el período (por ejemplo la quincena).',
+      '"Horas por persona" suma las horas de máquina de cada parte en que figura cada uno, por turno.',
+      'Si cargás el valor de la hora de cada persona (Ajustes › Equipo › Personal de planta), te muestra el estimado a pagar.',
+      'Con "Exportar" lo bajás a Excel para liquidar.',
     ],
   },
   {

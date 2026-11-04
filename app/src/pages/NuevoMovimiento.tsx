@@ -23,8 +23,11 @@ export function NuevoMovimiento() {
   useEffect(() => { if (pre && !quien) setQuien({ id: pre.id, nombre: pre.nombre }); }, [pre, quien]);
 
   const [monto, setMonto] = useState('');
-  const [medio, setMedio] = useState<Medio | null>(null);
+  const [medio, setMedio] = useState<Medio | 'endoso' | null>(null);
   const [bancoId, setBancoId] = useState<string | null>(null);
+  const [endosoDe, setEndosoDe] = useState<string | null>(null);
+  const { data: cheques } = useQuery({ queryKey: ['cheques'], queryFn: () => api<{ id: string; tipo: string; estado: string | null; monto: number; banco: string | null; chequeNumero: string | null; chequeFechaCobro: string | null; contraparte: string }[]>('/cheques'), enabled: tipo === 'pago' });
+  const cartera = (cheques ?? []).filter((c) => c.tipo === 'cobro' && c.estado === 'cartera');
   const [nro, setNro] = useState('');
   const [fechaCobro, setFechaCobro] = useState('');
   const [referencia, setReferencia] = useState('');
@@ -34,7 +37,8 @@ export function NuevoMovimiento() {
   const [error, setError] = useState<string | null>(null);
 
   const saldo = cuenta?.movimientos.at(-1)?.saldo ?? 0;
-  const centavos = aCentavos(monto);
+  const endosado = cartera.find((c) => c.id === endosoDe);
+  const centavos = medio === 'endoso' ? endosado?.monto ?? null : aCentavos(monto);
   const esCheque = medio === 'cheque' || medio === 'echeq';
   const verbo = tipo === 'cobro' ? 'cobraste' : 'pagaste';
 
@@ -48,6 +52,14 @@ export function NuevoMovimiento() {
       listo: quien ? true : 'Elegí uno para seguir',
     } as Paso]),
     {
+      titulo: '¿Cómo?',
+      ayuda: 'El medio de pago.',
+      contenido: <Opciones columnas valor={medio} onChange={(m) => { setMedio(m); setEndosoDe(null); }} opciones={[...MEDIOS, ...(tipo === 'pago' ? ['endoso' as const] : [])].map((m) => ({
+        valor: m, titulo: LABEL_MEDIO[m], detalle: m === 'endoso' ? `${cartera.length} en cartera` : undefined,
+      }))} />,
+      listo: medio ? true : 'Elegí el medio',
+    },
+    ...(medio === 'endoso' ? [] : [{
       titulo: `¿Cuánto ${verbo}?`,
       ayuda: saldo > 0 ? `${quien?.nombre} tiene un saldo de ${formatPesos(saldo)}. Podés registrar un pago parcial.` : 'Ingresá el monto total del pago.',
       contenido: (
@@ -57,14 +69,18 @@ export function NuevoMovimiento() {
         </>
       ),
       listo: centavos === null || centavos <= 0 ? 'Ingresá el monto' : true,
-    },
-    {
-      titulo: '¿Cómo?',
-      ayuda: 'El medio de pago.',
-      contenido: <Opciones columnas valor={medio} onChange={setMedio} opciones={MEDIOS.map((m) => ({ valor: m, titulo: LABEL_MEDIO[m] }))} />,
-      listo: medio ? true : 'Elegí el medio',
-    },
-    ...(medio && medio !== 'efectivo' ? [{
+    } as Paso]),
+    ...(medio === 'endoso' ? [{
+      titulo: '¿Qué cheque le das?',
+      ayuda: 'Cheques que te pagaron los clientes y todavía están en cartera. Se paga por el monto completo del cheque.',
+      contenido: cartera.length ? (
+        <Opciones valor={endosoDe} onChange={setEndosoDe} opciones={cartera.map((c) => ({
+          valor: c.id, titulo: `${formatPesos(c.monto)} · ${c.banco ?? ''} n.º ${c.chequeNumero ?? ''}`, detalle: `De ${c.contraparte}${c.chequeFechaCobro ? ` · se cobra el ${verFecha(c.chequeFechaCobro)}` : ''}`,
+        }))} />
+      ) : <p className="tenue">No hay cheques de terceros en cartera.</p>,
+      listo: endosoDe ? true : 'Elegí el cheque',
+    } as Paso] : []),
+    ...(medio && medio !== 'efectivo' && medio !== 'endoso' ? [{
       titulo: esCheque ? 'Datos del cheque' : 'Datos de la operación',
       ayuda: esCheque ? 'Banco, número y fecha en que se puede cobrar. Así aparece en la lista de cheques por fecha.' : 'Opcional: banco y número de operación, para encontrarlo después en el resumen.',
       contenido: (
@@ -84,7 +100,7 @@ export function NuevoMovimiento() {
         <>
           <dl className="resumen hoja relleno">
             <dt>{tipo === 'cobro' ? 'Cliente' : 'Proveedor'}</dt><dd>{quien?.nombre}</dd>
-            <dt>Medio</dt><dd>{medio && LABEL_MEDIO[medio]}{bancoId ? ` · ${bancos?.find((b) => b.id === bancoId)?.nombre}` : ''}{nro ? ` n.º ${nro}` : ''}{fechaCobro ? `, cobro ${verFecha(fechaCobro)}` : ''}</dd>
+            <dt>Medio</dt><dd>{medio && LABEL_MEDIO[medio]}{endosado ? ` · ${endosado.banco ?? ''} n.º ${endosado.chequeNumero ?? ''}, de ${endosado.contraparte}` : ''}{medio !== 'endoso' && bancoId ? ` · ${bancos?.find((b) => b.id === bancoId)?.nombre}` : ''}{nro ? ` n.º ${nro}` : ''}{fechaCobro ? `, cobro ${verFecha(fechaCobro)}` : ''}</dd>
             {centavos !== null && saldo > 0 && <><dt>Saldo después</dt><dd>{formatPesos(saldo - centavos)}</dd></>}
           </dl>
           <div className="lectura"><span>{tipo === 'cobro' ? 'Cobrado' : 'Pagado'}</span><span className="cifra">{centavos !== null && formatPesos(centavos)}</span></div>
@@ -104,7 +120,7 @@ export function NuevoMovimiento() {
         method: 'POST',
         body: {
           tipo, clienteId: tipo === 'cobro' ? quien!.id : null, proveedorId: tipo === 'pago' ? quien!.id : null, fecha, monto: centavos, medio,
-          bancoId: medio === 'efectivo' || medio === 'mercado_pago' ? null : bancoId, chequeNumero: esCheque ? nro || undefined : undefined,
+          bancoId: medio === 'efectivo' || medio === 'mercado_pago' || medio === 'endoso' ? null : bancoId, endosoDe: medio === 'endoso' ? endosoDe : null, chequeNumero: esCheque ? nro || undefined : undefined,
           chequeFechaCobro: esCheque && fechaCobro ? fechaCobro : null, referencia: referencia || undefined, notas: notas || undefined,
         },
       });

@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { aMinutos, consumoTeorico, paquetesTeoricos, parteSchema } from '@moldeados/shared';
 import { db } from '../src/db.js';
-import { anularPalet, anularParte, crearPalet, crearParte, stockMaples, trazabilidad } from '../src/features/produccion.service.js';
+import { anularPalet, anularParte, crearPalet, crearParte, horasPorPersona, maquinasConService, stockMaples, trazabilidad } from '../src/features/produccion.service.js';
 
 describe('cálculos de producción', () => {
   it('consumo teórico y paquetes esperados por tiempo trabajado', () => {
@@ -20,7 +20,7 @@ describe('partes y palets (moldeados_test)', () => {
     crearParte(db, usuarioId, parteSchema.parse({ fecha, turno: 'manana', maquinaId: maquina, varianteId: variante, empleadoIds: [empleado], minutos: 450, pulpeadas: 10, paquetes, ...extra }));
 
   beforeEach(async () => {
-    await db.raw('truncate palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
+    await db.raw('truncate servicios_maquina, palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
     [{ id: usuarioId }] = await db('usuarios').insert({ nombre: 'Test', usuario: 'test', password_hash: 'x', rol: 'dueno' }).returning('id');
     [{ id: maquina }] = await db('maquinas').insert({ codigo: 'MP-2', nombre: 'Grande' }).returning('id');
     [{ id: otraMaquina }] = await db('maquinas').insert({ codigo: 'MP-1', nombre: 'Chica' }).returning('id');
@@ -61,5 +61,22 @@ describe('partes y palets (moldeados_test)', () => {
     await anularPalet(db, usuarioId, pal.id, 'Se desarmó');
     await anularParte(db, usuarioId, viejo.id, 'Error de carga');
     expect((await stockMaples(db))[0]).toMatchObject({ producido: 30, enPalets: 0 });
+  });
+
+  it('service: cuenta las horas de los partes desde el último service y avisa al 90 %', async () => {
+    await db('maquinas').where({ id: maquina }).update({ service_cada_horas: 16 });
+    await parte(10, '2026-10-01'); await parte(10, '2026-10-02'); // 7,5 h cada uno
+    const m = (await maquinasConService(db)).find((x) => x.id === maquina)!;
+    expect([m.horasDesdeService, m.leTocaService, m.servicePasado]).toEqual([15, true, false]);
+    await db('servicios_maquina').insert({ maquina_id: maquina, fecha: '2026-10-02', usuario_id: usuarioId });
+    await parte(10, '2026-10-03');
+    expect((await maquinasConService(db)).find((x) => x.id === maquina)).toMatchObject({ horasDesdeService: 8, leTocaService: false });
+  });
+
+  it('horas por persona en el período y estimado según su valor hora', async () => {
+    await db('empleados').where({ id: empleado }).update({ valor_hora_centavos: 200_000 }); // $2.000 la hora
+    await parte(10, '2026-10-01'); await parte(10, '2026-10-02'); await parte(10, '2026-11-15');
+    const [h] = await horasPorPersona(db, '2026-10-01', '2026-10-31');
+    expect(h).toMatchObject({ nombre: 'Ana', minutos: 900, dias: 2, partes: 2, estimado: 3_000_000 }); // 15 h × $2.000
   });
 });

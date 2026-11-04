@@ -63,6 +63,7 @@ export async function anularVenta(db: Knex, usuarioId: string, ventaId: string, 
 }
 
 export async function crearMovimiento(db: Knex, usuarioId: string, i: MovimientoDineroInput): Promise<{ id: string; numero: number }> {
+  if (i.medio === 'endoso') return endosar(db, usuarioId, i);
   return db.transaction(async (trx) => {
     if (i.tipo === 'cobro' && !(await trx('clientes').where({ id: i.clienteId! }).whereNull('deleted_at').first('id'))) throw new NotFoundError('No encontramos ese cliente');
     if (i.tipo === 'pago' && !(await trx('proveedores').where({ id: i.proveedorId! }).whereNull('deleted_at').first('id'))) throw new NotFoundError('No encontramos ese proveedor');
@@ -73,17 +74,57 @@ export async function crearMovimiento(db: Knex, usuarioId: string, i: Movimiento
       monto_centavos: i.monto, medio: i.medio, banco_id: conBanco ? i.bancoId : null,
       cheque_numero: i.medio === 'cheque' || i.medio === 'echeq' ? i.chequeNumero : null, cheque_fecha_cobro: i.medio === 'cheque' || i.medio === 'echeq' ? i.chequeFechaCobro : null,
       referencia: i.referencia, notas: i.notas, usuario_id: usuarioId,
+      // Un cheque que recibimos queda en cartera hasta depositarlo o endosarlo.
+      cheque_estado: i.tipo === 'cobro' && (i.medio === 'cheque' || i.medio === 'echeq') ? 'cartera' : null,
     }).returning(['id', 'numero']);
     await auditar(trx, { usuarioId, accion: 'crear', entidad: i.tipo, entidadId: m.id, despues: i });
     return m;
   });
 }
 
+/**
+ * Pago a un proveedor entregándole un cheque de terceros que está en cartera. Monto = el del cheque (no se
+ * parte). El cheque pasa a "endosado" y queda ligado al pago.
+ */
+async function endosar(db: Knex, usuarioId: string, i: MovimientoDineroInput): Promise<{ id: string; numero: number }> {
+  return db.transaction(async (trx) => {
+    if (!(await trx('proveedores').where({ id: i.proveedorId! }).whereNull('deleted_at').first('id'))) throw new NotFoundError('No encontramos ese proveedor');
+    const ch = await trx('movimientos_dinero').where({ id: i.endosoDe! }).forUpdate()
+      .first('id', 'tipo', 'medio', 'cheque_estado', 'anulado_at', 'monto_centavos', 'banco_id', 'cheque_numero', 'cheque_fecha_cobro');
+    if (!ch || ch.tipo !== 'cobro' || !['cheque', 'echeq'].includes(ch.medio)) throw new ValidationError('Ese no es un cheque recibido de un cliente');
+    if (ch.anulado_at || ch.cheque_estado !== 'cartera') throw new ConflictError('Ese cheque ya no está en cartera (se depositó, se endosó o se anuló)');
+    const [m] = await trx('movimientos_dinero').insert({
+      tipo: 'pago', proveedor_id: i.proveedorId, fecha: i.fecha, monto_centavos: ch.monto_centavos, medio: 'endoso', endoso_de: ch.id,
+      banco_id: ch.banco_id, cheque_numero: ch.cheque_numero, cheque_fecha_cobro: ch.cheque_fecha_cobro, referencia: i.referencia, notas: i.notas, usuario_id: usuarioId,
+    }).returning(['id', 'numero']);
+    await trx('movimientos_dinero').where({ id: ch.id }).update({ cheque_estado: 'endosado', updated_at: trx.fn.now() });
+    await auditar(trx, { usuarioId, accion: 'crear', entidad: 'pago', entidadId: m.id, despues: { ...i, monto: Number(ch.monto_centavos) }, motivo: 'Pago con cheque de terceros' });
+    return m;
+  });
+}
+
+/** Cheque en cartera → depositado (o al revés, si se cargó por error). */
+export async function cambiarEstadoCheque(db: Knex, usuarioId: string, id: string, estado: 'cartera' | 'depositado'): Promise<void> {
+  await db.transaction(async (trx) => {
+    const ch = await trx('movimientos_dinero').where({ id }).forUpdate().first('id', 'cheque_estado', 'anulado_at');
+    if (!ch || !ch.cheque_estado || ch.anulado_at) throw new NotFoundError('No encontramos ese cheque en cartera');
+    if (ch.cheque_estado === 'endosado') throw new ConflictError('Ese cheque ya se le entregó a un proveedor');
+    await trx('movimientos_dinero').where({ id }).update({ cheque_estado: estado, updated_at: trx.fn.now() });
+    await auditar(trx, { usuarioId, accion: 'editar', entidad: 'cobro', entidadId: id, antes: { cheque: ch.cheque_estado }, despues: { cheque: estado } });
+  });
+}
+
 export async function anularMovimiento(db: Knex, usuarioId: string, id: string, motivo: string): Promise<void> {
   await db.transaction(async (trx) => {
-    const m = await trx('movimientos_dinero').where({ id }).forUpdate().first('id', 'tipo', 'anulado_at');
+    const m = await trx('movimientos_dinero').where({ id }).forUpdate().first('id', 'tipo', 'anulado_at', 'cheque_estado', 'endoso_de');
     if (!m) throw new NotFoundError('No encontramos ese movimiento');
     if (m.anulado_at) throw new ConflictError('Ya estaba anulado');
+    if (m.cheque_estado === 'endosado') {
+      const pago = await trx('movimientos_dinero as p').join('proveedores as pr', 'pr.id', 'p.proveedor_id').where('p.endoso_de', id).whereNull('p.anulado_at').first('p.numero', 'pr.nombre');
+      throw new ConflictError(`Este cheque se le entregó a ${pago?.nombre ?? 'un proveedor'} (pago ${String(pago?.numero ?? '').padStart(6, '0')}). Si volvió rechazado, anulá primero ese pago.`);
+    }
+    // Anular el pago con un cheque de terceros: el cheque vuelve a la cartera.
+    if (m.endoso_de) await trx('movimientos_dinero').where({ id: m.endoso_de }).update({ cheque_estado: 'cartera', updated_at: trx.fn.now() });
     await trx('movimientos_dinero').where({ id }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: motivo, updated_at: trx.fn.now() });
     await auditar(trx, { usuarioId, accion: 'anular', entidad: m.tipo, entidadId: id, motivo });
   });

@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, MessageCircle, PackageOpen } from 'lucide-react';
+import { Check, MessageCircle, PackageOpen, Wrench } from 'lucide-react';
 import { formatCantidad, formatPesos, telefonoWhatsapp, type EstadoRecompra, type Unidad } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
 import { useEmpresa } from '../datos';
 
 interface ClienteAviso { id: string; nombre: string; telefono: string | null; ultimoTotal: number; ultimoMaples: number; ultimaCompra: string; compras: number; cadaDias: number | null; diasDesdeUltima: number; estado: EstadoRecompra }
 interface MateriaAviso { id: string; nombre: string; unidad: Unidad; stock: number; stockMinimo: number; dias: number | null; diasAviso: number }
-interface Avisos { clientes: ClienteAviso[] | null; materias: MateriaAviso[] | null }
+interface MaquinaAviso { id: string; codigo: string; nombre: string; horasDesdeService: number; serviceCadaHoras: number; servicePasado: boolean }
+interface Avisos { clientes: ClienteAviso[] | null; materias: MateriaAviso[] | null; maquinas: MaquinaAviso[] | null }
 
 export const useAvisos = () => useQuery({ queryKey: ['avisos'], queryFn: () => api<Avisos>('/avisos'), staleTime: 60_000 });
 
@@ -82,6 +83,24 @@ export function PorAcabarse() {
           </div>
           {puede('compras', 2) && <Link to={m.dias !== null && m.nombre.toLowerCase().includes('cart') ? '/pesaje' : '/compras/nueva'} className="boton secundario">Cargar compra</Link>}
         </div>
+      ))}
+    </section>
+  );
+}
+
+/** Máquinas a las que les toca (o se les pasó) el service según las horas de los partes. */
+export function ServiceMaquinas() {
+  const { data } = useAvisos();
+  if (!data?.maquinas?.length) return null;
+  return (
+    <section className="hoja">
+      <div className="fila"><div><h3>Service de máquinas</h3><p className="chico tenue">Según las horas cargadas en los partes.</p></div></div>
+      {data.maquinas.map((m) => (
+        <Link to="/maples" className="fila" key={m.id}>
+          <span className="con-muestra"><Wrench size={20} aria-hidden style={{ color: m.servicePasado ? 'var(--peligro)' : 'var(--alerta)' }} />
+            <span><span className="principal">{m.codigo}</span><br /><span className="chico tenue">{m.horasDesdeService} h de {m.serviceCadaHoras} h</span></span></span>
+          <span className={`marca-texto ${m.servicePasado ? 'peligro' : 'alerta'}`}>{m.servicePasado ? 'Vencido' : 'Le toca'}</span>
+        </Link>
       ))}
     </section>
   );

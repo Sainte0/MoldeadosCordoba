@@ -153,7 +153,7 @@ export const MEDIOS = ['efectivo', 'transferencia', 'mercado_pago', 'echeq', 'ch
 
 export type Medio = (typeof MEDIOS)[number];
 
-export const LABEL_MEDIO: Record<Medio, string> = { efectivo: 'Efectivo', transferencia: 'Transferencia', mercado_pago: 'Mercado Pago', echeq: 'e-Cheq', cheque: 'Cheque físico' };
+export const LABEL_MEDIO: Record<Medio | 'endoso', string> = { efectivo: 'Efectivo', transferencia: 'Transferencia', mercado_pago: 'Mercado Pago', echeq: 'e-Cheq', cheque: 'Cheque físico', endoso: 'Cheque de terceros' };
 
 /** Venta: cada palet a su precio por maple. Mismo redondeo que las compras. */
 export function calcularVenta(items: { maples: number; precioMaple: number }[], ivaBp: number) {

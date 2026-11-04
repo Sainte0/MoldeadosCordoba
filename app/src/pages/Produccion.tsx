@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { formatCantidad, formatMinutos, LABEL_TURNO, type Turno, type Unidad } from '@moldeados/shared/base';
+import { formatCantidad, formatMinutos, formatPesos, LABEL_TURNO, type Turno, type Unidad } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { Muestra } from '../MapleVista';
@@ -27,6 +27,7 @@ export function Produccion() {
   const setDesde = (desde: string) => setF({ desde });
   const setHasta = (hasta: string) => setF({ hasta });
   const { data: r } = useQuery({ queryKey: ['partes-resumen', desde, hasta], queryFn: () => api<Resumen>(`/partes/resumen?desde=${desde}&hasta=${hasta}`) });
+  const { data: horas } = useQuery({ queryKey: ['horas', desde, hasta], queryFn: () => api<{ id: string; nombre: string; minutos: number; manana: number; tarde: number; dias: number; partes: number; estimado: number | null }[]>(`/horas?desde=${desde}&hasta=${hasta}`) });
   const { data: partes, isLoading } = useQuery({ queryKey: ['partes', desde, hasta, q], queryFn: () => api<ParteFila[]>(`/partes?desde=${desde}&hasta=${hasta}&q=${encodeURIComponent(q)}`) });
   const tot = (r?.produccion ?? []).reduce((a, p) => ({ paquetes: a.paquetes + p.paquetes, minutos: a.minutos + p.minutos, maples: a.maples + p.maples, partes: a.partes + p.partes }), { paquetes: 0, minutos: 0, maples: 0, partes: 0 });
 
@@ -93,6 +94,18 @@ export function Produccion() {
               </div>
             );
           })}
+        </section>
+      )}
+
+      {horas && horas.some((h) => h.minutos > 0) && (
+        <section className="hoja">
+          <div className="fila"><div><h3>Horas por persona</h3><p className="chico tenue">Las horas de máquina de los partes en que figura cada uno.</p></div><BotonExportar que="horas" desde={desde} hasta={hasta} texto="Exportar" /></div>
+          {horas.filter((h) => h.minutos > 0).map((h) => (
+            <div className="fila" key={h.id}>
+              <div><div className="principal">{h.nombre}</div><div className="chico tenue">{h.dias} días · {h.partes} partes · mañana {formatMinutos(h.manana)} · tarde {formatMinutos(h.tarde)}</div></div>
+              <div className="derecha"><div className="cifra">{formatMinutos(h.minutos)}</div>{h.estimado !== null && <div className="chico tenue">{formatPesos(h.estimado)} estimado</div>}</div>
+            </div>
+          ))}
         </section>
       )}
 

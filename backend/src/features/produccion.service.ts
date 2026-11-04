@@ -178,3 +178,44 @@ export async function trazabilidad(db: Knex, paletId: string) {
     .first('v.id', 'v.numero', 'v.fecha', 'v.retira', 'v.vehiculo', 'v.patente', 'c.nombre as cliente');
   return { ...palet, lotes, origen, venta: venta ?? null };
 }
+
+/** Máquinas con las horas trabajadas desde su último service (de los partes) y si ya le toca. */
+export async function maquinasConService(db: Knex) {
+  const filas = await db('maquinas as m').whereNull('m.deleted_at')
+    .select('m.id', 'm.codigo', 'm.nombre', 'm.activo', 'm.service_cada_horas as serviceCadaHoras',
+      db.raw('(select max(s.fecha) from servicios_maquina s where s.maquina_id = m.id) as "ultimoService"'),
+      db.raw(`coalesce((select sum(p.minutos) from partes p where p.maquina_id = m.id and p.anulado_at is null
+               and p.fecha > coalesce((select max(s.fecha) from servicios_maquina s where s.maquina_id = m.id), '-infinity'::date)), 0)::int as "minutosDesdeService"`))
+    .orderBy('m.codigo');
+  return filas.map((m) => {
+    const horas = Math.round(m.minutosDesdeService / 60);
+    const cada = m.serviceCadaHoras as number | null;
+    return { ...m, horasDesdeService: horas, leTocaService: cada !== null && horas >= cada * 0.9, servicePasado: cada !== null && horas >= cada };
+  });
+}
+
+/**
+ * Horas por persona en un período: cada parte suma sus horas de máquina a quienes figuran en él.
+ * ponytail: si alguien figura en dos máquinas a la vez, suma las dos; si hace falta asistencia real, fichar entrada y salida.
+ */
+export async function horasPorPersona(db: Knex, desde?: string, hasta?: string) {
+  const filas = await db('empleados as e')
+    .leftJoin('parte_empleados as pe', 'pe.empleado_id', 'e.id')
+    .leftJoin('partes as p', (j) => {
+      j.on('p.id', 'pe.parte_id').andOnNull('p.anulado_at');
+      if (desde) j.andOn('p.fecha', '>=', db.raw('?', [desde]));
+      if (hasta) j.andOn('p.fecha', '<=', db.raw('?', [hasta]));
+    })
+    .whereNull('e.deleted_at')
+    .groupBy('e.id', 'e.nombre', 'e.valor_hora_centavos', 'e.activo')
+    .select('e.id', 'e.nombre', 'e.activo', 'e.valor_hora_centavos as valorHora',
+      db.raw('coalesce(sum(p.minutos), 0)::int as minutos'),
+      db.raw("coalesce(sum(p.minutos) filter (where p.turno = 'manana'), 0)::int as manana"),
+      db.raw("coalesce(sum(p.minutos) filter (where p.turno = 'tarde'), 0)::int as tarde"),
+      db.raw('count(p.id)::int as partes'),
+      db.raw('count(distinct p.fecha)::int as dias'))
+    .orderBy('e.nombre');
+  return filas
+    .filter((f) => f.activo || f.minutos > 0)
+    .map((f) => ({ ...f, valorHora: f.valorHora === null ? null : Number(f.valorHora), estimado: f.valorHora === null ? null : Math.round((Number(f.valorHora) * f.minutos) / 60) }));
+}

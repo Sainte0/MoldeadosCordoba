@@ -5,6 +5,7 @@ import { db } from '../db.js';
 import { matriz, requerirAlguno } from '../lib/auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
 import { zip } from '../lib/zip.js';
+import { horasPorPersona } from './produccion.service.js';
 
 // Exportar: cada listado como CSV que abre bien en Excel en castellano (separador ";", coma decimal, BOM UTF-8,
 // fechas dd/mm/aaaa). Plata en pesos con centavos y cantidades en kg/L: nunca los enteros internos.
@@ -69,6 +70,9 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
         'pa.vehiculo', 'pa.destino', db.raw("case when pa.anulado_at is not null then 'Desarmado' when pa.venta_id is not null then 'Vendido' else 'Listo para salir' end as estado"), 've.numero as remito', 'c.nombre as cliente'),
     [['Palet', 'numero', nro], ['Armado', 'created_at', momento], ['Código', 'codigo'], ['Paquetes', 'paquetes'], ['Maples', 'maples'], ['Armado (an×la×al)', 'armado'], ['Vehículo', 'vehiculo', vehiculo], ['Destino', 'destino'],
       ['Estado', 'estado'], ['Remito', 'remito', nro], ['Cliente', 'cliente']]) },
+  horas: { titulo: 'Horas por persona (según los partes)', modulo: 'produccion', periodo: true, armar: async (p) => csv(await horasPorPersona(db, p.desde, p.hasta),
+    [['Persona', 'nombre'], ['Horas', 'minutos', horas], ['Mañana (h)', 'manana', horas], ['Tarde (h)', 'tarde', horas], ['Días', 'dias'], ['Partes', 'partes'],
+      ['Valor hora', 'valorHora', pesos], ['Estimado a pagar', 'estimado', pesos]]) },
   stock: { titulo: 'Stock de materia prima', modulo: 'materias', periodo: false, armar: async () => csv(
     await db('materias_primas as m').whereNull('m.deleted_at').orderBy('m.nombre')
       .select('m.nombre', 'm.tipo', 'm.unidad', 'm.stock_minimo', db.raw('(select coalesce(sum(cantidad), 0) from movimientos_stock s where s.materia_prima_id = m.id) as stock'), 'm.activo'),

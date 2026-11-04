@@ -10,7 +10,7 @@ import { BotonExportar } from './Exportar';
 import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
 
 interface Saldo { id: string; nombre: string; debe: number; haber: number; ultimoMovimiento: string | null }
-interface Cheque { id: string; tipo: 'cobro' | 'pago'; medio: Medio; monto: number; chequeNumero: string | null; chequeFechaCobro: string; banco: string; contraparte: string }
+interface Cheque { id: string; tipo: 'cobro' | 'pago'; medio: Medio; monto: number; chequeNumero: string | null; chequeFechaCobro: string | null; banco: string | null; contraparte: string; estado: 'cartera' | 'depositado' | 'endosado' | null }
 
 export function Cuentas() {
   const { puede } = useSesion();
@@ -19,6 +19,11 @@ export function Cuentas() {
   const q = f.q;
   const { data, isLoading } = useQuery({ queryKey: ['cuentas', de], queryFn: () => api<Saldo[]>(`/cuentas/${de}`) });
   const { data: cheques } = useQuery({ queryKey: ['cheques'], queryFn: () => api<Cheque[]>('/cheques') });
+  const qc = useQueryClient();
+  const depositar = async (id: string) => {
+    await api(`/cheques/${id}/estado`, { method: 'POST', body: { estado: 'depositado' } });
+    await qc.invalidateQueries({ queryKey: ['cheques'] });
+  };
   const filas = (data ?? []).filter((s) => !q || s.nombre.toLowerCase().includes(q.toLowerCase())).map((s) => ({ ...s, saldo: s.debe - s.haber }));
   const total = filas.reduce((a, s) => a + s.saldo, 0);
 
@@ -64,14 +69,15 @@ export function Cuentas() {
 
       {cheques && cheques.length > 0 && (
         <section className="hoja">
-          <div className="fila"><h3>Cheques por cobrar y por cubrir</h3><span className="chico tenue">por fecha de cobro</span></div>
+          <div className="fila"><h3>Cheques</h3><span className="chico tenue">recibidos en cartera y emitidos por cubrir</span></div>
           {cheques.map((c) => (
-            <div className="fila" key={c.id}>
+            <div className="fila" key={c.id} style={{ gridTemplateColumns: '1fr auto auto' }}>
               <div>
-                <div className="principal">{verFecha(c.chequeFechaCobro)} · {c.contraparte}</div>
-                <div className="chico tenue">{LABEL_MEDIO[c.medio]} {c.banco}{c.chequeNumero ? ` n.º ${c.chequeNumero}` : ''} · {c.tipo === 'cobro' ? 'recibido' : 'emitido'}</div>
+                <div className="principal">{c.chequeFechaCobro ? verFecha(c.chequeFechaCobro) : 'Sin fecha'} · {c.contraparte}</div>
+                <div className="chico tenue">{LABEL_MEDIO[c.medio]} {c.banco}{c.chequeNumero ? ` n.º ${c.chequeNumero}` : ''} · {c.tipo === 'cobro' ? 'recibido, en cartera' : 'emitido por nosotros'}</div>
               </div>
               <span className={`cifra ${c.tipo === 'pago' ? 'saldo-mas' : ''}`}>{formatPesos(c.monto)}</span>
+              {c.estado === 'cartera' && puede('cuentas', 2) ? <button className="boton secundario" onClick={() => depositar(c.id)}>Depositado</button> : <span />}
             </div>
           ))}
         </section>
