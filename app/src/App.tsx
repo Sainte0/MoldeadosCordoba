@@ -4,6 +4,8 @@ import { CircleHelp, Home, LogOut, Menu, Search, X } from 'lucide-react';
 import { AJUSTES, AREAS, enArea, type Area } from './navegacion';
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
+import { useCola } from './cola';
+import { Dialogo } from './ui';
 import { precargar } from './persistencia';
 import { useQueryClient } from '@tanstack/react-query';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
@@ -61,6 +63,8 @@ export function App() {
   const { sesion, salir, puede } = useSesion();
   const [abierto, setAbierto] = useState(false);
   const [buscando, setBuscando] = useState(false);
+  const [confirmarSalir, setConfirmarSalir] = useState(false);
+  const pendientes = useCola().filter((x) => !x.error && x.usuarioId === sesion?.usuario.id).length;
   const qc = useQueryClient();
   // Al entrar (y al recuperar la señal): dejar guardado lo necesario para cargar sin conexión.
   useEffect(() => {
@@ -120,10 +124,19 @@ export function App() {
           <Reloj conFecha />
           <div>{sesion.usuario.nombre}</div>
           <div>{LABEL_ROL[sesion.usuario.rol]}</div>
-          <button onClick={salir}><LogOut size={16} aria-hidden /> Salir</button>
+          <button onClick={() => (pendientes ? setConfirmarSalir(true) : salir())}><LogOut size={16} aria-hidden /> Salir</button>
         </div>
       </nav>
       {buscando && <Suspense fallback={null}><BuscadorGlobal abierto onCerrar={() => setBuscando(false)} /></Suspense>}
+      {confirmarSalir && (
+        <Dialogo titulo="Tenés cargas sin subir" onCerrar={() => setConfirmarSalir(false)}>
+          <p>{pendientes === 1 ? 'Hay 1 carga' : `Hay ${pendientes} cargas`} guardadas en este teléfono que todavía no se subieron. Si salís, quedan guardadas y se suben la próxima vez que entres vos.</p>
+          <div className="acciones">
+            <button className="boton secundario" onClick={() => setConfirmarSalir(false)}>Quedarme</button>
+            <button className="boton primario" onClick={() => { setConfirmarSalir(false); salir(); }}>Salir igual</button>
+          </div>
+        </Dialogo>
+      )}
       <main className="contenido">
         <ColaPendiente />
         <Pestanas path={pathname} puede={p} />

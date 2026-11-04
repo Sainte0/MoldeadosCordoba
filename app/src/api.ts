@@ -13,10 +13,13 @@ let alExpirar: () => void = () => {};
 
 /** sinConexion: no hubo respuesta del servidor (sin señal). Es la única falla que se puede reintentar más tarde. */
 export class ErrorApi extends Error {
-  constructor(message: string, readonly sinConexion = false) { super(message); }
+  constructor(message: string, readonly sinConexion = false, readonly status = 0) { super(message); }
 }
 
 /** fetch a la API con el token. Devuelve `data`; si falla lanza ErrorApi con el mensaje ya pensado para el usuario. */
+/** Usuario con sesión en este teléfono (para que las cargas guardadas sin señal se suban a nombre de quien las hizo). */
+export const usuarioActual = () => { try { return (JSON.parse(localStorage.getItem(CLAVE) ?? 'null') as Sesion | null)?.usuario.id ?? null; } catch { return null; } };
+
 export async function api<T>(ruta: string, opciones: { method?: string; body?: unknown; clave?: string } = {}): Promise<T> {
   let res: Response;
   try {
@@ -30,7 +33,7 @@ export async function api<T>(ruta: string, opciones: { method?: string; body?: u
   }
   const json = await res.json().catch(() => null);
   if (res.status === 401 && token) alExpirar();
-  if (!res.ok) throw new ErrorApi(json?.error?.message ?? 'Algo falló. Probá de nuevo en un momento.');
+  if (!res.ok) throw new ErrorApi(json?.error?.message ?? 'Algo falló. Probá de nuevo en un momento.', false, res.status);
   return json.data as T;
 }
 

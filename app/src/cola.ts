@@ -1,13 +1,13 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { api, ErrorApi } from './api';
+import { api, ErrorApi, usuarioActual } from './api';
 
 // Cargas hechas sin señal (parte, despacho, pesaje): se guardan en el teléfono y se suben solas cuando vuelve la
 // conexión. Cada una lleva una clave única: si un envío llegó pero se cortó la respuesta, el servidor no la
 // duplica. Si el servidor la rechaza (por ejemplo, ese palet ya se vendió desde otro equipo), queda marcada con
 // el motivo para que alguien la revise.
 
-export interface Pendiente { id: string; ruta: string; body: unknown; descripcion: string; creado: string; error?: string }
+export interface Pendiente { id: string; usuarioId: string | null; ruta: string; body: unknown; descripcion: string; creado: string; error?: string }
 const CLAVE = 'moldeados_cola';
 const oyentes = new Set<() => void>();
 
@@ -33,12 +33,14 @@ export async function enviarOGuardar<T>(ruta: string, body: unknown, descripcion
     return { guardado: false, data: await api<T>(ruta, { method: 'POST', body, clave: id }) };
   } catch (e) {
     if (!(e instanceof ErrorApi) || !e.sinConexion) throw e;
-    guardar([...cache, { id, ruta, body, descripcion, creado: new Date().toISOString() }]);
+    guardar([...cache, { id, usuarioId: usuarioActual(), ruta, body, descripcion, creado: new Date().toISOString() }]);
     return { guardado: true };
   }
 }
 
 export const descartar = (id: string) => guardar(cache.filter((p) => p.id !== id));
+/** Volver a intentar una carga rechazada (por ejemplo, después de corregir algo en el sistema). */
+export const reintentar = (id: string) => guardar(cache.map((p) => (p.id === id ? { ...p, error: undefined } : p)));
 let subiendo = false;
 
 /** Sube lo pendiente en orden. Corta en la primera falta de señal; lo rechazado queda marcado. */
@@ -47,13 +49,18 @@ export async function subirPendientes(): Promise<number> {
   subiendo = true;
   let subidos = 0;
   try {
-    for (const p of cache.filter((x) => !x.error)) {
+    // Solo las cargas de quien tiene la sesión: si otra persona entra en este teléfono, lo pendiente de la anterior
+    // espera a que vuelva a entrar (si no, quedaría registrado a nombre de quien no lo hizo).
+    const yo = usuarioActual();
+    for (const p of cache.filter((x) => !x.error && (x.usuarioId ?? yo) === yo)) {
       try {
         await api(p.ruta, { method: 'POST', body: p.body, clave: p.id });
         guardar(cache.filter((x) => x.id !== p.id));
         subidos++;
       } catch (e) {
         if (e instanceof ErrorApi && e.sinConexion) break;
+        // Sesión vencida (más de 7 días sin entrar): no es un rechazo, espera a que la persona vuelva a entrar.
+        if (e instanceof ErrorApi && e.status === 401) break;
         guardar(cache.map((x) => (x.id === p.id ? { ...x, error: e instanceof Error ? e.message : 'El sistema no la aceptó' } : x)));
       }
     }
@@ -75,7 +82,8 @@ export function useSincronizar() {
     window.addEventListener('offline', off);
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
-  const hay = cola.some((p) => !p.error);
+  const yo = usuarioActual();
+  const hay = cola.some((p) => !p.error && (p.usuarioId ?? yo) === yo);
   useEffect(() => {
     if (!hay) return;
     const intentar = () => { void subirPendientes().then((n) => { if (n) void qc.invalidateQueries(); }); };
