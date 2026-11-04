@@ -482,3 +482,6 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
 select.entrada { appearance: none; -webkit-appearance: none; font-size: 16px; background-image: linear-gradient(45deg, transparent 50%, var(--tinta-2) 50%), linear-gradient(135deg, var(--tinta-2) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 40px; }
 .titulo-seccion { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .titulo-seccion h2 { font-size: 1.25rem; }
+.opcion small.tono-critico { color: var(--critico); font-weight: 600; }
+.opcion small.tono-atencion { color: var(--atencion-c); font-weight: 600; }
+.opcion small.tono-ok { color: var(--ok-c); font-weight: 600; }

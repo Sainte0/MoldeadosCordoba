@@ -59,7 +59,7 @@ export function Cuentas() {
               <div><div className="principal">{s.nombre}</div><div className="chico tenue">{de === 'cliente' ? 'Total vendido' : 'Total comprado'} {formatPesos(Number(s.debe))} · total pagado {formatPesos(Number(s.haber))}{s.ultimoMovimiento ? ` · última ${de === 'cliente' ? 'venta' : 'compra'} ${verFecha(s.ultimoMovimiento)}` : ''}</div></div>
               <div className="derecha">
                 <div className={`cifra ${s.saldo > 0 ? 'saldo-mas' : s.saldo === 0 ? 'saldo-cero' : ''}`}>{formatPesos(Math.abs(s.saldo))}</div>
-                <div className="chico tenue">{s.saldo > 0 ? (de === 'cliente' ? 'nos debe' : 'le debemos') : s.saldo < 0 ? 'a favor' : 'al día'}</div>
+                <div className={`chico ${s.saldo > 0 ? 'saldo-mas' : 'saldo-ok'}`} style={{ fontWeight: 600 }}>{s.saldo > 0 ? (de === 'cliente' ? 'nos debe' : 'le debemos') : s.saldo < 0 ? 'a favor' : 'al día'}</div>
               </div>
             </Link>
           ))}

@@ -36,7 +36,8 @@ export function Buscador(props: InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
-export interface Opcion<T> { valor: T; titulo: string; detalle?: ReactNode }
+/** `tono`: color del detalle según el estado (rojo debe / vence, verde al día). */
+export interface Opcion<T> { valor: T; titulo: string; detalle?: ReactNode; tono?: 'critico' | 'atencion' | 'ok' }
 /** Elegir uno entre pocos: opciones grandes en lugar de un desplegable. */
 export function Opciones<T>({ opciones, valor, onChange, columnas }: { opciones: Opcion<T>[]; valor: T | null; onChange: (v: T) => void; columnas?: boolean }) {
   return (
@@ -46,7 +47,7 @@ export function Opciones<T>({ opciones, valor, onChange, columnas }: { opciones:
           <span className="marca-op" aria-hidden />
           <span>
             <b>{o.titulo}</b>
-            {o.detalle && <small>{o.detalle}</small>}
+            {o.detalle && <small className={o.tono ? `tono-${o.tono}` : undefined}>{o.detalle}</small>}
           </span>
         </button>
       ))}

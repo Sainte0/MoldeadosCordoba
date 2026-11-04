@@ -37,7 +37,8 @@ export function ElegirCliente({ valor, onChange, conDeuda }: { valor: Cliente | 
         <Opciones
           valor={valor?.id ?? null}
           onChange={(id) => { const c = data?.find((x) => x.id === id); if (c) onChange(c); }}
-          opciones={(data ?? []).map((c) => ({ valor: c.id, titulo: c.nombre, detalle: conDeuda && debe(c.id) > 0 ? `Debe ${formatPesos(debe(c.id))}` : conDeuda && debe(c.id) < 0 ? `A favor ${formatPesos(-debe(c.id))}` : conDeuda ? 'Al día' : c.ultimaVenta ? `Última compra: ${verFecha(c.ultimaVenta)}` : 'Cliente nuevo' }))}
+          opciones={(data ?? []).map((c) => ({ valor: c.id, titulo: c.nombre, detalle: conDeuda && debe(c.id) > 0 ? `Debe ${formatPesos(debe(c.id))}` : conDeuda && debe(c.id) < 0 ? `A favor ${formatPesos(-debe(c.id))}` : conDeuda ? 'Al día' : c.ultimaVenta ? `Última compra: ${verFecha(c.ultimaVenta)}` : 'Cliente nuevo',
+            tono: conDeuda ? (debe(c.id) > 0 ? 'critico' as const : 'ok' as const) : undefined }))}
         />
       )}
       {data?.length === 0 && <p className="tenue">{q ? 'No hay clientes con ese nombre.' : 'Todavía no hay clientes cargados.'}</p>}
