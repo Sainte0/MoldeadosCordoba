@@ -4,7 +4,7 @@ import { api } from './api';
 
 // Tipos de lo que devuelve la API y las consultas que usan varias pantallas.
 
-export interface MateriaPrima { id: string; nombre: string; tipo: TipoMp; unidad: Unidad; color: string | null; stockMinimo: number; activo: boolean; stock: number }
+export interface MateriaPrima { id: string; nombre: string; tipo: TipoMp; unidad: Unidad; color: string | null; stockMinimo: number; diasAviso: number; activo: boolean; stock: number; dias: number | null }
 export interface Proveedor {
   id: string; nombre: string; cuit: string | null; telefono: string | null; email: string | null; direccion: string | null;
   tipos: TipoMp[]; notas: string | null; ultimaCompra?: string | null; comprado30d?: number;

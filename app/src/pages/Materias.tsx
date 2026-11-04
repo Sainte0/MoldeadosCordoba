@@ -32,7 +32,7 @@ export function Materias() {
                 </div>
                 <div className="derecha">
                   <div className="cifra" style={{ fontSize: '1.3rem', color: bajo ? 'var(--peligro)' : undefined }}>{formatCantidad(m.stock, m.unidad)}</div>
-                  {bajo && <span className="marca-texto alerta">Bajo mínimo</span>}
+                  {m.dias !== null ? <span className={`chico ${m.dias <= m.diasAviso ? 'saldo-mas' : 'tenue'}`}>alcanza {m.dias} días</span> : bajo && <span className="marca-texto alerta">Bajo mínimo</span>}
                 </div>
               </button>
             );
@@ -115,6 +115,7 @@ function EditarMateria({ inicial, onCerrar }: { inicial: Partial<MateriaPrima>; 
   const [color, setColor] = useState(inicial.color ?? '');
   const [minimo, setMinimo] = useState(inicial.stockMinimo ? String(inicial.stockMinimo / 1000).replace('.', ',') : '');
   const [activo, setActivo] = useState(inicial.activo ?? true);
+  const [diasAviso, setDiasAviso] = useState(String(inicial.diasAviso ?? 7));
   const [error, setError] = useState<string | null>(null);
 
   const guardar = async () => {
@@ -122,7 +123,7 @@ function EditarMateria({ inicial, onCerrar }: { inicial: Partial<MateriaPrima>; 
     if (min === null || min < 0) return setError('El stock mínimo no es válido');
     setError(null);
     try {
-      const body = { nombre, tipo, unidad, color: tipo === 'tinta' ? color || undefined : undefined, stockMinimo: min, activo };
+      const body = { nombre, tipo, unidad, color: tipo === 'tinta' ? color || undefined : undefined, stockMinimo: min, diasAviso: Number(diasAviso || 0), activo };
       await api(inicial.id ? `/materias/${inicial.id}` : '/materias', { method: inicial.id ? 'PUT' : 'POST', body });
       await qc.invalidateQueries({ queryKey: ['materias'] });
       onCerrar();
@@ -141,6 +142,9 @@ function EditarMateria({ inicial, onCerrar }: { inicial: Partial<MateriaPrima>; 
       {tipo === 'tinta' && <Campo etiqueta="Color"><Entrada value={color} onChange={(e) => setColor(e.target.value)} placeholder="Rojo" /></Campo>}
       <Campo etiqueta="Stock mínimo" ayuda="Debajo de esto se marca como bajo en el inicio. Vacío = sin aviso.">
         <EntradaNumero unidad={unidad === 'kg' ? 'kg' : 'L'} value={minimo} onChange={(e) => setMinimo(e.target.value)} />
+      </Campo>
+      <Campo etiqueta="Avisar cuando alcance para" ayuda="Según lo que se usó en los últimos 30 días. 0 = no avisar.">
+        <EntradaNumero unidad="días" value={diasAviso} onChange={(e) => setDiasAviso(e.target.value.replace(/\D/g, ''))} />
       </Campo>
       {inicial.id && <Opciones columnas valor={activo} onChange={setActivo} opciones={[{ valor: true, titulo: 'Activa' }, { valor: false, titulo: 'Desactivada', detalle: 'No aparece para comprar' }]} />}
       <Aviso>{error}</Aviso>

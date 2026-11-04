@@ -23,6 +23,10 @@ interface Datos {
   produccion: { codigo: string; colorHex: string | null; paquetes: number; maples: number; minutos: number }[];
   consumo: { nombre: string; unidad: Unidad; real: number; teorico: number }[];
   serie: { inicio: string; ingresos: number; egresos: number }[];
+  costos: {
+    porCodigo: { id: string; codigo: string; colorHex: string | null; costoMaple: number | null; faltaPrecio: boolean; precioMaple: number | null; maplesVendidos: number }[];
+    porCliente: { id: string; nombre: string; neto: number; costo: number; margen: number; sinCosto: boolean }[];
+  };
   porCobrar: number; porPagar: number; caja: number; materiasBajoMinimo: number; paletsListos: { cantidad: number; paquetes: number };
 }
 
@@ -89,6 +93,8 @@ export function Tablero() {
             <BarrasRanking titulo="Ventas por cliente" filas={t.porCliente} color={C_INGRESOS} vacio="Sin ventas en el período." enlace={(id) => `/cuentas/cliente/${id}`} />
             <BarrasRanking titulo="Compras por proveedor" filas={t.porProveedor} color={C_EGRESOS} vacio="Sin compras en el período." enlace={(id) => `/cuentas/proveedor/${id}`} />
           </div>
+          <CostoYMargen c={t.costos} />
+
           <div className="rejilla par">
             <BarrasRanking titulo="Gastos por categoría" filas={t.porCategoria} color={C_EGRESOS} vacio="Sin gastos en el período." />
             <section className="hoja">
@@ -216,6 +222,43 @@ function GraficoIngresosEgresos({ serie, paso }: { serie: Datos['serie']; paso: 
           <tbody>{serie.filter((s) => s.ingresos || s.egresos).map((s) => <tr key={s.inicio}><td>{verFecha(s.inicio)}</td><td>{formatPesos(s.ingresos)}</td><td>{formatPesos(s.egresos)}</td></tr>)}</tbody>
         </table>
       </details>
+    </div>
+  );
+}
+
+/** Cuánto cuesta en materia prima cada maple y cuánto deja cada código y cada cliente. */
+function CostoYMargen({ c }: { c: Datos['costos'] }) {
+  if (!c.porCodigo.length) return null;
+  const pct = (precio: number | null, costo: number | null) => (precio && costo !== null ? Math.round(((precio - costo) / precio) * 100) : null);
+  return (
+    <div className="rejilla par">
+      <section className="hoja">
+        <div className="fila"><div><h3>Costo y margen por maple</h3><p className="chico tenue">Materia prima al precio promedio de compra, sin IVA. No incluye gastos ni sueldos.</p></div></div>
+        {c.porCodigo.map((x) => {
+          const m = pct(x.precioMaple, x.costoMaple);
+          return (
+            <div className="fila" key={x.id}>
+              <span className="con-muestra"><Muestra color={x.colorHex} />
+                <span><span className="principal">{x.codigo}</span><br />
+                  <span className="chico tenue">Cuesta {x.costoMaple !== null ? formatPesos(x.costoMaple) : 'sin datos'}{x.precioMaple ? ` · se vende a ${formatPesos(x.precioMaple)}` : ' · sin ventas en el período'}</span>
+                  {x.faltaPrecio && <><br /><span className="chico" style={{ color: 'var(--alerta)' }}>Hay materia prima usada sin compras cargadas: el costo queda bajo.</span></>}
+                </span>
+              </span>
+              <span className="derecha">{m !== null ? <><span className="cifra">{m} %</span><br /><span className="chico tenue">de margen</span></> : <span className="chico tenue">—</span>}</span>
+            </div>
+          );
+        })}
+      </section>
+      <section className="hoja">
+        <div className="fila"><div><h3>Lo que deja cada cliente</h3><p className="chico tenue">Venta sin IVA menos la materia prima de esos maples.</p></div></div>
+        {!c.porCliente.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>Sin ventas en el período.</p>}
+        {c.porCliente.slice(0, 8).map((x) => (
+          <Link key={x.id} to={`/cuentas/cliente/${x.id}`} className="fila">
+            <span><span className="principal">{x.nombre}</span><br /><span className="chico tenue">Vendido {formatPesos(x.neto)}{x.sinCosto ? ' · algún maple sin costo calculado' : ''}</span></span>
+            <span className="derecha"><span className={`cifra ${x.margen < 0 ? 'saldo-mas' : ''}`}>{x.margen < 0 ? '− ' : ''}{formatPesos(Math.abs(x.margen))}</span><br /><span className="chico tenue">{x.neto ? Math.round((x.margen / x.neto) * 100) : 0} %</span></span>
+          </Link>
+        ))}
+      </section>
     </div>
   );
 }

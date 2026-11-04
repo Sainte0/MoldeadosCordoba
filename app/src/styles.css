@@ -329,3 +329,13 @@ a.tile-link:hover { border-color: var(--linea-fuerte); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* Avisos */
+.aviso-cliente { grid-template-columns: 1fr auto; }
+.aviso-cliente .principal { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.acciones-aviso { display: flex; gap: 6px; align-items: center; }
+@media (max-width: 560px) {
+  .aviso-cliente { grid-template-columns: 1fr; }
+  .acciones-aviso .boton.primario { flex: 1; }
+}
+.con-muestra .principal { white-space: nowrap; }

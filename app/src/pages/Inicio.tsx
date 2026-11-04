@@ -5,6 +5,7 @@ import { formatCantidad, formatPesos, type Modulo } from '@moldeados/shared';
 import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
 import { Muestra } from '../MapleVista';
+import { ParaVender, PorAcabarse } from './Avisos';
 
 // Las 4 primeras que el rol puede hacer, en orden de frecuencia en planta. El resto está en su área del menú.
 const TAREAS: { a: string; titulo: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
@@ -45,6 +46,11 @@ export function Inicio() {
             <ChevronRight aria-hidden />
           </Link>
         ))}
+      </div>
+
+      <div className="rejilla par">
+        <ParaVender limite={5} />
+        <PorAcabarse />
       </div>
 
       {maples && maples.some((m) => m.producido - m.vendido > 0) && (

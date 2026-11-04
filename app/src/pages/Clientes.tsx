@@ -6,6 +6,7 @@ import { aCentavos, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from
 import { api, useSesion, verFecha } from '../api';
 import { useClientes, useVariantes, type Cliente } from '../datos';
 import { Muestra } from '../MapleVista';
+import { ParaVender } from './Avisos';
 import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';
 
 const VACIO: Omit<Cliente, 'id'> = { nombre: '', cuit: '', telefono: '', email: '', direccion: '', vehiculoHabitual: null, notas: '' };
@@ -20,6 +21,7 @@ export function Clientes() {
       <Cabecera titulo="Clientes" bajada="Granjas, distribuidores y todo el que compra maples.">
         {puede('ventas', 2) && <button className="boton primario" onClick={() => setEditando({ ...VACIO })}><Plus size={18} aria-hidden /> Nuevo cliente</button>}
       </Cabecera>
+      <div style={{ marginBottom: 20 }}><ParaVender /></div>
       <div style={{ marginBottom: 16 }}><Buscador placeholder="Buscar por nombre" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar cliente" /></div>
       {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{q ? 'Nadie con ese nombre.' : 'Todavía no hay clientes. Se agregan acá o al despachar.'}</p></div> : (
         <div className="hoja filas">

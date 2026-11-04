@@ -2,6 +2,7 @@ import type { Knex } from 'knex';
 import type { GastoInput } from '@moldeados/shared';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError, ValidationError } from '../lib/errors.js';
+import { costosYMargen } from './avisos.service.js';
 
 // Gastos y caja chica. Un gasto pagado con caja chica descuenta la caja en la misma transacción.
 
@@ -109,6 +110,7 @@ export async function tablero(db: Knex, desde: string, hasta: string) {
     porCliente, porProveedor, porCategoria, produccion, consumo,
     serie: serie.rows as { inicio: string; ingresos: number; egresos: number }[],
     porCobrar: n(porCobrar.rows[0]?.s), porPagar: n(porPagar.rows[0]?.s), caja,
+    costos: await costosYMargen(db, desde, hasta),
     materiasBajoMinimo: n(bajoMinimo.rows[0]?.n), paletsListos: { cantidad: n(palets?.n), paquetes: n(palets?.paquetes) },
   };
 }

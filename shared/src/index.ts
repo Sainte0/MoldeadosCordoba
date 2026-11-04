@@ -136,6 +136,7 @@ export const materiaPrimaSchema = z.object({
   unidad: z.enum(['kg', 'l']),
   color: opcional(40),
   stockMinimo: z.number().int().min(0).default(0),
+  diasAviso: z.number().int().min(0).max(120).default(7),
   activo: z.boolean().default(true),
 });
 
@@ -376,6 +377,38 @@ export const instructivoSchema = z.object({
   /** null = volver al texto original */
   texto: texto(1000).min(3, 'El instructivo no puede quedar vacío').nullable(),
 });
+
+// ---------- Avisos ----------
+
+const diasEntre = (a: string, b: string) => Math.round((Date.parse(b + 'T00:00:00Z') - Date.parse(a + 'T00:00:00Z')) / 86_400_000);
+
+export type EstadoRecompra = 'le_toca' | 'dejo' | 'al_dia';
+/**
+ * Ritmo de compra de un cliente a partir de los días en que compró. Cada cliente tiene su propio ritmo:
+ * - "le toca": ya pasó (casi) su intervalo habitual, todavía no el doble.
+ * - "dejó de comprar": pasó el doble de su intervalo (o 45 días si compró una sola vez).
+ */
+export function ritmoCliente(fechas: string[], hoy: string): { compras: number; cadaDias: number | null; diasDesdeUltima: number; estado: EstadoRecompra } {
+  const dias = [...new Set(fechas)].sort();
+  const ultima = dias.at(-1)!;
+  const desde = diasEntre(ultima, hoy);
+  if (dias.length < 2) return { compras: dias.length, cadaDias: null, diasDesdeUltima: desde, estado: desde >= 45 ? 'dejo' : 'al_dia' };
+  const cadaDias = Math.max(1, Math.round(diasEntre(dias[0]!, ultima) / (dias.length - 1)));
+  const estado = desde >= Math.max(cadaDias * 2, 21) ? 'dejo' : desde >= Math.round(cadaDias * 0.9) ? 'le_toca' : 'al_dia';
+  return { compras: dias.length, cadaDias, diasDesdeUltima: desde, estado };
+}
+
+/** Teléfono argentino → número para wa.me (549 + área + número, sin 0 ni 15). null si no parece válido. */
+export function telefonoWhatsapp(tel: string | null): string | null {
+  if (!tel) return null;
+  let d = tel.replace(/\D/g, '');
+  if (d.startsWith('00')) d = d.slice(2);
+  if (d.startsWith('54')) d = d.slice(2);
+  if (d.startsWith('9')) d = d.slice(1);
+  if (d.startsWith('0')) d = d.slice(1);
+  d = d.replace(/^(\d{2,4})15(\d{6,8})$/, '$1$2'); // 351 15 xxxxxxx → 351 xxxxxxx
+  return d.length === 10 ? `549${d}` : null;
+}
 
 export type GastoInput = z.infer<typeof gastoSchema>;
 export type VentaInput = z.infer<typeof ventaSchema>;

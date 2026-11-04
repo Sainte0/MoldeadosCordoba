@@ -49,4 +49,13 @@ por cobrar/por pagar, caja, palets listos, alerta de materia prima bajo mínimo,
 Rediseño a pedido del cliente: menú de 5 áreas + Ajustes con pestañas, menú fijo, sistema visual sobrio (sin rayas
 de color), revisado en iPhone, iPad mini, iPad 11 vertical/horizontal y notebook.
 
-Próximo: deploy al VPS (pendiente: dominio con HTTPS).
+**Etapa 2, avisos inteligentes (hecho):** sin pantallas nuevas, el sistema avisa solo a partir de lo cargado:
+- *Para vender*: aprende cada cuánto compra cada cliente y avisa "le toca comprar" / "dejó de comprar", con
+  WhatsApp con el mensaje armado y "ya lo contacté" (se oculta una semana). En Inicio y en Clientes.
+- *Hay que comprar*: para cuántos días alcanza cada materia prima según el consumo de los últimos 30 días; aviso
+  configurable por materia prima. En Inicio y en Materia prima.
+- *Costo y margen*: costo de materia prima por maple (precio promedio de compra × consumo real) y lo que deja
+  cada código y cada cliente. En el Tablero.
+
+Próximo: deploy al VPS (pendiente: dominio con HTTPS). Ideas para más adelante: resumen automático al dueño por
+WhatsApp/mail, cobranzas con recordatorio, service de máquinas por horas, consultas en lenguaje natural con IA.

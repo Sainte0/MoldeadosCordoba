@@ -4,6 +4,7 @@ import { db } from '../db.js';
 import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { NotFoundError } from '../lib/errors.js';
+import { materiasPorAcabarse, recompra } from './avisos.service.js';
 import { anularMovimiento, anularVenta, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
 
 // Clientes, precios, ventas (despacho de palets), bancos, cobros/pagos y cuentas corrientes.
@@ -82,6 +83,27 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
     const n = await db('clientes').where({ id: uuidOk(req.params.id) ?? null }).whereNull('deleted_at').update({ deleted_at: db.fn.now() });
     if (!n) throw new NotFoundError('No encontramos ese cliente');
     await auditar(db, { usuarioId: s.usuarioId, accion: 'borrar', entidad: 'cliente', entidadId: req.params.id });
+    return { data: { ok: true } };
+  });
+
+  // ---------- Avisos ----------
+  // Lo que el sistema detecta solo. Cada sección sale según los permisos de quien mira.
+  app.get('/avisos', async (req) => {
+    const s = await requerirAlguno(db, req, [['ventas', 1], ['materias', 1], ['compras', 1]]);
+    const m = (await matriz(db))[s.rol];
+    const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+    return {
+      data: {
+        clientes: m.ventas >= 1 ? await recompra(db, hoy) : null,
+        materias: m.materias >= 1 || m.compras >= 1 ? await materiasPorAcabarse(db) : null,
+      },
+    };
+  });
+  app.post<{ Params: { id: string } }>('/clientes/:id/contactado', async (req) => {
+    const s = await requerir(db, req, 'ventas', 2);
+    const n = await db('clientes').where({ id: uuidOk(req.params.id) ?? null }).whereNull('deleted_at').update({ contactado_at: db.fn.now() });
+    if (!n) throw new NotFoundError('No encontramos ese cliente');
+    await auditar(db, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'cliente', entidadId: req.params.id, motivo: 'Contactado por recompra' });
     return { data: { ok: true } };
   });
 
