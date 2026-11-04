@@ -6,6 +6,7 @@ import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
 import { atencion, recompra } from './avisos.service.js';
+import { avisar } from './avisos-vivo.js';
 import { actualizarEstadoPedido, despachadoDelPedido, guardarFirma, guardarPedido, anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
 
 // Clientes, precios, ventas (despacho de palets), bancos, cobros/pagos y cuentas corrientes.
@@ -15,6 +16,18 @@ const fechaOk = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefi
 const uuidOk = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
 const COLS_CLIENTE = ['id', 'nombre', 'cuit', 'telefono', 'email', 'direccion', 'vehiculo_habitual as vehiculoHabitual', 'notas'];
 const filaCliente = (i: ReturnType<typeof clienteSchema.parse>) => ({ nombre: i.nombre, cuit: i.cuit, telefono: i.telefono, email: i.email, direccion: i.direccion, vehiculo_habitual: i.vehiculoHabitual, notas: i.notas });
+
+/** Pedido nuevo: les llega a quienes ven ventas o producción (planta tiene que saber qué preparar). */
+async function avisarPedidoNuevo(autor: string, pedidoId: string): Promise<void> {
+  const p = await db('pedidos as p').join('clientes as c', 'c.id', 'p.cliente_id').where('p.id', pedidoId)
+    .first('p.numero', 'c.nombre as cliente', db.raw("to_char(p.fecha_entrega, 'YYYY-MM-DD') as entrega"));
+  if (!p) return;
+  const m = await matriz(db);
+  const roles = (Object.keys(m) as (keyof typeof m)[]).filter((r) => m[r].ventas >= 1 || m[r].produccion >= 1);
+  const ids = (await db('usuarios').whereIn('rol', roles).where({ activo: true }).whereNull('deleted_at').whereNot({ id: autor }).select('id')).map((u) => u.id);
+  const [a, mm, d] = (p.entrega ?? '').split('-');
+  await avisar(db, ids, { tipo: 'pedido', titulo: `Pedido nuevo de ${p.cliente}`, detalle: p.entrega ? `Para el ${d}/${mm}/${a}` : 'Sin fecha de entrega', ruta: `/pedidos/${pedidoId}` });
+}
 
 export async function ventasRoutes(app: FastifyInstance): Promise<void> {
   // ---------- Bancos ----------
@@ -248,7 +261,9 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
   });
   app.post('/pedidos', async (req, reply) => {
     const s = await requerir(db, req, 'ventas', 2);
-    return reply.code(201).send({ data: await guardarPedido(db, s.usuarioId, pedidoSchema.parse(req.body)) });
+    const p = await guardarPedido(db, s.usuarioId, pedidoSchema.parse(req.body));
+    await avisarPedidoNuevo(s.usuarioId, p.id);
+    return reply.code(201).send({ data: p });
   });
   app.put<{ Params: { id: string } }>('/pedidos/:id', async (req) => {
     const s = await requerir(db, req, 'ventas', 2);

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ALICUOTAS_IVA, MEDIOS, MEDIOS_GASTO, MODULOS, ROLES, TIPOS_MP, TURNOS, VEHICULOS, type Modulo } from './base.js';
+import { ALICUOTAS_IVA, MEDIOS, MEDIOS_GASTO, MODULOS, REPETICIONES, ROLES, TIPOS_MP, TURNOS, VEHICULOS, type Modulo } from './base.js';
 
 // Schemas de entrada (Zod) para el backend. Todo lo demás está en base.ts y se re-exporta acá.
 export * from './base.js';
@@ -295,3 +295,20 @@ export type ProveedorInput = z.infer<typeof proveedorSchema>;
 export type MateriaPrimaInput = z.infer<typeof materiaPrimaSchema>;
 
 export type UsuarioInput = z.infer<typeof usuarioSchema>;
+
+export const recordatorioSchema = z.object({
+  titulo: texto(140).min(2, 'Escribí qué hay que recordar'),
+  detalle: opcional(1000),
+  fecha,
+  hora: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'La hora no es válida').nullable().default(null),
+  repetir: z.enum(REPETICIONES).default('no'),
+  paraTodos: z.boolean().default(false),
+  usuarios: z.array(z.string().uuid()).max(100).default([]),
+}).refine((r) => r.paraTodos || r.usuarios.length > 0, 'Elegí para quién es');
+
+export type RecordatorioInput = z.infer<typeof recordatorioSchema>;
+
+export const suscripcionSchema = z.object({
+  endpoint: z.string().url().max(1000),
+  keys: z.object({ p256dh: z.string().min(10).max(200), auth: z.string().min(4).max(100) }),
+});

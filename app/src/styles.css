@@ -421,3 +421,43 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
 @media (max-width: 560px) { .atencion-item { grid-template-columns: auto 1fr; } .atencion-item .boton { grid-column: 1 / -1; } }
 .nivel.critico i { background: var(--critico); }
 .nivel.atencion i { background: #f79009; }
+
+/* ---------------------------------------------------------------- Avisos y agenda */
+.campana { position: relative; }
+.campana .globito { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--critico); color: #fff; font-size: 0.7rem; font-weight: 700; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px var(--superficie); }
+.lateral .cabeza-lateral { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dialogo { position: relative; }
+.cerrar-dialogo { position: absolute; top: 14px; right: 14px; }
+.lista-avisos { display: grid; gap: 6px; }
+.aviso-item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; text-align: left; width: 100%; padding: 12px 14px; border-radius: var(--radio-m); border: 1px solid var(--linea); background: var(--superficie); color: inherit; font: inherit; cursor: pointer; }
+.aviso-item > svg { margin-top: 2px; color: var(--tinta-2); }
+.aviso-item > span { display: grid; gap: 2px; min-width: 0; }
+.aviso-item small { font-size: 0.85rem; }
+.aviso-item.nuevo { background: var(--accion-suave, #eaf1fc); border-color: transparent; }
+.aviso-item.nuevo > svg { color: var(--accion); }
+.aviso-item .punto { width: 10px; height: 10px; border-radius: 50%; background: var(--accion); margin-top: 6px; }
+.nota-push { display: grid; gap: 10px; padding: 14px; border-radius: var(--radio-m); background: var(--superficie-2); border: 1px solid var(--linea); font-size: 0.95rem; }
+.nota-push .boton { justify-self: start; }
+.boton.fantasma.peligro { background: transparent; color: var(--peligro); }
+.enlace { background: none; border: 0; padding: 0; font: inherit; color: var(--accion); text-decoration: underline; cursor: pointer; }
+
+.renglon-agenda { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: start; padding: 14px 18px; border-top: 1px solid var(--linea); }
+.renglon-agenda .tilde { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #b8bfcc; background: var(--superficie); display: grid; place-items: center; cursor: pointer; padding: 0; margin-top: 1px; color: #fff; }
+.renglon-agenda .tilde[aria-pressed='true'] { background: var(--ok); border-color: var(--ok); }
+.renglon-agenda .cuerpo { display: grid; gap: 4px; min-width: 0; }
+.renglon-agenda .titulo { font-weight: 600; overflow-wrap: anywhere; }
+.renglon-agenda .hora { font-variant-numeric: tabular-nums; color: var(--accion); margin-right: 8px; }
+.renglon-agenda .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.renglon-agenda .meta span { display: inline-flex; align-items: center; gap: 4px; }
+.renglon-agenda .meta .ok { color: var(--ok); font-weight: 600; }
+.renglon-agenda.hecho .titulo { text-decoration: line-through; color: var(--tinta-2); font-weight: 500; }
+.renglon-agenda.atrasado { background: var(--critico-fondo); }
+.renglon-agenda.atrasado .tilde { border-color: var(--critico); }
+.renglon-agenda > .boton.icono { margin: -6px -8px 0 0; }
+
+.toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom)); width: min(460px, calc(100vw - 32px)); display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 14px; background: var(--tinta); color: #fff; box-shadow: var(--sombra-2); text-align: left; border: 0; font: inherit; cursor: pointer; animation: toast-entra 0.22s ease-out; }
+.toast small { display: block; color: #c9d3e3; }
+.toast > svg { color: var(--senal, #f2c230); }
+@keyframes toast-entra { from { opacity: 0; transform: translate(-50%, 12px); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+@media (max-width: 760px) { .solo-escritorio { display: none; } }

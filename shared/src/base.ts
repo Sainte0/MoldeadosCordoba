@@ -224,3 +224,45 @@ export function estadoStock(m: { stock: number; unidad: Unidad; stockMinimo: num
 
 /** "1 día" / "3 días": para no escribir nunca "1 días". */
 export const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString('es-AR')} ${n === 1 ? uno : varios}`;
+
+// ---------------------------------------------------------------- Agenda
+export const REPETICIONES = ['no', 'diario', 'semanal', 'mensual'] as const;
+export type Repeticion = (typeof REPETICIONES)[number];
+export const LABEL_REPETIR: Record<Repeticion, string> = { no: 'Una sola vez', diario: 'Todos los días', semanal: 'Cada semana', mensual: 'Cada mes' };
+
+const sumarDias = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
+/**
+ * Fechas en que cae un recordatorio entre `desde` y `hasta` (inclusive, 'AAAA-MM-DD'). Mensual: mismo día del mes;
+ * si el mes no lo tiene (31 en abril), cae el último día de ese mes.
+ */
+export function ocurrencias(r: { fecha: string; repetir: Repeticion }, desde: string, hasta: string): string[] {
+  if (r.repetir === 'no') return r.fecha >= desde && r.fecha <= hasta ? [r.fecha] : [];
+  const fuera: string[] = [];
+  if (r.repetir === 'mensual') {
+    const dia = Number(r.fecha.slice(8, 10));
+    let [a, m] = [Number(r.fecha.slice(0, 4)), Number(r.fecha.slice(5, 7))];
+    for (let k = 0; k < 400; k++) {
+      const ultimo = new Date(Date.UTC(a, m, 0)).getUTCDate();
+      const f = `${a}-${String(m).padStart(2, '0')}-${String(Math.min(dia, ultimo)).padStart(2, '0')}`;
+      if (f > hasta) break;
+      if (f >= desde) fuera.push(f);
+      if (++m > 12) { m = 1; a++; }
+    }
+    return fuera;
+  }
+  const paso = r.repetir === 'diario' ? 1 : 7;
+  // Salta directo cerca de `desde` en vez de recorrer desde la primera fecha.
+  let f = r.fecha;
+  if (desde > f) {
+    const dias = Math.round((Date.parse(desde) - Date.parse(f)) / 86_400_000);
+    f = sumarDias(f, Math.floor(dias / paso) * paso);
+    if (f < desde) f = sumarDias(f, paso);
+  }
+  for (; f <= hasta && fuera.length < 400; f = sumarDias(f, paso)) fuera.push(f);
+  return fuera;
+}

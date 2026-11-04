@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { ArrowLeft, Check, Info, Pencil, Search } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -145,13 +146,16 @@ export function Dialogo({ titulo, children, onCerrar }: { titulo: string; childr
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
   }, [onCerrar]);
-  return (
+  // Portal al body: si el diálogo se abre desde la barra de arriba (que tiene desenfoque), "fixed" quedaría atado a
+  // la barra y se cortaría en el iPhone.
+  return createPortal(
     <div className="velo" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
       <div className="dialogo" role="dialog" aria-modal="true" aria-labelledby={id}>
         <h2 id={id}>{titulo}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

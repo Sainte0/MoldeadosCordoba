@@ -73,6 +73,12 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
   horas: { titulo: 'Horas por persona (según los partes)', modulo: 'produccion', periodo: true, armar: async (p) => csv(await horasPorPersona(db, p.desde, p.hasta),
     [['Persona', 'nombre'], ['Horas', 'minutos', horas], ['Mañana (h)', 'manana', horas], ['Tarde (h)', 'tarde', horas], ['Días', 'dias'], ['Partes', 'partes'],
       ['Valor hora', 'valorHora', pesos], ['Estimado a pagar', 'estimado', pesos]]) },
+  agenda: { titulo: 'Agenda (recordatorios)', modulo: 'usuarios', periodo: false, armar: async () => csv(
+    await db('recordatorios as r').join('usuarios as u', 'u.id', 'r.creado_por').whereNull('r.deleted_at').orderBy('r.fecha')
+      .select('r.titulo', 'r.detalle', 'r.fecha', 'r.hora', 'r.repetir', 'u.nombre as creador',
+        db.raw("case when r.para_todos then 'Todo el equipo' else (select string_agg(x.nombre, ', ' order by x.nombre) from recordatorio_usuarios ru join usuarios x on x.id = ru.usuario_id where ru.recordatorio_id = r.id) end as para"),
+        db.raw('(select count(*) from recordatorio_hechos h where h.recordatorio_id = r.id) as veces_hecho')),
+    [['Qué', 'titulo'], ['Detalle', 'detalle'], ['Desde', 'fecha'], ['Hora', 'hora'], ['Se repite', 'repetir'], ['Para', 'para'], ['Creó', 'creador'], ['Veces hecho', 'veces_hecho']]) },
   stock: { titulo: 'Stock de materia prima', modulo: 'materias', periodo: false, armar: async () => csv(
     await db('materias_primas as m').whereNull('m.deleted_at').orderBy('m.nombre')
       .select('m.nombre', 'm.tipo', 'm.unidad', 'm.stock_minimo', db.raw('(select coalesce(sum(cantidad), 0) from movimientos_stock s where s.materia_prima_id = m.id) as stock'), 'm.activo'),

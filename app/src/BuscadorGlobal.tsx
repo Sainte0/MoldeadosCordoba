@@ -45,6 +45,8 @@ export function BuscadorGlobal({ abierto, onCerrar }: { abierto: boolean; onCerr
     const secciones: Item[] = [...AREAS, AJUSTES].flatMap((area) => area.pestanas.filter((p) => puede(p.modulo)).map((p) => ({
       clave: 's' + p.a, grupo: 'Ir a' as const, titulo: p.texto === area.texto ? p.texto : `${area.texto} › ${p.texto}`, ruta: p.a,
     })));
+    secciones.push({ clave: 's/agenda', grupo: 'Ir a', titulo: 'Agenda y recordatorios', ruta: '/agenda' });
+    acciones.push({ clave: 'a/agenda/nuevo', grupo: 'Acciones', titulo: 'Nuevo recordatorio', detalle: 'Para vos o para el equipo', ruta: '/agenda/nuevo' });
     if (!palabras.length) return [...acciones, ...secciones];
     const guias: Item[] = GUIAS.filter((g) => coincide(`${g.titulo} ${g.palabras}`)).slice(0, 4)
       .map((g) => ({ clave: 'g' + g.id, grupo: 'Ayuda', titulo: g.titulo, detalle: 'Guía paso a paso', ruta: `/ayuda?q=${encodeURIComponent(q.trim())}` }));

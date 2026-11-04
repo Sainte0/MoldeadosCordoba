@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { CircleHelp, Home, LogOut, Menu, Search, X } from 'lucide-react';
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BellRing, CircleHelp, Home, LogOut, Menu, Search, X } from 'lucide-react';
 import { AJUSTES, AREAS, enArea, type Area } from './navegacion';
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
@@ -11,6 +11,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
+import { Campana } from './Campana';
+import { useAvisosEnVivo, type AvisoVivo } from './vivo';
+import { desactivarPush, reafirmarPush } from './push';
 import { Inicio } from './pages/Inicio';
 
 // El buscador (con el texto de todas las guías) se baja recién la primera vez que se abre.
@@ -48,6 +51,8 @@ const Pedidos = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.P
 const NuevoPedido = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.NuevoPedido })));
 const PedidoDetalleVista = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.PedidoDetalleVista })));
 const Importar = lazy(() => import('./pages/Importar').then((m) => ({ default: m.Importar })));
+const Agenda = lazy(() => import('./pages/Agenda').then((m) => ({ default: m.Agenda })));
+const NuevoRecordatorio = lazy(() => import('./pages/Agenda').then((m) => ({ default: m.NuevoRecordatorio })));
 const Exportar = lazy(() => import('./pages/Exportar').then((m) => ({ default: m.Exportar })));
 
 function Marca() {
@@ -86,6 +91,23 @@ export function App() {
   }, []);
   const { pathname } = useLocation();
   useEffect(() => setAbierto(false), [pathname]);
+  const ir = useNavigate();
+
+  // Avisos en vivo: cada aviso nuevo actualiza la campana y la agenda, y asoma abajo unos segundos.
+  const [asoma, setAsoma] = useState<AvisoVivo | null>(null);
+  useAvisosEnVivo(!!sesion, (a) => {
+    void qc.invalidateQueries({ queryKey: ['notificaciones'] });
+    void qc.invalidateQueries({ queryKey: ['agenda'] });
+    if (a.tipo === 'pedido') void qc.invalidateQueries({ queryKey: ['pedidos'] });
+    setAsoma(a);
+  }, () => void qc.invalidateQueries({ queryKey: ['notificaciones'] }));
+  useEffect(() => {
+    if (!asoma) return;
+    const t = setTimeout(() => setAsoma(null), 7000);
+    return () => clearTimeout(t);
+  }, [asoma]);
+  useEffect(() => { if (sesion) void reafirmarPush().catch(() => {}); }, [sesion?.usuario.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cerrarSesion = () => { void desactivarPush().finally(salir); };
 
   if (!sesion) return <Login />;
   const p = (m: Modulo, n: 1 | 2 | 3 = 1) => puede(m, n);
@@ -96,15 +118,16 @@ export function App() {
         <Marca />
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <Reloj />
+          <Campana alAbrir={() => setAsoma(null)} />
           <button className="boton icono" onClick={() => setBuscando(true)} aria-label="Buscar"><Search size={22} /></button>
           {pathname !== '/ayuda' && <NavLink className="boton icono" to={`/ayuda?desde=${encodeURIComponent(pathname)}`} aria-label="Ayuda"><CircleHelp size={24} /></NavLink>}
           <button className="boton icono" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={26} /></button>
         </div>
       </div>
       <nav className={`lateral${abierto ? ' abierto' : ''}`} aria-label="Secciones">
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div className="cabeza-lateral">
           <Marca />
-          {abierto && <button className="boton icono" onClick={() => setAbierto(false)} aria-label="Cerrar menú"><X size={24} /></button>}
+          {abierto ? <button className="boton icono" onClick={() => setAbierto(false)} aria-label="Cerrar menú"><X size={24} /></button> : <span className="solo-escritorio"><Campana alAbrir={() => setAsoma(null)} /></span>}
         </div>
         <button className="abrir-buscador" onClick={() => { setAbierto(false); setBuscando(true); }}>
           <Search size={18} aria-hidden /> <span>Buscar</span> <kbd>{/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd>
@@ -124,7 +147,7 @@ export function App() {
           <Reloj conFecha />
           <div>{sesion.usuario.nombre}</div>
           <div>{LABEL_ROL[sesion.usuario.rol]}</div>
-          <button onClick={() => (pendientes ? setConfirmarSalir(true) : salir())}><LogOut size={16} aria-hidden /> Salir</button>
+          <button onClick={() => (pendientes ? setConfirmarSalir(true) : cerrarSesion())}><LogOut size={16} aria-hidden /> Salir</button>
         </div>
       </nav>
       {buscando && <Suspense fallback={null}><BuscadorGlobal abierto onCerrar={() => setBuscando(false)} /></Suspense>}
@@ -133,9 +156,16 @@ export function App() {
           <p>{pendientes === 1 ? 'Hay 1 carga' : `Hay ${pendientes} cargas`} guardadas en este teléfono que todavía no se subieron. Si salís, quedan guardadas y se suben la próxima vez que entres vos.</p>
           <div className="acciones">
             <button className="boton secundario" onClick={() => setConfirmarSalir(false)}>Quedarme</button>
-            <button className="boton primario" onClick={() => { setConfirmarSalir(false); salir(); }}>Salir igual</button>
+            <button className="boton primario" onClick={() => { setConfirmarSalir(false); cerrarSesion(); }}>Salir igual</button>
           </div>
         </Dialogo>
+      )}
+      {asoma && (
+        <button className="toast" role="status" onClick={() => { setAsoma(null); if (asoma.ruta) ir(asoma.ruta); }}>
+          <BellRing size={22} aria-hidden />
+          <span><b>{asoma.titulo}</b>{asoma.detalle && <small>{asoma.detalle}</small>}</span>
+          <X size={18} aria-hidden />
+        </button>
       )}
       <main className="contenido">
         <ColaPendiente />
@@ -175,6 +205,9 @@ export function App() {
           {p('usuarios') && <Route path="/equipo" element={<Equipo />} />}
           {p('auditoria') && <Route path="/registro" element={<Registro />} />}
           <Route path="/ayuda" element={<Ayuda />} />
+          <Route path="/agenda" element={<Agenda />} />
+          <Route path="/agenda/nuevo" element={<NuevoRecordatorio />} />
+          <Route path="/agenda/:id" element={<NuevoRecordatorio />} />
           {p('tablero') && <Route path="/exportar" element={<Exportar />} />}
           {p('tablero') && <Route path="/importar" element={<Importar />} />}
           <Route path="*" element={<Navigate to="/" replace />} />

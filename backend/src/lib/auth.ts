@@ -57,3 +57,11 @@ export async function requerirAlguno(db: Knex, req: FastifyRequest, opciones: [M
   if (!opciones.some(([mod, niv]) => m[mod] >= niv)) throw new ForbiddenError();
   return { usuarioId: s.usuarioId, rol: u.rol as Rol };
 }
+
+/** Cualquier persona con usuario activo, sin importar el rol (agenda, avisos, ayuda). */
+export async function usuarioActivo(db: Knex, req: FastifyRequest): Promise<Sesion> {
+  const s = sesion(req);
+  const u = await db('usuarios').where({ id: s.usuarioId, activo: true }).whereNull('deleted_at').first('rol');
+  if (!u) throw new UnauthorizedError();
+  return { usuarioId: s.usuarioId, rol: u.rol as Rol };
+}

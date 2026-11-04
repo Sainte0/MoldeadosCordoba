@@ -19,6 +19,8 @@ import { ayudaRoutes } from './features/ayuda.routes.js';
 import { buscarRoutes } from './features/buscar.routes.js';
 import { importarRoutes } from './features/importar.js';
 import { resumenRoutes } from './features/resumen.js';
+import { agendaRoutes } from './features/agenda.js';
+import { avisosVivoRoutes } from './features/avisos-vivo.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test', bodyLimit: 1_000_000 });
@@ -78,6 +80,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(buscarRoutes);
       await api.register(importarRoutes);
       await api.register(resumenRoutes);
+      await api.register(agendaRoutes);
+      await api.register(avisosVivoRoutes);
     },
     { prefix: '/api' },
   );

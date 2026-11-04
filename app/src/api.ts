@@ -151,3 +151,7 @@ export async function descargar(ruta: string): Promise<void> {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
+
+/** Para el stream de avisos en vivo (fetch con el token en la cabecera). */
+export const apiBase = BASE;
+export const tokenActual = () => token;

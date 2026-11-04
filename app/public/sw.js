@@ -35,3 +35,24 @@ self.addEventListener('fetch', (e) => {
     }));
   }
 });
+
+// Avisos con la app cerrada (Web Push): el servidor manda título, detalle y a qué pantalla lleva.
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { d = { titulo: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.titulo || 'Moldeados Córdoba', {
+    body: d.detalle || '',
+    icon: '/logo.png',
+    badge: '/logo.png',
+    data: { ruta: d.ruta || '/' },
+  }));
+});
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const ruta = (e.notification.data && e.notification.data.ruta) || '/';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((ws) => {
+    const w = ws[0];
+    if (w) return w.focus().then((f) => (f && 'navigate' in f ? f.navigate(ruta) : undefined));
+    return self.clients.openWindow(ruta);
+  }));
+});

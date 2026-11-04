@@ -68,6 +68,13 @@ que se renueva sola. Bundle inicial de 643 KB a 52 KB de código propio + 206 KB
 52 KB a 2 KB (WebP); tablero anual de 78 a 26 ms con datos de años; índices y un N+1 corregidos tras EXPLAIN.
 Config de nginx con gzip y caché larga en `deploy/nginx.conf.example`.
 
+**Agenda y avisos (hecho):** recordatorios para una persona, varias o todo el equipo, con hora y repetición
+(diario, semanal, mensual); lo marca hecho uno y vale para todos; lo vencido sin hacer sale como "Atrasado". Campana
+con avisos en vivo (stream de eventos con fetch, reconexión sola) para recordatorios que tocan, cosas que te agendaron
+y pedidos nuevos; con la app cerrada llegan como notificación del teléfono (Web Push; claves VAPID generadas solas y
+guardadas en la base; en iPhone requiere la app en la pantalla de inicio). Se entra desde Inicio y la campana, sin
+sumar ítems al menú.
+
 **Importar planillas (hecho):** Ajustes › Importar planillas: clientes, proveedores, stock inicial, saldos iniciales
 de clientes y proveedores, y precios. Lee .xlsx (sin dependencias: DecompressionStream + DOMParser) y CSV; detecta la
 fila de títulos, propone columnas por nombre, prueba en seco con errores por n.º de fila del Excel, importa todo o

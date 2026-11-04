@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
+import { CalendarClock, ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
 import { estadoStock, formatCantidad, formatPesos, ORDEN_NIVEL, type Modulo, plural } from '@moldeados/shared/base';
 import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
@@ -8,6 +8,7 @@ import { Muestra } from '../MapleVista';
 import { TAREAS } from '../navegacion';
 import { Atencion, ParaVender, PedidosProximos } from './Avisos';
 import { Estado } from '../Estado';
+import { AgendaHoy } from './AgendaHoy';
 
 function saludo(): string {
   const h = Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
@@ -29,11 +30,12 @@ export function Inicio() {
       {aviso && <div className="aviso ok" role="status">{aviso}</div>}
       <header>
         <h1>{saludo()}, {sesion?.usuario.nombre.split(' ')[0]}</h1>
-        <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar?{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Ver el tablero</Link></>}</p>
+        <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar? · <Link to="/agenda" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><CalendarClock size={16} aria-hidden /> Agenda</Link>{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Tablero</Link></>}</p>
       </header>
 
       {/* Orden por prioridad: lo urgente, lo que hay que cargar, lo que viene, y después cómo estamos. */}
       <Atencion />
+      <AgendaHoy />
 
       <div className="tareas">
         {TAREAS.filter((t) => puede(t.modulo, 2)).slice(0, 4).map((t, i) => (

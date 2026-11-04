@@ -188,6 +188,28 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
+    id: 'agenda', area: 'Primeros pasos', titulo: 'Agenda y recordatorios para el equipo', pantallas: ['/agenda', '/'],
+    palabras: 'recordatorio recordar tarea pendiente calendario agenda aviso alarma avisar equipo empleados',
+    pasos: [
+      'Abrí la Agenda desde Inicio (arriba, "Agenda") o desde la campana.',
+      'Tocá "Nuevo recordatorio": escribí qué hay que hacer, el día y, si importa, la hora.',
+      'Elegí si se repite (todos los días, cada semana o cada mes) y para quién es: solo vos, algunas personas o todo el equipo.',
+      'A cada persona le aparece en su agenda y en el inicio, y le llega un aviso a la hora (sin hora, a las 8).',
+      'Cuando alguien lo hace, toca el círculo: queda hecho para todos y a quien lo creó le llega el aviso.',
+      'Lo que pasó de fecha sin hacer aparece en rojo como "Atrasado". Para cambiarlo o borrarlo, tocá el lápiz.',
+    ],
+  },
+  {
+    id: 'avisos', area: 'Primeros pasos', titulo: 'Avisos: la campana y los avisos en el teléfono', pantallas: ['/'],
+    palabras: 'notificaciones campana avisos push alertas celular sonido aviso nuevo',
+    pasos: [
+      'La campana (arriba) muestra cuántos avisos tenés sin leer: recordatorios que tocan, cosas que te agendaron y pedidos nuevos.',
+      'Los avisos llegan al instante con la app abierta y asoman abajo unos segundos; tocalos para ir a lo que dicen.',
+      'Para que lleguen con la app cerrada: abrí la campana y tocá "Activar avisos". En iPhone primero hay que agregar el sistema a la pantalla de inicio y abrirlo desde el ícono.',
+      'Si alguien más usa el mismo teléfono, al salir de tu usuario dejan de llegarte ahí.',
+    ],
+  },
+  {
     id: 'pedidos', area: 'Ventas', titulo: 'Cargar un pedido de un cliente', pantallas: ['/pedidos'],
     palabras: 'pedido encargo reserva cliente pide entrega fecha comprometido',
     pasos: [
