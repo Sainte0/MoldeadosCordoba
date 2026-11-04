@@ -25,6 +25,7 @@ interface Datos {
   produccion: { codigo: string; colorHex: string | null; paquetes: number; maples: number; minutos: number }[];
   consumo: { nombre: string; unidad: Unidad; real: number; teorico: number }[];
   serie: { inicio: string; ingresos: number; egresos: number }[];
+  porCalidad: { calidad: 'primera' | 'segunda'; total: number; maples: number }[];
   costos: {
     porCodigo: { id: string; codigo: string; colorHex: string | null; costoMaple: number | null; faltaPrecio: boolean; precioMaple: number | null; maplesVendidos: number }[];
     porCliente: { id: string; nombre: string; neto: number; costo: number; margen: number; sinCosto: boolean }[];
@@ -52,7 +53,7 @@ const PERIODOS = [['mes', 'Este mes'], ['mes-pasado', 'Mes pasado'], ['30', 'Úl
 
 /** El tablero del dueño: cuánto entró, cuánto salió, qué se hizo, quién debe. */
 export function Tablero() {
-  const [f, setF] = useFiltros({ periodo: 'mes' });
+  const [f, setF] = useFiltros({ periodo: 'mes', anio: '' });
   const [resumen, setResumen] = useState(false);
   const clave = f.periodo;
   const [desde, hasta] = periodo(clave);
@@ -72,10 +73,10 @@ export function Tablero() {
       {isLoading || !t ? <Cargando /> : (
         <>
           <div className="cifras">
-            <div><span className={`cifra ${t.resultado < 0 ? 'saldo-mas' : 'saldo-ok'}`}>{t.resultado < 0 ? '− ' : ''}{formatPesos(Math.abs(t.resultado))}</span><small>{t.resultado < 0 ? 'se gastó más de lo que se vendió' : 'quedó después de compras y gastos'}</small></div>
-            <div><span className="cifra">{formatPesos(t.ventas.total)}</span><small>vendido · {plural(t.ventas.maples, 'maple', 'maples')} en {plural(t.ventas.cantidad, 'despacho', 'despachos')}</small></div>
+            <div><span className={`cifra ${t.resultado < 0 ? 'saldo-mas' : 'saldo-ok'}`}>{t.resultado < 0 ? '− ' : ''}{formatPesos(Math.abs(t.resultado))}</span><small>{t.resultado < 0 ? 'resultado: salió más de lo que se vendió' : 'resultado: ventas menos egresos'}</small></div>
+            <div><span className="cifra">{formatPesos(t.ventas.total)}</span><small>total ingresos (ventas) · {plural(t.ventas.maples, 'maple', 'maples')} en {plural(t.ventas.cantidad, 'despacho', 'despachos')}</small></div>
             <div><span className="cifra">{formatPesos(t.compras.total)}</span><small>en compras de materia prima</small></div>
-            <div><span className="cifra">{formatPesos(t.gastos.total)}</span><small>en gastos</small></div>
+            <div><span className="cifra">{formatPesos(t.gastos.total)}</span><small>en egresos</small></div>
           </div>
 
           <div className="cifras">
@@ -90,6 +91,8 @@ export function Tablero() {
             </Link>
           )}
 
+          <BalanceMensual anio={Number(f.anio) || new Date().getFullYear()} onAnio={(a) => setF({ anio: String(a) })} />
+
           <section className="hoja relleno" style={{ display: 'grid', gap: 12, gridTemplateColumns: 'minmax(0, 1fr)' }}>
             <h3>Entradas y salidas {t.paso === 'week' ? 'por semana' : 'por día'}</h3>
             <GraficoIngresosEgresos serie={t.serie} paso={t.paso} />
@@ -103,7 +106,8 @@ export function Tablero() {
           <CostoYMargen c={t.costos} />
 
           <div className="rejilla par">
-            <BarrasRanking titulo="Gastos por categoría" filas={t.porCategoria} color={C_EGRESOS} vacio="Sin gastos en el período." />
+            <BarrasRanking titulo="Egresos por categoría" filas={t.porCategoria} color={C_EGRESOS} vacio="Sin egresos en el período." />
+            <BarrasRanking titulo="Ventas por calidad" filas={t.porCalidad.map((c) => ({ id: c.calidad, nombre: `${c.calidad === 'segunda' ? 'Segunda' : 'Primera'} · ${c.maples.toLocaleString('es-AR')} maples`, total: c.total }))} color={C_INGRESOS} vacio="Sin ventas en el período." />
             <section className="hoja">
               <div className="fila"><h3>Producción</h3><Link to="/produccion" className="chico">Ver planilla</Link></div>
               {!t.produccion.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>Sin partes en el período.</p>}
@@ -190,7 +194,7 @@ function GraficoIngresosEgresos({ serie, paso }: { serie: Datos['serie']; paso: 
     <div>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.875rem', marginBottom: 8 }}>
         <span className="con-muestra" style={{ gap: 6 }}><i style={{ width: 12, height: 12, borderRadius: 3, background: C_INGRESOS, display: 'inline-block' }} /> Ingresos (ventas)</span>
-        <span className="con-muestra" style={{ gap: 6 }}><i style={{ width: 12, height: 12, borderRadius: 3, background: C_EGRESOS, display: 'inline-block' }} /> Egresos (compras y gastos)</span>
+        <span className="con-muestra" style={{ gap: 6 }}><i style={{ width: 12, height: 12, borderRadius: 3, background: C_EGRESOS, display: 'inline-block' }} /> Egresos (compras y egresos)</span>
       </div>
       <div ref={caja} style={{ position: 'relative' }} onMouseLeave={() => setHover(null)}>
         <svg width={ancho} height={alto} role="img" aria-label="Ingresos y egresos por período" style={{ display: 'block', overflow: 'visible' }}>
@@ -240,7 +244,7 @@ function CostoYMargen({ c }: { c: Datos['costos'] }) {
   return (
     <div className="rejilla par">
       <section className="hoja">
-        <div className="fila"><div><h3>Costo y margen por maple</h3><p className="chico tenue">Materia prima al precio promedio de compra, sin IVA. No incluye gastos ni sueldos.</p></div></div>
+        <div className="fila"><div><h3>Costo y margen por maple</h3><p className="chico tenue">Materia prima al precio promedio de compra, sin IVA. No incluye egresos ni sueldos.</p></div></div>
         {c.porCodigo.map((x) => {
           const m = pct(x.precioMaple, x.costoMaple);
           return (
@@ -283,5 +287,48 @@ function ResumenDelDia({ onCerrar }: { onCerrar: () => void }) {
         <a className="boton primario" href={data ? `https://wa.me/?text=${encodeURIComponent(data.texto)}` : undefined} target="_blank" rel="noreferrer"><MessageCircle size={18} aria-hidden /> Compartir por WhatsApp</a>
       </div>
     </Dialogo>
+  );
+}
+
+interface MesBalance { mes: number; ingresos: number; cobrado: number; egresos: number; resultado: number; acumulado: number; variacion: number | null; maplesProducidos: number; maplesVendidos: number }
+const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+/** "Balance — resumen mensual", con las mismas columnas que la planilla de finanzas, más los maples del mes. */
+function BalanceMensual({ anio, onAnio }: { anio: number; onAnio: (a: number) => void }) {
+  const { data } = useQuery({ queryKey: ['balance', anio], queryFn: () => api<MesBalance[]>(`/tablero/balance?anio=${anio}`) });
+  const actual = new Date().getFullYear();
+  // Del año en curso, hasta este mes; los meses sin nada al principio del año no se muestran.
+  const hasta = anio === actual ? new Date().getMonth() + 1 : 12;
+  const primero = data?.findIndex((m) => m.ingresos || m.egresos || m.maplesProducidos) ?? -1;
+  const filas = (data ?? []).filter((m) => m.mes <= hasta && (primero < 0 || m.mes > primero));
+  const total = (k: keyof MesBalance) => filas.reduce((a, m) => a + Number(m[k] ?? 0), 0);
+  const signo = (n: number) => <span className={n < 0 ? 'saldo-mas' : ''}>{n < 0 ? `(${formatPesos(-n)})` : formatPesos(n)}</span>;
+  return (
+    <section className="hoja">
+      <div className="fila">
+        <div><h3>Balance mensual</h3><p className="chico tenue">Total ingresos (ventas) y total egresos (compras de materia prima y egresos), mes por mes.</p></div>
+        <div className="pestanas" role="group" aria-label="Año">
+          {[actual - 1, actual].map((a) => <button key={a} aria-pressed={anio === a} onClick={() => onAnio(a)}>{a}</button>)}
+        </div>
+      </div>
+      {!filas.length ? <p className="tenue" style={{ padding: '0 18px 18px' }}>Sin movimientos en {anio}.</p> : (
+        <div className="tabla-scroll">
+          <table className="tabla-balance">
+            <thead><tr><th>Mes</th><th>Total ingresos</th><th>Total egresos</th><th>Resultado del mes</th><th>Saldo acumulado</th><th>% vs mes anterior</th><th>Maples producidos</th><th>Maples vendidos</th></tr></thead>
+            <tbody>
+              {filas.map((m) => (
+                <tr key={m.mes}>
+                  <th>{MESES[m.mes - 1]}</th>
+                  <td>{formatPesos(m.ingresos)}</td><td>{formatPesos(m.egresos)}</td><td>{signo(m.resultado)}</td><td>{signo(m.acumulado)}</td>
+                  <td>{m.variacion === null ? '' : `${m.variacion.toLocaleString('es-AR')} %`}</td>
+                  <td>{m.maplesProducidos.toLocaleString('es-AR')}</td><td>{m.maplesVendidos.toLocaleString('es-AR')}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot><tr><th>Total</th><td>{formatPesos(total('ingresos'))}</td><td>{formatPesos(total('egresos'))}</td><td>{signo(total('resultado'))}</td><td>{signo(filas.at(-1)?.acumulado ?? 0)}</td><td /><td>{total('maplesProducidos').toLocaleString('es-AR')}</td><td>{total('maplesVendidos').toLocaleString('es-AR')}</td></tr></tfoot>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

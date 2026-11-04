@@ -3,7 +3,7 @@ import { calcularVenta, movimientoDineroSchema, ventaSchema } from '@moldeados/s
 import { db } from '../src/db.js';
 import { anularPalet } from '../src/features/produccion.service.js';
 import { buscar } from '../src/lib/buscar.js';
-import { anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, guardarPedido, saldos } from '../src/features/ventas.service.js';
+import { anularMovimiento, anularVenta, cambiarEstadoCheque, cobroPorVenta, crearMovimiento, crearVenta, cuentaCorriente, guardarPedido, saldos } from '../src/features/ventas.service.js';
 import { stockMaples } from '../src/features/produccion.service.js';
 import { pedidoSchema } from '@moldeados/shared';
 
@@ -48,6 +48,32 @@ describe('despacho y cuentas (moldeados_test)', () => {
     expect(await db('ventas').count('* as n').first()).toMatchObject({ n: 1 }); // no quedó nada a medias
     const v2 = await venta(cliente, [palet2]);
     expect((await db('ventas').where({ id: v2.id }).first()).total_centavos).toBe(2160 * 15000);
+  });
+
+  it('segunda: se vende al precio escrito en la venta, sin precio no pasa', async () => {
+    await expect(venta(cliente, [palet1], { segunda: [variante] })).rejects.toThrow('precio de segunda');
+    const v = await venta(cliente, [palet1], { segunda: [variante], precios: [{ varianteId: variante, precioMaple: 10000 }] });
+    const item = await db('venta_items').where({ venta_id: v.id }).first();
+    expect([item.calidad, Number(item.subtotal_centavos)]).toEqual(['segunda', 2160 * 10000]);
+  });
+
+  it('lo pagado en el despacho se registra repartido y el estado de cobro se aplica a lo más viejo', async () => {
+    // Venta 1: $324.000, paga 100.000 en efectivo + 50.000 por transferencia en el momento.
+    const v1 = await venta(cliente, [palet1], { pagos: [{ medio: 'efectivo', monto: 10_000_000 }, { medio: 'transferencia', monto: 5_000_000 }] });
+    const cobros = await db('movimientos_dinero').where({ cliente_id: cliente }).orderBy('medio');
+    expect(cobros.map((c) => [c.medio, Number(c.monto_centavos), c.referencia])).toEqual([['efectivo', 10_000_000, 'Remito ' + String(v1.numero).padStart(6, '0')], ['transferencia', 5_000_000, 'Remito ' + String(v1.numero).padStart(6, '0')]]);
+    const v2 = await venta(cliente, [palet2]);
+    let e = await cobroPorVenta(db, [v1.id, v2.id]);
+    expect(e.get(v1.id)).toEqual({ cobrado: 15_000_000, debe: 32_400_000 - 15_000_000 });
+    expect(e.get(v2.id)).toEqual({ cobrado: 0, debe: 32_400_000 });
+    // Un pago a cuenta grande: cubre primero la venta 1 y lo que sobra va a la 2.
+    await crearMovimiento(db, u, movimientoDineroSchema.parse({ tipo: 'cobro', clienteId: cliente, fecha: '2026-11-04', monto: 20_000_000, medio: 'efectivo' }));
+    e = await cobroPorVenta(db, [v1.id, v2.id]);
+    expect(e.get(v1.id)!.debe).toBe(0);
+    expect(e.get(v2.id)).toEqual({ cobrado: 2_600_000, debe: 32_400_000 - 2_600_000 });
+    // No se puede cobrar más que el total en el despacho.
+    await anularVenta(db, u, v2.id, 'x');
+    await expect(venta(otro, [palet2], { pagos: [{ medio: 'efectivo', monto: 99_999_999_999 }] })).rejects.toThrow('más que el total');
   });
 
   it('un palet vendido no se desarma; anulando la venta vuelve a estar disponible', async () => {

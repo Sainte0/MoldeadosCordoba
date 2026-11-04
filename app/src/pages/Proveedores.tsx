@@ -106,7 +106,7 @@ function FichaProveedor({ inicial, onCerrar }: { inicial: Partial<Proveedor>; on
       {campo('telefono', 'Teléfono', { type: 'tel' })}
       {campo('email', 'Email', { type: 'email' })}
       {campo('direccion', 'Dirección')}
-      <Campo etiqueta="Notas"><textarea className="entrada" value={p.notas ?? ''} disabled={!editable} onChange={(e) => setP({ ...p, notas: e.target.value })} /></Campo>
+      <Campo etiqueta="Observaciones"><textarea className="entrada" value={p.notas ?? ''} disabled={!editable} onChange={(e) => setP({ ...p, notas: e.target.value })} /></Campo>
       <Aviso>{error}</Aviso>
       <div className="acciones">
         {!nuevo && puede('proveedores', 3) && (borrar

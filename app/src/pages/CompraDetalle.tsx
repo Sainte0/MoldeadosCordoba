@@ -101,7 +101,7 @@ export function CompraDetalle() {
           </tbody>
         </table>
         {c.notas && <p><b>Notas:</b> {c.notas}</p>}
-        <p className="chico tenue">Cargado por {c.cargadoPor}, {verMomento(c.cargadaAt)}</p>
+        <p className="chico tenue">Registrado por {c.cargadoPor}, {verMomento(c.cargadaAt)}</p>
       </article>
 
 

@@ -29,10 +29,10 @@ export function Cuentas() {
 
   return (
     <div className="ancho" style={{ display: 'grid', gap: 24 }}>
-      <Cabecera titulo="Cuentas corrientes" bajada="Lo que nos deben los clientes y lo que les debemos a los proveedores.">
+      <Cabecera titulo="Saldos" bajada="Saldos de clientes y de proveedores: lo vendido o comprado, lo pagado y lo que queda.">
         {puede('cuentas', 2) && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link to="/dinero/nuevo?tipo=cobro" className="boton primario"><ArrowDownLeft size={18} aria-hidden /> Registrar cobro</Link>
+            <Link to="/dinero/nuevo?tipo=cobro" className="boton primario"><ArrowDownLeft size={18} aria-hidden /> Pago a cuenta de un cliente</Link>
             <Link to="/dinero/nuevo?tipo=pago" className="boton secundario"><ArrowUpRight size={18} aria-hidden /> Registrar pago</Link>
           </div>
         )}
@@ -56,7 +56,7 @@ export function Cuentas() {
         <div className="hoja filas">
           {filas.sort((a, b) => b.saldo - a.saldo).map((s) => (
             <Link key={s.id} to={`/cuentas/${de}/${s.id}`} className="fila">
-              <div><div className="principal">{s.nombre}</div><div className="chico tenue">{s.ultimoMovimiento ? `Última ${de === 'cliente' ? 'venta' : 'compra'} ${verFecha(s.ultimoMovimiento)}` : 'Sin movimientos'}</div></div>
+              <div><div className="principal">{s.nombre}</div><div className="chico tenue">{de === 'cliente' ? 'Total vendido' : 'Total comprado'} {formatPesos(Number(s.debe))} · total pagado {formatPesos(Number(s.haber))}{s.ultimoMovimiento ? ` · última ${de === 'cliente' ? 'venta' : 'compra'} ${verFecha(s.ultimoMovimiento)}` : ''}</div></div>
               <div className="derecha">
                 <div className={`cifra ${s.saldo > 0 ? 'saldo-mas' : s.saldo === 0 ? 'saldo-cero' : ''}`}>{formatPesos(Math.abs(s.saldo))}</div>
                 <div className="chico tenue">{s.saldo > 0 ? (de === 'cliente' ? 'nos debe' : 'le debemos') : s.saldo < 0 ? 'a favor' : 'al día'}</div>

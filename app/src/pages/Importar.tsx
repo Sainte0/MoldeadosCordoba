@@ -11,8 +11,10 @@ interface Campo { id: string; titulo: string; obligatorio?: boolean; ejemplo: st
 interface Tipo { id: string; titulo: string; campos: Campo[] }
 interface Resultado { nuevos: number; actualizados: number; sinCambios: number; errores: { fila: number; mensaje: string }[]; importado: boolean }
 
-const DESTINO: Record<string, string> = { clientes: '/clientes', proveedores: '/proveedores', stock: '/materia-prima', 'saldos-clientes': '/cuentas', 'saldos-proveedores': '/cuentas?de=proveedor', precios: '/precios' };
+const DESTINO: Record<string, string> = { clientes: '/clientes', proveedores: '/proveedores', stock: '/materia-prima', 'saldos-clientes': '/cuentas', 'saldos-proveedores': '/cuentas?de=proveedor', precios: '/precios', egresos: '/egresos', ventas: '/ventas' };
 const AYUDA: Record<string, string> = {
+  ventas: 'La hoja VENTAS de la planilla de finanzas: fecha, comprobante, calidad, cantidad, precio, monto, lo pagado en efectivo, transferencia y cheque, estado y observaciones. Entran sin palet (no tocan el stock) y lo pagado queda en el saldo de cada cliente.',
+  egresos: 'La hoja EGRESOS de la planilla de finanzas, tal cual: fecha, comprobante, proveedor / beneficiario, concepto, categoría, forma de pago, monto, USD, estado y observaciones. Los pendientes quedan para pagar.',
   clientes: 'Si un cliente ya existe (mismo nombre), no se duplica.',
   proveedores: 'Si un proveedor ya existe (mismo nombre), no se duplica.',
   stock: 'Deja el stock en lo que dice la planilla. Si la volvés a subir, no suma dos veces: corrige la diferencia.',

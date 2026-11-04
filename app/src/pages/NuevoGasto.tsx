@@ -10,7 +10,7 @@ import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } 
 // ponytail: la categoría "de sueldos" se reconoce por el nombre; si renombran todo, agregar un tipo a la categoría.
 const esSueldo = (nombre?: string) => !!nombre && /sueldo|adelanto|jornal/i.test(nombre);
 
-/** Gasto cotidiano: de qué es, cuánto, cómo se pagó y la foto del ticket. */
+/** Egreso: de qué es, cuánto y a quién, si ya se pagó (y cómo) o queda pendiente, y la foto del comprobante. */
 export function NuevoGasto() {
   const navegar = useNavigate();
   const qc = useQueryClient();
@@ -30,6 +30,11 @@ export function NuevoGasto() {
   const [conFactura, setConFactura] = useState<boolean | null>(null);
   const [nroFactura, setNroFactura] = useState('');
   const [fecha, setFecha] = useState(hoy());
+  const [beneficiario, setBeneficiario] = useState('');
+  const [usd, setUsd] = useState('');
+  // Como la columna "Estado" de la planilla: Pagado, o Pendiente (F-931, IVA, una factura a pagar) con su vencimiento.
+  const [estado, setEstado] = useState<'pagado' | 'pendiente' | null>(null);
+  const [vencimiento, setVencimiento] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,19 +44,21 @@ export function NuevoGasto() {
 
   const pasos: Paso[] = [
     {
-      titulo: '¿De qué es el gasto?',
-      ayuda: 'Elegí la categoría. Así el tablero muestra en qué se va la plata.',
+      titulo: '¿De qué es el egreso?',
+      ayuda: 'Elegí la categoría. Así el balance muestra en qué se va la plata, como el desglose por categoría de la planilla.',
       contenido: <Opciones columnas valor={categoriaId} onChange={setCategoriaId} opciones={(categorias ?? []).filter((c) => c.activo).map((c) => ({ valor: c.id, titulo: c.nombre }))} />,
       listo: categoriaId ? true : 'Elegí una categoría',
       rapido: true,
     },
     {
-      titulo: '¿Cuánto y qué se pagó?',
-      ayuda: 'El monto total que salió, y en pocas palabras qué fue.',
+      titulo: '¿Cuánto y qué es?',
+      ayuda: 'El monto total, el concepto en pocas palabras y a quién se le paga (proveedor o beneficiario).',
       contenido: (
         <>
           <EntradaNumero enorme unidad="$" value={monto} onChange={(e) => setMonto(e.target.value)} autoFocus aria-label="Monto" />
-          <Campo etiqueta="Qué se pagó"><Entrada value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder={esSueldo(categoria?.nombre) ? 'Adelanto quincena' : 'Ej.: guantes y cinta para la planta'} /></Campo>
+          <Campo etiqueta="Concepto / descripción"><Entrada value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder={esSueldo(categoria?.nombre) ? 'Adelanto quincena' : 'Ej.: materiales eléctricos'} /></Campo>
+          {!esSueldo(categoria?.nombre) && <Campo etiqueta="Proveedor / beneficiario" ayuda="Opcional"><Entrada value={beneficiario} onChange={(e) => setBeneficiario(e.target.value)} placeholder="Ej.: Electro Alem, ARCA, Kevin" /></Campo>}
+          <Campo etiqueta="Monto en dólares" ayuda="Opcional, solo si se pagó en dólares (ej.: tinta importada)"><EntradaNumero unidad="US$" value={usd} onChange={(e) => setUsd(e.target.value)} /></Campo>
           {esSueldo(categoria?.nombre) && (
             <Campo etiqueta="¿A quién?">
               <Opciones columnas valor={empleadoId} onChange={setEmpleadoId} opciones={(empleados ?? []).filter((e) => e.activo).map((e) => ({ valor: e.id, titulo: e.nombre }))} />
@@ -62,21 +69,24 @@ export function NuevoGasto() {
       listo: centavos === null || centavos <= 0 ? 'Ingresá el monto' : descripcion.trim().length < 2 ? 'Contá qué se pagó' : true,
     },
     {
-      titulo: '¿Cómo se pagó?',
-      ayuda: 'Si salió de la caja chica, se descuenta solo de la caja.',
+      titulo: '¿Ya se pagó?',
+      ayuda: 'Pagado: elegí la forma de pago (si salió de la caja chica, se descuenta solo). Pendiente: queda en la lista de egresos a pagar y avisa antes del vencimiento.',
       contenido: (
         <>
-          <Opciones columnas valor={medio} onChange={setMedio}
+          <Opciones columnas valor={estado} onChange={setEstado} opciones={[{ valor: 'pagado', titulo: 'Pagado' }, { valor: 'pendiente', titulo: 'Pendiente', detalle: 'Se paga más adelante' }]} />
+          {estado === 'pendiente' && <Campo etiqueta="Vence el" ayuda="Opcional: el sistema avisa 3 días antes"><Entrada type="date" value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} /></Campo>}
+          {estado === 'pagado' && <Campo etiqueta="Forma de pago"><Opciones columnas valor={medio} onChange={setMedio}
             opciones={MEDIOS_GASTO.map((m) => ({ valor: m, titulo: LABEL_MEDIO_GASTO[m], detalle: m === 'caja_chica' && caja ? `Hay ${formatPesos(caja.saldo)}` : undefined }))} />
-          {necesitaBanco && <Campo etiqueta="Banco"><Opciones columnas valor={bancoId} onChange={setBancoId} opciones={(bancos ?? []).filter((b) => b.activo).map((b) => ({ valor: b.id, titulo: b.nombre }))} /></Campo>}
-          {medio === 'caja_chica' && caja && centavos !== null && centavos > caja.saldo && <Aviso>En la caja chica hay {formatPesos(caja.saldo)}. Si se repuso, cargá la reposición en Caja chica.</Aviso>}
+          </Campo>}
+          {estado === 'pagado' && necesitaBanco && <Campo etiqueta="Banco"><Opciones columnas valor={bancoId} onChange={setBancoId} opciones={(bancos ?? []).filter((b) => b.activo).map((b) => ({ valor: b.id, titulo: b.nombre }))} /></Campo>}
+          {estado === 'pagado' && medio === 'caja_chica' && caja && centavos !== null && centavos > caja.saldo && <Aviso>En la caja chica hay {formatPesos(caja.saldo)}. Si se repuso, cargá la reposición en Caja chica.</Aviso>}
         </>
       ),
-      listo: !medio ? 'Elegí cómo se pagó' : (medio === 'echeq' || medio === 'cheque') && !bancoId ? 'Elegí el banco' : true,
+      listo: !estado ? 'Marcá si ya se pagó' : estado === 'pendiente' ? true : !medio ? 'Elegí la forma de pago' : (medio === 'echeq' || medio === 'cheque') && !bancoId ? 'Elegí el banco' : true,
     },
     {
       titulo: 'Sacale una foto al comprobante',
-      ayuda: 'Ticket, factura o recibo. Queda guardado junto al gasto. Si no hay comprobante, seguí sin foto.',
+      ayuda: 'Ticket, factura o recibo. Queda guardado junto al egreso. Si no hay comprobante, seguí sin foto.',
       contenido: (
         <>
           {foto ? (
@@ -101,7 +111,7 @@ export function NuevoGasto() {
           <Campo etiqueta="¿Tiene factura?">
             <Opciones columnas valor={conFactura} onChange={setConFactura} opciones={[{ valor: true, titulo: 'Con factura' }, { valor: false, titulo: 'Sin factura' }]} />
           </Campo>
-          {conFactura && <Campo etiqueta="Número de factura" ayuda="Opcional"><Entrada value={nroFactura} onChange={(e) => setNroFactura(e.target.value)} /></Campo>}
+          {conFactura && <Campo etiqueta="N° comprobante" ayuda="Opcional (ej.: A-3169, F-931 07-2026)"><Entrada value={nroFactura} onChange={(e) => setNroFactura(e.target.value)} /></Campo>}
         </>
       ),
       listo: conFactura === null ? 'Marcá si tiene factura' : true,
@@ -113,11 +123,12 @@ export function NuevoGasto() {
         <>
           <dl className="resumen hoja relleno">
             <dt>Categoría</dt><dd>{categoria?.nombre}</dd>
-            <dt>Qué</dt><dd>{descripcion}{empleadoId ? ` · ${empleados?.find((e) => e.id === empleadoId)?.nombre}` : ''}</dd>
-            <dt>Pagado con</dt><dd>{medio && LABEL_MEDIO_GASTO[medio]}{bancoId && necesitaBanco ? ` · ${bancos?.find((b) => b.id === bancoId)?.nombre}` : ''}</dd>
+            <dt>Concepto</dt><dd>{descripcion}{empleadoId ? ` · ${empleados?.find((e) => e.id === empleadoId)?.nombre}` : ''}</dd>
+            {beneficiario && <><dt>Beneficiario</dt><dd>{beneficiario}</dd></>}
+            <dt>Estado</dt><dd>{estado === 'pendiente' ? `Pendiente${vencimiento ? ` · vence ${verFecha(vencimiento)}` : ''}` : <>Pagado · {medio && LABEL_MEDIO_GASTO[medio]}{bancoId && necesitaBanco ? ` · ${bancos?.find((b) => b.id === bancoId)?.nombre}` : ''}</>}</dd>
             <dt>Comprobante</dt><dd>{foto ? 'Con foto' : 'Sin foto'} · {conFactura ? 'con factura' : 'sin factura'}</dd>
           </dl>
-          <div className="lectura"><span>Gasto</span><span className="cifra">{centavos !== null && formatPesos(centavos)}</span></div>
+          <div className="lectura"><span>Egreso</span><span className="cifra">{centavos !== null && formatPesos(centavos)}</span></div>
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}><Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} /></Campo>
         </>
       ),
@@ -133,17 +144,18 @@ export function NuevoGasto() {
       await api('/gastos', {
         method: 'POST',
         body: {
-          fecha, categoriaId, descripcion, monto: centavos, medio, bancoId: necesitaBanco ? bancoId : null, conFactura: !!conFactura,
+          fecha, categoriaId, descripcion, monto: centavos, medio: medio ?? 'efectivo', bancoId: necesitaBanco && estado === 'pagado' ? bancoId : null, conFactura: !!conFactura,
+          beneficiario: beneficiario || undefined, aPagar: estado === 'pendiente', vencimiento: estado === 'pendiente' && vencimiento ? vencimiento : null, montoUsd: aCentavos(usd) || null,
           nroFactura: conFactura ? nroFactura || undefined : undefined, empleadoId: esSueldo(categoria?.nombre) ? empleadoId : null, comprobanteId: comprobante?.id ?? null,
         },
       });
       await qc.invalidateQueries();
-      navegar('/gastos?nuevo=1', { replace: true });
+      navegar('/egresos?nuevo=1', { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
       setGuardando(false);
     }
   };
 
-  return <Asistente proceso="gasto" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar gasto" guardando={guardando} error={error} onCancelar={() => navegar('/gastos')} />;
+  return <Asistente proceso="gasto" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar egreso" guardando={guardando} error={error} onCancelar={() => navegar('/egresos')} />;
 }

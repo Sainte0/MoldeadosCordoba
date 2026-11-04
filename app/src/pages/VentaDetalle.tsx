@@ -15,8 +15,8 @@ interface Detalle {
   id: string; numero: number; fecha: string; conFactura: boolean; nroFactura: string | null; ivaBp: number; neto: number; iva: number; total: number;
   vehiculo: Vehiculo | null; patente: string | null; retira: string | null; notas: string | null; cargadaAt: string; anuladoAt: string | null; motivoAnulacion: string | null;
   anuladoPor: string | null; cargadoPor: string; clienteId: string; cliente: string; clienteCuit: string | null; clienteDireccion: string | null;
-  firmaId: string | null; firmadoAt: string | null; pedidoId: string | null; pedidoNumero: number | null;
-  items: { id: string; paletId: string; palet: number; suelto: boolean; paquetes: number; codigo: string; variante: string; colorHex: string | null; maples: number; precioMaple: number; subtotal: number }[];
+  firmaId: string | null; firmadoAt: string | null; pedidoId: string | null; pedidoNumero: number | null; cobro: { cobrado: number; debe: number } | null;
+  items: { id: string; paletId: string | null; palet: number; suelto: boolean; paquetes: number; codigo: string; variante: string; colorHex: string | null; maples: number; precioMaple: number; subtotal: number; calidad: 'primera' | 'segunda' }[];
 }
 
 /** Remito de la venta: lo firma quien retira. */
@@ -67,12 +67,17 @@ export function VentaDetalle() {
           <h1>Remito {nroTicket(v.numero)}</h1>
           <p className="tenue">{v.cliente} · {verFecha(v.fecha)} · {maples.toLocaleString('es-AR')} maples · {formatPesos(v.total)}</p>
         </div>
-        {v.anuladoAt ? <Estado nivel="critico">Anulado</Estado> : v.firmaId ? <Estado nivel="ok">Firmado</Estado> : <Estado nivel="atencion">Sin firmar</Estado>}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {v.anuladoAt ? <Estado nivel="critico">Anulado</Estado> : <>
+            {!v.cobro || v.cobro.debe <= 0 ? <Estado nivel="ok">Cobrado</Estado> : <Estado nivel="atencion">{v.cobro.cobrado > 0 ? `Debe ${formatPesos(v.cobro.debe)}` : 'Pendiente de cobro'}</Estado>}
+            {v.firmaId ? <Estado nivel="ok">Firmado</Estado> : <Estado nivel="atencion">Sin firmar</Estado>}
+          </>}
+        </div>
       </header>
       <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {!v.anuladoAt && !v.firmaId && puede('ventas', 2) && <button className="boton primario grande" onClick={() => setFirmando(true)}><PenLine size={20} aria-hidden /> Firmar en pantalla</button>}
         <button className={`boton ${!v.anuladoAt && !v.firmaId && puede('ventas', 2) ? 'secundario' : 'primario grande'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir remito</button>
-        {!v.anuladoAt && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=cobro&id=${v.clienteId}`} className="boton secundario"><Wallet size={18} aria-hidden /> Registrar cobro</Link>}
+        {!v.anuladoAt && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=cobro&id=${v.clienteId}`} className="boton secundario"><Wallet size={18} aria-hidden /> Pago a cuenta</Link>}
         {!v.anuladoAt && puede('ventas', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
       </div>
       <article className="ticket remito">
@@ -98,8 +103,8 @@ export function VentaDetalle() {
           <tbody>
             {v.items.map((i) => (
               <tr key={i.id}>
-                <td>{i.suelto ? `${i.paquetes} sueltos` : <Link to={`/palets/${i.palet}`}>{nroTicket(i.palet)}</Link>}</td>
-                <td><span className="con-muestra" style={{ gap: 6 }}><Muestra color={i.colorHex} />{i.codigo}</span></td>
+                <td>{!i.paletId ? '—' : i.suelto ? `${i.paquetes} sueltos` : <Link to={`/palets/${i.palet}`}>{nroTicket(i.palet)}</Link>}</td>
+                <td><span className="con-muestra" style={{ gap: 6 }}><Muestra color={i.colorHex} />{i.codigo}{i.calidad === 'segunda' && ' (2da)'}</span></td>
                 <td>{i.maples.toLocaleString('es-AR')}</td><td>{formatPesos(i.precioMaple)}</td><td>{formatPesos(i.subtotal)}</td>
               </tr>
             ))}

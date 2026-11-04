@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import { anularSchema, cajaSchema, categoriaGastoSchema, gastoSchema } from '@moldeados/shared';
+import { anularSchema, cajaSchema, categoriaGastoSchema, gastoSchema, pagarGastoSchema } from '@moldeados/shared';
 import { db } from '../db.js';
 import { buscar } from '../lib/buscar.js';
 import { requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
-import { anularGasto, crearGasto, saldoCaja, tablero } from './gastos.service.js';
+import { anularGasto, balanceAnual, pagarGasto, crearGasto, saldoCaja, tablero } from './gastos.service.js';
 
 const fechaOk = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
 const uuidOk = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
@@ -53,7 +53,7 @@ export async function gastosRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // ---------- Gastos ----------
-  app.get<{ Querystring: { desde?: string; hasta?: string; categoriaId?: string; pagina?: string; q?: string } }>('/gastos', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; categoriaId?: string; pagina?: string; q?: string; estado?: string } }>('/gastos', async (req) => {
     await requerir(db, req, 'gastos', 1);
     const q = req.query;
     return {
@@ -62,11 +62,13 @@ export async function gastosRoutes(app: FastifyInstance): Promise<void> {
           if (fechaOk(q.desde)) qb.where('g.fecha', '>=', q.desde!);
           if (fechaOk(q.hasta)) qb.where('g.fecha', '<=', q.hasta!);
           if (uuidOk(q.categoriaId)) qb.where('g.categoria_id', q.categoriaId!);
+          // Pendientes: todos los que falta pagar, de cualquier fecha, los que vencen antes primero.
+          if (q.estado === 'pendientes') qb.where('g.a_pagar', true).whereNull('g.anulado_at');
         })
-        .modify(buscar(q.q, ['g.descripcion', 'k.nombre', 'e.nombre', 'g.nro_factura'], 'g.numero'))
+        .modify(buscar(q.q, ['g.descripcion', 'g.beneficiario', 'k.nombre', 'e.nombre', 'g.nro_factura'], 'g.numero'))
         .select('g.id', 'g.numero', 'g.fecha', 'g.descripcion', 'g.monto_centavos as monto', 'g.medio', 'g.con_factura as conFactura', 'g.comprobante_id as comprobanteId',
-          'g.anulado_at as anuladoAt', 'k.nombre as categoria', 'e.nombre as empleado', 'u.nombre as cargadoPor')
-        .orderBy([{ column: 'g.fecha', order: 'desc' }, { column: 'g.numero', order: 'desc' }])
+          'g.anulado_at as anuladoAt', 'k.nombre as categoria', 'e.nombre as empleado', 'u.nombre as cargadoPor', 'g.beneficiario', 'g.a_pagar as aPagar', 'g.vencimiento', 'g.monto_usd_centavos as montoUsd')
+        .orderBy(q.estado === 'pendientes' ? [{ column: 'g.vencimiento', order: 'asc', nulls: 'last' }, { column: 'g.fecha', order: 'asc' }] : [{ column: 'g.fecha', order: 'desc' }, { column: 'g.numero', order: 'desc' }])
         .limit(50).offset(Math.max(0, Number(q.pagina) || 0) * 50),
     };
   });
@@ -76,13 +78,20 @@ export async function gastosRoutes(app: FastifyInstance): Promise<void> {
       .join('usuarios as u', 'u.id', 'g.usuario_id').leftJoin('usuarios as ua', 'ua.id', 'g.anulado_por').where('g.id', uuidOk(req.params.id) ?? null)
       .first('g.id', 'g.numero', 'g.fecha', 'g.descripcion', 'g.monto_centavos as monto', 'g.medio', 'b.nombre as banco', 'g.con_factura as conFactura', 'g.nro_factura as nroFactura',
         'g.comprobante_id as comprobanteId', 'g.notas', 'g.created_at as cargadoAt', 'g.anulado_at as anuladoAt', 'g.motivo_anulacion as motivoAnulacion',
-        'k.nombre as categoria', 'e.nombre as empleado', 'u.nombre as cargadoPor', 'ua.nombre as anuladoPor');
-    if (!g) throw new NotFoundError('No encontramos ese gasto');
+        'k.nombre as categoria', 'e.nombre as empleado', 'u.nombre as cargadoPor', 'ua.nombre as anuladoPor',
+        'g.beneficiario', 'g.a_pagar as aPagar', 'g.vencimiento', 'g.monto_usd_centavos as montoUsd', 'g.pagado_at as pagadoAt', db.raw('(select nombre from usuarios where id = g.pagado_por) as "pagadoPor"'));
+    if (!g) throw new NotFoundError('No encontramos ese egreso');
     return { data: g };
   });
   app.post('/gastos', async (req, reply) => {
     const s = await requerir(db, req, 'gastos', 2);
     return reply.code(201).send({ data: await crearGasto(db, s.usuarioId, gastoSchema.parse(req.body)) });
+  });
+  app.post<{ Params: { id: string } }>('/gastos/:id/pagar', async (req) => {
+    const s = await requerir(db, req, 'gastos', 2);
+    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese egreso');
+    await pagarGasto(db, s.usuarioId, req.params.id, pagarGastoSchema.parse(req.body));
+    return { data: { ok: true } };
   });
   app.post<{ Params: { id: string } }>('/gastos/:id/anular', async (req) => {
     const s = await requerir(db, req, 'gastos', 3);
@@ -111,6 +120,11 @@ export async function gastosRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // ---------- Tablero ----------
+  app.get<{ Querystring: { anio?: string } }>('/tablero/balance', async (req) => {
+    await requerir(db, req, 'tablero', 1);
+    const anio = Number(req.query.anio);
+    return { data: await balanceAnual(db, Number.isInteger(anio) && anio > 2000 && anio < 2100 ? anio : new Date().getFullYear()) };
+  });
   app.get<{ Querystring: { desde?: string; hasta?: string } }>('/tablero', async (req) => {
     await requerir(db, req, 'tablero', 1);
     const desde = fechaOk(req.query.desde), hasta = fechaOk(req.query.hasta);

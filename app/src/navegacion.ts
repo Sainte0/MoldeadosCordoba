@@ -14,7 +14,7 @@ export const AREAS: Area[] = [
     { a: '/materia-prima', texto: 'Materia prima', modulo: 'materias' },
   ] },
   { texto: 'Ventas', icono: Receipt, pestanas: [
-    { a: '/ventas', texto: 'Despachos', modulo: 'ventas' },
+    { a: '/ventas', texto: 'Ventas', modulo: 'ventas' },
     { a: '/pedidos', texto: 'Pedidos', modulo: 'ventas' },
     { a: '/clientes', texto: 'Clientes', modulo: 'ventas' },
     { a: '/precios', texto: 'Precios', modulo: 'ventas' },
@@ -24,8 +24,8 @@ export const AREAS: Area[] = [
     { a: '/proveedores', texto: 'Proveedores', modulo: 'proveedores' },
   ] },
   { texto: 'Plata', icono: Wallet, tambien: ['/dinero'], pestanas: [
-    { a: '/cuentas', texto: 'Cuentas corrientes', modulo: 'cuentas' },
-    { a: '/gastos', texto: 'Gastos', modulo: 'gastos' },
+    { a: '/cuentas', texto: 'Saldos', modulo: 'cuentas' },
+    { a: '/egresos', texto: 'Egresos', modulo: 'gastos' },
     { a: '/caja', texto: 'Caja chica', modulo: 'gastos' },
   ] },
   { texto: 'Tablero', icono: ChartColumn, pestanas: [{ a: '/tablero', texto: 'Tablero', modulo: 'tablero' }] },
@@ -45,8 +45,8 @@ export const TAREAS: { a: string; titulo: string; detalle: string; icono: typeof
   { a: '/produccion/nuevo', titulo: 'Parte de producción', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
   { a: '/palets/nuevo', titulo: 'Armar palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
   { a: '/pesaje', titulo: 'Pesaje de cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
-  { a: '/dinero/nuevo?tipo=cobro', titulo: 'Registrar cobro', detalle: 'Efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
-  { a: '/gastos/nuevo', titulo: 'Cargar gasto', detalle: 'Con foto del ticket', icono: Coins, modulo: 'gastos' },
+  { a: '/dinero/nuevo?tipo=cobro', titulo: 'Pago a cuenta', detalle: 'Un cliente paga: efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
+  { a: '/egresos/nuevo', titulo: 'Cargar egreso', detalle: 'Pagado o pendiente, con foto del comprobante', icono: Coins, modulo: 'gastos' },
   { a: '/pedidos/nuevo', titulo: 'Nuevo pedido', detalle: 'Un cliente encarga maples', icono: ClipboardList, modulo: 'ventas' },
   { a: '/compras/nueva', titulo: 'Compra de insumos', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
 ];

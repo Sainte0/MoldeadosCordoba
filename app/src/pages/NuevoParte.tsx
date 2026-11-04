@@ -163,7 +163,7 @@ export function NuevoParte() {
             {consumos.map((c) => <Fragment key={c.materiaPrimaId}><dt>{c.nombre}</dt><dd>{c.real !== null && formatCantidad(c.real, c.unidad)}{c.real !== c.teorico && ' (corregido)'}</dd></Fragment>)}
           </dl>
           <div className="lectura"><span>Paquetes</span><span className="cifra">{nPaquetes}</span></div>
-          <Campo etiqueta="Notas" ayuda="Opcional: paradas, fallas, cambios de molde."><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
+          <Campo etiqueta="Observaciones" ayuda="Opcional: paradas, fallas, cambios de molde."><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
         </>
       ),
       listo: true,

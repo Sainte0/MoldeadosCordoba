@@ -186,13 +186,13 @@ function DatosEmpresa({ editable }: { editable: boolean }) {
   const [d, setD] = useState<Record<string, string> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
-  useEffect(() => { if (data && !d) setD({ razonSocial: data.razonSocial, direccion: data.direccion ?? '', telefono: data.telefono ?? '', email: data.email ?? '', cuit: data.cuit ?? '', resumenEmails: data.resumenEmails ?? '', resumenHora: String(data.resumenHora ?? 20) }); }, [data, d]);
+  useEffect(() => { if (data && !d) setD({ razonSocial: data.razonSocial, direccion: data.direccion ?? '', telefono: data.telefono ?? '', email: data.email ?? '', cuit: data.cuit ?? '', resumenEmails: data.resumenEmails ?? '', resumenHora: String(data.resumenHora ?? 20), proximoRemito: String(data.proximoRemito ?? '') }); }, [data, d]);
   if (!d) return null;
   const guardar = async () => {
     setError(null); setOk(false);
     try {
-      const { resumenHora, ...resto } = d;
-      await api('/empresa', { method: 'PUT', body: { ...Object.fromEntries(Object.entries(resto).map(([k, v]) => [k, v || undefined])), resumenHora: Number(resumenHora) || 20 } });
+      const { resumenHora, proximoRemito, ...resto } = d;
+      await api('/empresa', { method: 'PUT', body: { ...Object.fromEntries(Object.entries(resto).map(([k, v]) => [k, v || undefined])), resumenHora: Number(resumenHora) || 20, proximoRemito: Number(proximoRemito) || null } });
       await qc.invalidateQueries({ queryKey: ['empresa'] });
       setOk(true);
     } catch (e) {
@@ -211,6 +211,7 @@ function DatosEmpresa({ editable }: { editable: boolean }) {
         {campo('cuit', 'CUIT')}
         <Campo etiqueta="Mandar el resumen diario a" ayuda="Uno o varios mails separados por coma. Vacío = no se manda."><Entrada value={d.resumenEmails ?? ''} disabled={!editable} onChange={(e) => setD({ ...d, resumenEmails: e.target.value })} placeholder="dueno@moldeadoscordoba.com.ar" inputMode="email" /></Campo>
         <Campo etiqueta="Hora del resumen" ayuda="Hora de Argentina (0 a 23)."><EntradaNumero unidad="h" value={d.resumenHora ?? '20'} disabled={!editable} onChange={(e) => setD({ ...d, resumenHora: e.target.value.replace(/\D/g, '').slice(0, 2) })} /></Campo>
+        <Campo etiqueta="Próximo número de remito" ayuda="Para seguir con la numeración de los remitos en papel. Solo se puede subir."><EntradaNumero value={d.proximoRemito ?? ''} disabled={!editable} onChange={(e) => setD({ ...d, proximoRemito: e.target.value.replace(/\D/g, '').slice(0, 9) })} /></Campo>
         <Aviso>{error}</Aviso>
         {ok && <Aviso ok>Datos guardados.</Aviso>}
         {editable && <button className="boton primario" style={{ justifySelf: 'start' }} onClick={guardar}>Guardar datos</button>}

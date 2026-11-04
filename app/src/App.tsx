@@ -89,7 +89,8 @@ export function App() {
     window.addEventListener('keydown', tecla);
     return () => window.removeEventListener('keydown', tecla);
   }, []);
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   useEffect(() => setAbierto(false), [pathname]);
   const ir = useNavigate();
 
@@ -181,8 +182,11 @@ export function App() {
           {p('compras') && <Route path="/compras" element={<Compras />} />}
           {p('compras') && <Route path="/compras/:id" element={<CompraDetalle />} />}
           {p('tablero') && <Route path="/tablero" element={<Tablero />} />}
-          {p('gastos') && <Route path="/gastos" element={<Gastos />} />}
-          {p('gastos', 2) && <Route path="/gastos/nuevo" element={<NuevoGasto />} />}
+          {p('gastos') && <Route path="/egresos" element={<Gastos />} />}
+          {p('gastos', 2) && <Route path="/egresos/nuevo" element={<NuevoGasto />} />}
+          {/* Direcciones viejas (antes se llamaban gastos): siguen andando. */}
+          <Route path="/gastos" element={<Navigate to={`/egresos${location.search}`} replace />} />
+          <Route path="/gastos/nuevo" element={<Navigate to="/egresos/nuevo" replace />} />
           {p('gastos') && <Route path="/caja" element={<Caja />} />}
           {p('ventas', 2) && <Route path="/ventas/nueva" element={<Despacho />} />}
           {p('ventas') && <Route path="/ventas" element={<Ventas />} />}

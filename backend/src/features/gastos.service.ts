@@ -11,17 +11,37 @@ export async function crearGasto(db: Knex, usuarioId: string, i: GastoInput): Pr
     if (!(await trx('categorias_gasto').where({ id: i.categoriaId }).whereNull('deleted_at').first('id'))) throw new ValidationError('Esa categoría no existe');
     if (i.empleadoId && !(await trx('empleados').where({ id: i.empleadoId }).whereNull('deleted_at').first('id'))) throw new ValidationError('Esa persona no está en el personal');
     if (i.comprobanteId && !(await trx('archivos').where({ id: i.comprobanteId }).first('id'))) throw new ValidationError('No encontramos la foto del comprobante; volvé a sacarla');
-    if ((i.medio === 'echeq' || i.medio === 'cheque') && !i.bancoId) throw new ValidationError('Elegí el banco del cheque');
+    // Pendiente: se registra ahora (cuenta en el mes) y la forma de pago se elige al pagarlo.
+    const medio = i.aPagar ? null : i.medio;
+    if ((medio === 'echeq' || medio === 'cheque') && !i.bancoId) throw new ValidationError('Elegí el banco del cheque');
     const [g] = await trx('gastos').insert({
-      fecha: i.fecha, categoria_id: i.categoriaId, descripcion: i.descripcion, monto_centavos: i.monto, medio: i.medio,
-      banco_id: i.medio === 'efectivo' || i.medio === 'caja_chica' || i.medio === 'mercado_pago' ? null : i.bancoId,
+      fecha: i.fecha, categoria_id: i.categoriaId, descripcion: i.descripcion, monto_centavos: i.monto, medio,
+      banco_id: !medio || medio === 'efectivo' || medio === 'caja_chica' || medio === 'mercado_pago' ? null : i.bancoId,
       con_factura: i.conFactura, nro_factura: i.conFactura ? i.nroFactura : null, empleado_id: i.empleadoId, comprobante_id: i.comprobanteId, notas: i.notas, usuario_id: usuarioId,
+      beneficiario: i.beneficiario, a_pagar: i.aPagar, vencimiento: i.aPagar ? i.vencimiento : null, monto_usd_centavos: i.montoUsd,
     }).returning(['id', 'numero']);
-    if (i.medio === 'caja_chica') {
+    if (medio === 'caja_chica') {
       await trx('caja_movimientos').insert({ fecha: i.fecha, monto_centavos: -i.monto, motivo: 'gasto', concepto: i.descripcion, gasto_id: g.id, usuario_id: usuarioId });
     }
     await auditar(trx, { usuarioId, accion: 'crear', entidad: 'gasto', entidadId: g.id, despues: i });
     return g;
+  });
+}
+
+/** Marca pagado un egreso pendiente, con la forma de pago. Si sale de la caja chica, se descuenta de la caja. */
+export async function pagarGasto(db: Knex, usuarioId: string, id: string, i: { medio: GastoInput['medio']; bancoId: string | null }): Promise<void> {
+  await db.transaction(async (trx) => {
+    const g = await trx('gastos').where({ id }).forUpdate().first('id', 'a_pagar', 'anulado_at', 'monto_centavos', 'descripcion');
+    if (!g) throw new NotFoundError('No encontramos ese egreso');
+    if (g.anulado_at) throw new ConflictError('Este egreso está anulado');
+    if (!g.a_pagar) throw new ConflictError('Este egreso ya figura como pagado');
+    if ((i.medio === 'echeq' || i.medio === 'cheque') && !i.bancoId) throw new ValidationError('Elegí el banco del cheque');
+    await trx('gastos').where({ id }).update({ a_pagar: false, medio: i.medio, banco_id: i.medio === 'efectivo' || i.medio === 'caja_chica' || i.medio === 'mercado_pago' ? null : i.bancoId,
+      pagado_at: trx.fn.now(), pagado_por: usuarioId, updated_at: trx.fn.now() });
+    if (i.medio === 'caja_chica') {
+      await trx('caja_movimientos').insert({ fecha: trx.raw('current_date'), monto_centavos: -g.monto_centavos, motivo: 'gasto', concepto: g.descripcion, gasto_id: id, usuario_id: usuarioId });
+    }
+    await auditar(trx, { usuarioId, accion: 'editar', entidad: 'gasto', entidadId: id, antes: { aPagar: true }, despues: { pagado: i } });
   });
 }
 
@@ -62,7 +82,7 @@ export async function tablero(db: Knex, desde: string, hasta: string) {
     db('movimientos_dinero').whereNull('anulado_at').where({ tipo: 'pago' }).modify(enRango('fecha')).first(db.raw('coalesce(sum(monto_centavos), 0)::bigint as total')),
   ]);
 
-  const [porCliente, porProveedor, porCategoria, produccion, consumo] = await Promise.all([
+  const [porCliente, porProveedor, porCategoria, produccion, consumo, porCalidad] = await Promise.all([
     db('ventas as v').join('clientes as c', 'c.id', 'v.cliente_id').whereNull('v.anulado_at').modify(enRango('v.fecha'))
       .groupBy('c.id', 'c.nombre').select('c.id', 'c.nombre', db.raw('sum(v.total_centavos)::bigint as total')).orderBy('total', 'desc'),
     db('compras as c').join('proveedores as p', 'p.id', 'c.proveedor_id').whereNull('c.anulada_at').modify(enRango('c.fecha'))
@@ -74,6 +94,9 @@ export async function tablero(db: Knex, desde: string, hasta: string) {
       .orderBy('maples', 'desc'),
     db('parte_consumos as c').join('partes as p', 'p.id', 'c.parte_id').join('materias_primas as m', 'm.id', 'c.materia_prima_id').whereNull('p.anulado_at').modify(enRango('p.fecha'))
       .groupBy('m.id', 'm.nombre', 'm.unidad').select('m.nombre', 'm.unidad', db.raw('coalesce(sum(c.real), 0)::bigint as real'), db.raw('coalesce(sum(c.teorico), 0)::bigint as teorico')).orderBy('m.nombre'),
+    // Como "Desglose de ventas por calidad" de la planilla. Sin IVA no: es lo vendido (subtotales de cada renglón).
+    db('venta_items as i').join('ventas as v', 'v.id', 'i.venta_id').whereNull('v.anulado_at').modify(enRango('v.fecha'))
+      .groupBy('i.calidad').select('i.calidad', db.raw('sum(i.subtotal_centavos)::bigint as total'), db.raw('sum(i.maples)::bigint as maples')),
   ]);
 
   // Serie: por día hasta 45 días, si no por semana (lunes). Días/semanas sin movimiento van en cero.
@@ -118,9 +141,43 @@ export async function tablero(db: Knex, desde: string, hasta: string) {
     cobros: n(cobros?.total), pagos: n(pagos?.total),
     resultado: n(ventas?.total) - n(compras?.total) - n(gastos?.total),
     porCliente, porProveedor, porCategoria, produccion, consumo,
+    porCalidad: (porCalidad as { calidad: string; total: string; maples: string }[]).map((c) => ({ calidad: c.calidad as 'primera' | 'segunda', total: n(c.total), maples: n(c.maples) })),
     serie: serie.rows as { inicio: string; ingresos: number; egresos: number }[],
     porCobrar: n(porCobrar.rows[0]?.s), porPagar: n(porPagar.rows[0]?.s), caja,
     costos: await costosYMargen(db, desde, hasta),
     materiasBajoMinimo: n(bajoMinimo.rows[0]?.n), paletsListos: { cantidad: n(palets?.n), paquetes: n(palets?.paquetes) },
   };
+}
+
+/**
+ * Balance mes por mes de un año, como "BALANCE — RESUMEN MENSUAL" de la planilla: total ingresos (ventas), total
+ * egresos (compras de materia prima + egresos), resultado del mes, saldo acumulado y variación contra el mes anterior.
+ * Suma también lo cobrado y los maples producidos y vendidos (su hoja de stock mensual).
+ */
+export async function balanceAnual(db: Knex, anio: number) {
+  const { rows } = await db.raw<{ rows: Record<string, string>[] }>(`
+    with meses as (select generate_series(1, 12) as mes),
+    ing as (select extract(month from fecha)::int as mes, sum(total_centavos) as s from ventas where anulado_at is null and extract(year from fecha) = :anio group by 1),
+    cob as (select extract(month from fecha)::int as mes, sum(monto_centavos) as s from movimientos_dinero where tipo = 'cobro' and anulado_at is null and extract(year from fecha) = :anio group by 1),
+    com as (select extract(month from fecha)::int as mes, sum(total_centavos) as s from compras where anulada_at is null and extract(year from fecha) = :anio group by 1),
+    gas as (select extract(month from fecha)::int as mes, sum(monto_centavos) as s from gastos where anulado_at is null and extract(year from fecha) = :anio group by 1),
+    pro as (select extract(month from fecha)::int as mes, sum(paquetes * maples_por_paquete) as s from partes where anulado_at is null and extract(year from fecha) = :anio group by 1),
+    ven as (select extract(month from v.fecha)::int as mes, sum(i.maples) as s from venta_items i join ventas v on v.id = i.venta_id where v.anulado_at is null and extract(year from v.fecha) = :anio group by 1)
+    select m.mes, coalesce(ing.s, 0)::bigint as ingresos, coalesce(cob.s, 0)::bigint as cobrado, coalesce(com.s, 0)::bigint as compras, coalesce(gas.s, 0)::bigint as gastos,
+      coalesce(pro.s, 0)::bigint as producidos, coalesce(ven.s, 0)::bigint as vendidos
+    from meses m left join ing using (mes) left join cob using (mes) left join com using (mes) left join gas using (mes) left join pro using (mes) left join ven using (mes)
+    order by m.mes`, { anio });
+  let acumulado = 0;
+  let anterior: number | null = null;
+  return rows.map((r) => {
+    const ingresos = Number(r.ingresos), egresos = Number(r.compras) + Number(r.gastos);
+    const resultado = ingresos - egresos;
+    acumulado += resultado;
+    const hay = ingresos !== 0 || egresos !== 0;
+    // Variación como en la planilla: contra el resultado del mes anterior (sobre su valor absoluto).
+    const variacion = hay && anterior ? Math.round(((resultado - anterior) / Math.abs(anterior)) * 1000) / 10 : null;
+    if (hay) anterior = resultado;
+    return { mes: Number(r.mes), ingresos, cobrado: Number(r.cobrado), compras: Number(r.compras), gastos: Number(r.gastos), egresos, resultado, acumulado, variacion,
+      maplesProducidos: Number(r.producidos), maplesVendidos: Number(r.vendidos) };
+  });
 }

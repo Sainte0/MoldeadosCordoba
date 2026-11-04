@@ -1,7 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { cajaSchema, gastoSchema } from '@moldeados/shared';
 import { db } from '../src/db.js';
-import { anularGasto, crearGasto, saldoCaja, tablero } from '../src/features/gastos.service.js';
+import { anularGasto, balanceAnual, crearGasto, pagarGasto, saldoCaja, tablero } from '../src/features/gastos.service.js';
 import { armarResumen, toca } from '../src/features/resumen.js';
 
 describe('gastos, caja chica y tablero (moldeados_test)', () => {
@@ -18,6 +18,26 @@ describe('gastos, caja chica y tablero (moldeados_test)', () => {
 
   const gasto = (monto: number, medio: string, fecha = '2026-11-03') =>
     crearGasto(db, u, gastoSchema.parse({ fecha, categoriaId: cat, descripcion: 'Guantes', monto, medio }));
+
+  it('un egreso pendiente no toca la caja hasta que se paga; pagarlo dos veces no se puede', async () => {
+    await db('caja_movimientos').insert({ fecha: '2026-11-01', monto_centavos: 100_000, motivo: 'reposicion', concepto: 'x', usuario_id: u });
+    const g = await crearGasto(db, u, gastoSchema.parse({ fecha: '2026-11-03', categoriaId: cat, descripcion: 'F-931', monto: 30_000, medio: 'efectivo', aPagar: true, vencimiento: '2026-11-10', beneficiario: 'ARCA' }));
+    const fila = await db('gastos').where({ id: g.id }).first();
+    expect([fila.a_pagar, fila.medio, fila.beneficiario]).toEqual([true, null, 'ARCA']);
+    expect(await saldoCaja(db)).toBe(100_000);
+    await pagarGasto(db, u, g.id, { medio: 'caja_chica', bancoId: null });
+    expect(await saldoCaja(db)).toBe(70_000);
+    await expect(pagarGasto(db, u, g.id, { medio: 'caja_chica', bancoId: null })).rejects.toThrow('ya figura como pagado');
+  });
+
+  it('balance mensual: ingresos, egresos, resultado y saldo acumulado como la planilla', async () => {
+    await db('ventas').insert([{ cliente_id: cliente, fecha: '2026-08-10', con_factura: false, neto_centavos: 1, iva_centavos: 0, total_centavos: 1_000_000, usuario_id: u },
+      { cliente_id: cliente, fecha: '2026-09-10', con_factura: false, neto_centavos: 1, iva_centavos: 0, total_centavos: 500_000, usuario_id: u }]);
+    await gasto(1_500_000, 'transferencia', '2026-08-20');
+    const b = await balanceAnual(db, 2026);
+    expect(b[7]).toMatchObject({ mes: 8, ingresos: 1_000_000, egresos: 1_500_000, resultado: -500_000, acumulado: -500_000 });
+    expect(b[8]).toMatchObject({ mes: 9, ingresos: 500_000, resultado: 500_000, acumulado: 0, variacion: 200 });
+  });
 
   it('un gasto con caja chica la descuenta y anularlo la devuelve; con transferencia no la toca', async () => {
     await db('caja_movimientos').insert({ fecha: '2026-11-01', monto_centavos: 5_000_000, motivo: 'reposicion', concepto: 'Inicio', usuario_id: u });

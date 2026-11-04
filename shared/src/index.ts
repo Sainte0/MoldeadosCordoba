@@ -160,6 +160,8 @@ export const empresaSchema = z.object({
   cuit: opcional(20),
   resumenEmails: opcional(500).refine((v) => v === null || v.split(/[,;\s]+/).filter(Boolean).every((m) => /^\S+@\S+\.\S+$/.test(m)), 'Revisá los mails del resumen (separalos con comas)'),
   resumenHora: z.number().int().min(0).max(23).default(20),
+  /** Para seguir la numeración de los remitos en papel (ej.: venían por el 352). Solo puede subir. */
+  proximoRemito: z.number().int().min(1).max(999_999_999).nullable().default(null),
 });
 
 export const clienteSchema = z.object({
@@ -198,6 +200,11 @@ export const ventaSchema = z.object({
   firma: z.string().max(600_000, 'La firma es muy grande').nullable().default(null),
   /** Precio por maple de cada código. Lo que no viene, se toma el del cliente o el de lista. */
   precios: z.array(z.object({ varianteId: z.string().uuid(), precioMaple: z.number().int().min(0) })).default([]),
+  /** Códigos que se venden como segunda (más baratos, mismo stock). Su precio va en `precios`. */
+  segunda: z.array(z.string().uuid()).default([]),
+  /** Lo que pagó en el momento, repartido por medio (como en la planilla: efectivo + transferencia...). */
+  pagos: z.array(z.object({ medio: z.enum(['efectivo', 'transferencia', 'mercado_pago']), monto: z.number().int().positive() })).max(3).default([])
+    .refine((r) => new Set(r.map((p) => p.medio)).size === r.length, 'Hay un medio de pago repetido'),
 }).refine((v) => v.palets.length + v.sueltos.length > 0, { message: 'Escaneá al menos un palet o agregá paquetes sueltos', path: ['palets'] });
 
 export const movimientoDineroSchema = z
@@ -238,7 +245,16 @@ export const gastoSchema = z.object({
   empleadoId: z.string().uuid().nullable().default(null),
   comprobanteId: z.string().uuid().nullable().default(null),
   notas: opcional(1000),
+  /** A quién se le paga (proveedor, persona, organismo). */
+  beneficiario: opcional(120),
+  /** Gasto que todavía no se pagó (F-931, IVA, una factura): queda "a pagar" hasta que se marque pagado. */
+  aPagar: z.boolean().default(false),
+  vencimiento: fecha.nullable().default(null),
+  /** Monto en dólares de referencia (centavos de USD), para lo que se paga en dólares. */
+  montoUsd: z.number().int().positive().nullable().default(null),
 });
+
+export const pagarGastoSchema = z.object({ medio: z.enum(MEDIOS_GASTO), bancoId: z.string().uuid().nullable().default(null) });
 
 export const cajaSchema = z.object({
   fecha,

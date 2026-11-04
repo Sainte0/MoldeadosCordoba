@@ -92,7 +92,7 @@ function FichaCliente({ inicial, onCerrar }: { inicial: Partial<Cliente>; onCerr
       <Campo etiqueta="Suele retirar en" ayuda="Se propone al despachar">
         <Opciones<Vehiculo | null> columnas valor={c.vehiculoHabitual} onChange={(v) => editable && setC({ ...c, vehiculoHabitual: v })} opciones={[{ valor: null, titulo: 'Varía' }, ...VEHICULOS.map((v) => ({ valor: v, titulo: LABEL_VEHICULO[v] }))]} />
       </Campo>
-      <Campo etiqueta="Notas"><textarea className="entrada" value={c.notas ?? ''} disabled={!editable} onChange={(e) => setC({ ...c, notas: e.target.value })} /></Campo>
+      <Campo etiqueta="Observaciones"><textarea className="entrada" value={c.notas ?? ''} disabled={!editable} onChange={(e) => setC({ ...c, notas: e.target.value })} /></Campo>
 
       {det && puede('ventas', 1) && (
         <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>

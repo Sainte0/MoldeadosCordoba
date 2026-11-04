@@ -6,7 +6,7 @@ import { api, hoy, useSesion, verFecha } from '../api';
 import { useCaja } from '../datos';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero } from '../ui';
 
-const MOTIVO: Record<string, string> = { reposicion: 'Reposición', gasto: 'Gasto', anulacion_gasto: 'Gasto anulado', arqueo: 'Arqueo' };
+const MOTIVO: Record<string, string> = { reposicion: 'Reposición', gasto: 'Egreso', anulacion_gasto: 'Egreso anulado', arqueo: 'Arqueo' };
 
 /** Caja chica: la plata en efectivo de la planta. Se repone, salen gastos, y cada tanto se cuenta (arqueo). */
 export function Caja() {
@@ -17,7 +17,7 @@ export function Caja() {
 
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Cabecera titulo="Caja chica" bajada="Los gastos pagados con caja chica se descuentan solos." />
+      <Cabecera titulo="Caja chica" bajada="Los egresos pagados con caja chica se descuentan solos." />
       <div className="lectura"><span>Tiene que haber</span><span className="cifra">{formatPesos(data.saldo)}</span></div>
       {puede('gastos', 3) && (
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

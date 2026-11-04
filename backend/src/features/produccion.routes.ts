@@ -5,7 +5,7 @@ import { idPorNumero } from '../lib/numero.js';
 import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno, sesion } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
-import { ConflictError, NotFoundError, UnauthorizedError } from '../lib/errors.js';
+import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from '../lib/errors.js';
 import { anularPalet, anularParte, crearPalet, crearParte, horasPorPersona, maquinasConService, stockMaples, trazabilidad } from './produccion.service.js';
 
 // Máquinas, códigos de maple (variantes) con receta, personal de planta, partes, palets y datos de la empresa.
@@ -19,7 +19,8 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
   // ---------- Empresa ----------
   app.get('/empresa', async (req) => {
     sesion(req);
-    return { data: await db('empresa').first('razon_social as razonSocial', 'direccion', 'telefono', 'email', 'cuit', 'resumen_emails as resumenEmails', 'resumen_hora as resumenHora') };
+    return { data: await db('empresa').first('razon_social as razonSocial', 'direccion', 'telefono', 'email', 'cuit', 'resumen_emails as resumenEmails', 'resumen_hora as resumenHora',
+      db.raw("(select case when is_called then last_value + 1 else last_value end from ventas_numero_seq)::int as \"proximoRemito\"")) };
   });
   app.put('/empresa', async (req) => {
     const s = await requerir(db, req, 'usuarios', 3);
@@ -27,6 +28,12 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
     await db.transaction(async (trx) => {
       const antes = await trx('empresa').first();
       await trx('empresa').where({ id: 1 }).update({ razon_social: i.razonSocial, direccion: i.direccion, telefono: i.telefono, email: i.email, cuit: i.cuit, resumen_emails: i.resumenEmails, resumen_hora: i.resumenHora, updated_at: trx.fn.now() });
+      if (i.proximoRemito) {
+        const { rows: [q] } = await trx.raw("select case when is_called then last_value + 1 else last_value end as prox from ventas_numero_seq");
+        // Solo hacia adelante: bajar el número repetiría remitos ya emitidos.
+        if (i.proximoRemito < Number(q.prox)) throw new ValidationError(`El próximo remito ya es el ${q.prox}: solo se puede subir`);
+        if (i.proximoRemito > Number(q.prox)) await trx.raw('select setval(\'ventas_numero_seq\', ?, false)', [i.proximoRemito]);
+      }
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'empresa', antes, despues: i });
     });
     return { data: { ok: true } };

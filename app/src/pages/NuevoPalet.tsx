@@ -89,7 +89,7 @@ export function NuevoPalet() {
       contenido: (
         <>
           <Campo etiqueta="Cliente o destino"><Entrada value={destino} onChange={(e) => setDestino(e.target.value)} autoFocus /></Campo>
-          <Campo etiqueta="Notas"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
+          <Campo etiqueta="Observaciones"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
         </>
       ),
       listo: true,

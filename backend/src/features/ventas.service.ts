@@ -40,11 +40,15 @@ export async function crearVenta(db: Knex, usuarioId: string, i: VentaInput): Pr
     if (ocupado) throw new ConflictError(`El palet ${String(ocupado.numero).padStart(6, '0')} ya no está disponible (${ocupado.venta_id ? 'ya se vendió' : 'se desarmó'}).`);
 
     const precios = await preciosParaCliente(trx, i.clienteId);
-    for (const p of i.precios) precios.set(p.varianteId, p.precioMaple);
+    const dados = new Map(i.precios.map((p) => [p.varianteId, p.precioMaple]));
+    for (const [k, v] of dados) precios.set(k, v);
+    const segunda = new Set(i.segunda);
     const items = palets.map((p) => {
-      const precio = precios.get(p.variante_id) ?? 0;
-      if (precio <= 0) throw new ValidationError(`Falta el precio del ${p.codigo}. Cargalo en la venta o en Precios.`);
-      return { palet: p, maples: p.paquetes * p.maples_por_paquete, precioMaple: precio };
+      const esSegunda = segunda.has(p.variante_id);
+      // La segunda no tiene precio de lista: se escribe en la venta.
+      const precio = esSegunda ? dados.get(p.variante_id) ?? 0 : precios.get(p.variante_id) ?? 0;
+      if (precio <= 0) throw new ValidationError(`Falta el precio${esSegunda ? ' de segunda' : ''} del ${p.codigo}. Cargalo en la venta${esSegunda ? '' : ' o en Precios'}.`);
+      return { palet: p, maples: p.paquetes * p.maples_por_paquete, precioMaple: precio, calidad: esSegunda ? 'segunda' : 'primera' };
     });
     const ivaBp = i.conFactura ? i.ivaBp : 0;
     const t = calcularVenta(items, ivaBp);
@@ -58,8 +62,14 @@ export async function crearVenta(db: Knex, usuarioId: string, i: VentaInput): Pr
       neto_centavos: t.neto, iva_centavos: t.iva, total_centavos: t.total, vehiculo: i.vehiculo, patente: i.patente, retira: i.retira, notas: i.notas, usuario_id: usuarioId,
     }).returning(['id', 'numero']);
     await trx('venta_items').insert(items.map((it) => ({
-      venta_id: venta.id, palet_id: it.palet.id, variante_id: it.palet.variante_id, maples: it.maples, precio_maple_centavos: it.precioMaple, subtotal_centavos: it.maples * it.precioMaple,
+      venta_id: venta.id, palet_id: it.palet.id, variante_id: it.palet.variante_id, maples: it.maples, precio_maple_centavos: it.precioMaple, subtotal_centavos: it.maples * it.precioMaple, calidad: it.calidad,
     })));
+    // Lo que pagó en el momento: un cobro por medio, a la cuenta del cliente (como "Monto pagado" de la planilla).
+    const pagado = i.pagos.reduce((a, p) => a + p.monto, 0);
+    if (pagado > t.total) throw new ValidationError('Lo que pagó es más que el total de la venta. Si dejó plata a cuenta, registralo como cobro aparte.');
+    for (const p of i.pagos) {
+      await trx('movimientos_dinero').insert({ tipo: 'cobro', cliente_id: i.clienteId, fecha: i.fecha, monto_centavos: p.monto, medio: p.medio, referencia: `Remito ${String(venta.numero).padStart(6, '0')}`, usuario_id: usuarioId });
+    }
     await trx('palets').whereIn('id', ids).update({ venta_id: venta.id, updated_at: trx.fn.now() });
     if (i.pedidoId) await actualizarEstadoPedido(trx, i.pedidoId);
     await auditar(trx, { usuarioId, accion: 'crear', entidad: 'venta', entidadId: venta.id, despues: { ...i, firma: i.firma ? '(firma)' : null, totales: t } });
@@ -241,4 +251,27 @@ export async function guardarPedido(db: Knex, usuarioId: string, i: PedidoInput,
     await auditar(trx, { usuarioId, accion: id ? 'editar' : 'crear', entidad: 'pedido', entidadId: pedido.id, despues: i });
     return pedido;
   });
+}
+
+/**
+ * Estado de cobro de cada venta, como la columna "Estado" de la planilla. Lo cobrado al cliente (cobros + lo que
+ * tenga a favor) se aplica a lo más viejo primero: saldo inicial, después las ventas por fecha. Una venta queda
+ * cobrada, con parte cobrada o pendiente.
+ */
+export async function cobroPorVenta(db: Knex, ventaIds: string[]): Promise<Map<string, { cobrado: number; debe: number }>> {
+  if (!ventaIds.length) return new Map();
+  const { rows } = await db.raw<{ rows: { id: string; total: string; cobrado: string }[] }>(`
+    with clientes as (select distinct cliente_id from ventas where id = any(?)),
+    v as (
+      select v.id, v.cliente_id, v.total_centavos as total,
+        sum(v.total_centavos) over (partition by v.cliente_id order by v.fecha, v.numero) as acum
+      from ventas v where v.anulado_at is null and v.cliente_id in (select cliente_id from clientes)),
+    pago as (
+      select c.cliente_id,
+        coalesce((select sum(m.monto_centavos) from movimientos_dinero m where m.cliente_id = c.cliente_id and m.tipo = 'cobro' and m.anulado_at is null), 0)
+        - coalesce((select sum(s.monto_centavos) from saldos_iniciales s where s.cliente_id = c.cliente_id and s.anulado_at is null), 0) as disponible
+      from clientes c)
+    select v.id, v.total, greatest(0, least(v.total, p.disponible - (v.acum - v.total))) as cobrado
+    from v join pago p on p.cliente_id = v.cliente_id where v.id = any(?)`, [ventaIds, ventaIds]);
+  return new Map(rows.map((r) => [r.id, { cobrado: Number(r.cobrado), debe: Number(r.total) - Number(r.cobrado) }]));
 }

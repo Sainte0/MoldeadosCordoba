@@ -118,7 +118,7 @@ export function NuevaCompra() {
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}>
             <Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} />
           </Campo>
-          <Campo etiqueta="Notas" ayuda="Opcional">
+          <Campo etiqueta="Observaciones" ayuda="Opcional">
             <textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} />
           </Campo>
         </>

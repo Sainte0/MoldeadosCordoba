@@ -472,3 +472,11 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
 .fila-buscar { display: flex; gap: 6px; align-items: center; }
 .fila-buscar .abrir-buscador { flex: 1; min-width: 0; }
 .ico-detalle { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--accion-suave); color: var(--accion); }
+
+.tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabla-balance { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.92rem; white-space: nowrap; }
+.tabla-balance th, .tabla-balance td { padding: 10px 14px; text-align: right; border-top: 1px solid var(--linea); }
+.tabla-balance th:first-child { text-align: left; position: sticky; left: 0; background: var(--superficie); }
+.tabla-balance thead th { font-size: 0.78rem; font-weight: 600; color: var(--tinta-2); white-space: normal; vertical-align: bottom; }
+.tabla-balance tfoot th, .tabla-balance tfoot td { font-weight: 700; border-top: 2px solid var(--tinta); }
+select.entrada { appearance: none; -webkit-appearance: none; font-size: 16px; background-image: linear-gradient(45deg, transparent 50%, var(--tinta-2) 50%), linear-gradient(135deg, var(--tinta-2) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 14px) 50%; background-size: 6px 6px; background-repeat: no-repeat; padding-right: 40px; }

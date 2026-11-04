@@ -39,7 +39,7 @@ export function CuentaDetalle() {
 
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Link to="/cuentas" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Cuentas corrientes</Link>
+      <Link to="/cuentas" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Saldos</Link>
       <header>
         <h1>{data.nombre}</h1>
         <p className="tenue" style={{ marginTop: 6 }}>Cuenta corriente de {esCliente ? 'cliente' : 'proveedor'}</p>

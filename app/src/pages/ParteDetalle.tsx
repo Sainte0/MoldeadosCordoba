@@ -72,7 +72,7 @@ export function ParteDetalle() {
         <dt>Tiempo</dt><dd>{formatMinutos(p.minutos)} · {p.pulpeadas} pulpeadas</dd>
         <dt>Maples</dt><dd className="cifra">{(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')}</dd>
         {esperado !== null && <><dt>Rendimiento</dt><dd>{rinde ?? 0} % (se esperaban {esperado} paquetes)</dd></>}
-        {p.notas && <><dt>Notas</dt><dd>{p.notas}</dd></>}
+        {p.notas && <><dt>Observaciones</dt><dd>{p.notas}</dd></>}
       </dl>
 
       {p.consumos.length > 0 && (
@@ -93,7 +93,7 @@ export function ParteDetalle() {
           {p.palets.map((pa) => <Link key={pa.id} to={`/palets/${pa.numero}`} className="fila"><span>Palet {nroTicket(pa.numero)}</span><span className="cifra">{pa.paquetes} paq.</span></Link>)}
         </section>
       )}
-      <p className="chico tenue">Cargado por {p.cargadoPor}, {verMomento(p.cargadoAt)}</p>
+      <p className="chico tenue">Registrado por {p.cargadoPor}, {verMomento(p.cargadoAt)}</p>
 
 
       {anulando && (

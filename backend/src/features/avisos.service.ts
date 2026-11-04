@@ -1,5 +1,5 @@
 import type { Knex } from 'knex';
-import { estadoStock, ORDEN_NIVEL, ritmoCliente, type Nivel3, type Unidad } from '@moldeados/shared';
+import { estadoStock, formatPesos, ORDEN_NIVEL, ritmoCliente, type Nivel3, type Unidad } from '@moldeados/shared';
 
 // Avisos que el sistema saca solo de lo que ya se carga: a quién llamar para vender, qué materia prima se está
 // por acabar y cuánto cuesta hacer cada maple. Nada de esto se carga a mano.
@@ -146,6 +146,19 @@ export async function atencion(db: Knex, hoy: string, puede: (modulo: string) =>
       avisos.push(c.tipo === 'pago'
         ? { nivel: c.dia === hoy ? 'critico' : 'atencion', tipo: 'cheque', titulo: `Se debita un cheque nuestro ${c.dia === hoy ? 'hoy' : 'mañana'}`, detalle: `${pesos} a ${c.quien}. Que haya fondos en la cuenta.`, accion: { texto: 'Ver cheques', ruta: '/cuentas' } }
         : { nivel: 'atencion', tipo: 'cheque', titulo: `Cheque de ${c.quien} para depositar`, detalle: `${pesos}, ya se puede cobrar.`, accion: { texto: 'Ver cheques', ruta: '/cuentas' } });
+    }
+  }
+  if (puede('gastos')) {
+    // Egresos pendientes que vencen en los próximos 3 días o ya vencieron (F-931, IVA, facturas).
+    const pendientes = await db('gastos').where({ a_pagar: true }).whereNull('anulado_at').whereNotNull('vencimiento')
+      .whereRaw('vencimiento <= ?::date + 3', [hoy]).orderBy('vencimiento').select('numero', 'descripcion', 'beneficiario', 'monto_centavos as monto', db.raw("to_char(vencimiento, 'YYYY-MM-DD') as vence"));
+    for (const g of pendientes) {
+      const vencido = g.vence < hoy;
+      const [, m, d] = String(g.vence).split('-');
+      avisos.push({ nivel: vencido || g.vence === hoy ? 'critico' : 'atencion', tipo: 'egreso',
+        titulo: `${vencido ? 'Venció' : g.vence === hoy ? 'Vence hoy' : `Vence el ${d}/${m}`}: ${g.descripcion}`,
+        detalle: `${formatPesos(Number(g.monto))}${g.beneficiario ? ` · ${g.beneficiario}` : ''}. Egreso pendiente de pago.`,
+        accion: { texto: 'Ver pendientes', ruta: '/egresos?estado=pendientes' } });
     }
   }
   if (puede('produccion') || puede('productos')) {

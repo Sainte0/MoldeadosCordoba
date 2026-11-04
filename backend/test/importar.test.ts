@@ -71,6 +71,47 @@ describe('importar planillas (moldeados_test)', () => {
     expect(await db('clientes').count('* as n').first()).toMatchObject({ n: 1 });
   });
 
+  it('ventas anteriores de la planilla: sin palet, IVA separado en las facturadas, lo pagado como cobros y el remito sigue la numeración', async () => {
+    await db.raw("select setval('ventas_numero_seq', 1, false)"); // el truncate no reinicia la numeración
+    const [{ id: maq }] = await db('maquinas').insert({ codigo: 'MP-2', nombre: 'Grande' }).returning('id');
+    await db('variantes').insert({ codigo: 'MGR-NAT', nombre: 'Grande natural', tamano: 'grande', maquina_id: maq });
+    const filas = [
+      { fecha: '04/08/2026', comprobante: '295', calidad: 'Primera', cantidad: '6.480', precio: '$ 120,00', monto: '$ 777.600', efectivo: '$ 777.600', estado: 'Cobrado', registro: 'yo' },
+      { fecha: '04/08/2026', comprobante: '296', calidad: 'Segunda', cantidad: '7.560', precio: '$ 100,00', monto: '$ 756.000', estado: 'Pendiente' },
+      { fecha: '13/08/2026', comprobante: 'A-141', cliente: 'Avícola Santa Rosa', calidad: 'Primera', cantidad: '25.920', precio: '133,1', monto: '$ 3.449.952', transferencia: '3449952', estado: 'Cobrado' },
+      { fecha: '10/08/2026', comprobante: '299', calidad: 'Primera', cantidad: '1.800', precio: '110', monto: '$ 198.000', efectivo: '198000', estado: 'Pendiente' },
+      { monto: '$0', estado: 'Pendiente' },
+    ];
+    const r = await importar('ventas', { modo: 'importar', filas });
+    expect([r.status, r.data.nuevos]).toEqual([200, 4]);
+    const v = await db('ventas').orderBy('fecha').select('numero', 'con_factura', 'neto_centavos', 'iva_centavos', 'total_centavos');
+    expect(v.map((x) => Number(x.numero)).sort((a, b) => a - b)).toEqual([295, 296, 299, 300]); // la factura sin remito va después
+    const fac = v.find((x) => x.con_factura)!;
+    expect([Number(fac.neto_centavos) + Number(fac.iva_centavos), Number(fac.neto_centavos)]).toEqual([344_995_200, Math.round(344_995_200 / 1.21)]);
+    // Cobros: 295 en efectivo y la factura por transferencia; la 299 "Pendiente" no se registra como cobrada.
+    expect(Number((await db('movimientos_dinero').sum('monto_centavos as s').first())?.s)).toBe(77_760_000 + 344_995_200);
+    expect(await db('venta_items').whereNull('palet_id').count('* as n').first()).toMatchObject({ n: 4 });
+    expect((await db('venta_items').where({ calidad: 'segunda' }).first()).maples).toBe(7560);
+    expect((await importar('ventas', { modo: 'importar', filas })).data.sinCambios).toBe(4);
+    const [{ nextval }] = (await db.raw("select nextval('ventas_numero_seq')")).rows;
+    expect(Number(nextval)).toBe(301);
+  });
+
+  it('egresos de la planilla: crea categorías, deja pendientes y reimportar no duplica', async () => {
+    const filas = [
+      { fecha: '04/08/2026', comprobante: 'A-3169', beneficiario: 'ELECTRO ALEM', descripcion: 'MAT ELECTRICOS', categoria: 'Mantenimiento', forma: 'Cheque', monto: 159500, estado: 'Pagado' },
+      { fecha: '10/08/2026', comprobante: 'F-931 07-2026', beneficiario: 'ARCA', descripcion: 'Cargas Soc', categoria: 'Impuestos', forma: 'Transferencia', monto: '4.043.420', estado: 'Pendiente' },
+      { fecha: '07/08/2026', beneficiario: 'DYNATECH', descripcion: 'TINTA', categoria: 'Tinta', forma: 'Transferencia', monto: 6074170, usd: 'US$ 4.053,50', estado: 'Pagado' },
+      { descripcion: '', monto: '$0' }, // renglón vacío de la planilla
+    ];
+    const r = await importar('egresos', { modo: 'importar', filas });
+    expect([r.status, r.data.nuevos]).toEqual([200, 3]);
+    const g = await db('gastos as g').join('categorias_gasto as k', 'k.id', 'g.categoria_id').orderBy('g.fecha').select('k.nombre', 'g.a_pagar', 'g.medio', 'g.monto_centavos', 'g.monto_usd_centavos');
+    expect(g.map((x) => [x.nombre, x.a_pagar, x.medio])).toEqual([['Mantenimiento y repuestos', false, 'cheque'], ['Tinta', false, 'transferencia'], ['Impuestos', true, null]]);
+    expect([Number(g[1].monto_usd_centavos), Number(g[2].monto_centavos)]).toEqual([405_350, 404_342_000]);
+    expect((await importar('egresos', { modo: 'importar', filas })).data.sinCambios).toBe(3);
+  });
+
   it('el listado de palets dice cuáles están vendidos (no los muestra como listos para salir)', async () => {
     const u = (await db('usuarios').first('id')).id;
     const [{ id: maq }] = await db('maquinas').insert({ codigo: 'MPX', nombre: 'X' }).returning('id');

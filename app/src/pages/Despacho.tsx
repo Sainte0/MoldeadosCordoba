@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { List, ScanLine, Trash2 } from 'lucide-react';
-import { aCentavos, calcularVenta, formatIva, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
+import { aCentavos, calcularVenta, formatIva, formatPesos, LABEL_MEDIO, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
 import { useStockMaples, type Cliente, type PaletDisponible } from '../datos';
 import type { PedidoDetalle } from './Pedidos';
@@ -12,6 +12,7 @@ import { Firma } from '../Firma';
 import { Muestra } from '../MapleVista';
 import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
 import { ElegirCliente } from './ElegirCliente';
+import { Estado } from '../Estado';
 import { PasoFactura, facturaBody, facturaLista, type DatosFactura } from './Factura';
 
 const aTexto = (c: number) => (c ? String(c / 100).replace('.', ',') : '');
@@ -43,6 +44,11 @@ export function Despacho() {
   const [formSuelto, setFormSuelto] = useState<{ varianteId: string | null; cantidad: string } | null>(null);
   const [pedidoId, setPedidoId] = useState<string | null>(params.get('pedido'));
   const [firma, setFirma] = useState<string | null>(null);
+  // Calidad: la segunda sale del mismo stock y se vende más barata (su precio se escribe en cada venta).
+  const [segunda, setSegunda] = useState<string[]>([]);
+  const [preciosSegunda, setPreciosSegunda] = useState<Record<string, string>>({});
+  // Lo que pagó en el momento, por forma de pago (como "Efectivo / Transferencia" de la planilla).
+  const [pagos, setPagos] = useState<Record<'efectivo' | 'transferencia' | 'mercado_pago', string>>({ efectivo: '', transferencia: '', mercado_pago: '' });
   const { data: stock } = useStockMaples();
   const { data: pedido } = useQuery({ queryKey: ['pedido', pedidoId], queryFn: () => api<PedidoDetalle>(`/pedidos/${pedidoId}`), enabled: !!pedidoId });
   const { data: pedidosCliente } = useQuery({ queryKey: ['pedidos', 'abierto', cliente?.id], queryFn: () => api<{ id: string; numero: number; fechaEntrega: string | null; resumen: string }[]>(`/pedidos?estado=abierto&clienteId=${cliente!.id}`), enabled: !!cliente && !params.get('pedido') });
@@ -94,9 +100,13 @@ export function Despacho() {
     setLectura({ ok: true, texto: `Palet ${nroTicket(p.numero)} · ${p.codigo} · ${p.paquetes} paquetes` });
   };
 
-  const items = lineas.map((p) => ({ maples: p.paquetes * p.maplesPorPaquete, precioMaple: aCentavos(precios[p.varianteId] ?? '') ?? 0 }));
+  const precioDe = (v: string) => aCentavos((segunda.includes(v) ? preciosSegunda[v] : precios[v]) ?? '') ?? 0;
+  const items = lineas.map((p) => ({ maples: p.paquetes * p.maplesPorPaquete, precioMaple: precioDe(p.varianteId) }));
   const totales = calcularVenta(items, factura.conFactura ? factura.ivaBp : 0);
-  const faltaPrecio = codigos.find((c) => !((aCentavos(precios[c.varianteId] ?? '') ?? 0) > 0));
+  const faltaPrecio = codigos.find((c) => !(precioDe(c.varianteId) > 0));
+  const faltaSegunda = codigos.find((c) => segunda.includes(c.varianteId) && !(precioDe(c.varianteId) > 0));
+  const pagosLista = (['efectivo', 'transferencia', 'mercado_pago'] as const).map((medio) => ({ medio, monto: aCentavos(pagos[medio]) ?? 0 })).filter((p) => p.monto > 0);
+  const pagado = pagosLista.reduce((a, p) => a + p.monto, 0);
 
   const carga = lineas.length > 0 && (
     <div className="hoja filas carrito">
@@ -201,25 +211,61 @@ export function Despacho() {
     },
     {
       titulo: 'Precio',
-      ayuda: cambiaPrecios ? 'Precio por maple: el especial del cliente o el de lista. Cambialo solo si para esta venta es otro.' : 'Se cobra el precio por maple del cliente o el de lista.',
+      ayuda: cambiaPrecios ? 'Calidad y precio por maple. Primera: el precio del cliente o el de lista; cambialo solo si para esta venta es otro. Segunda: se vende más barata y el precio se escribe acá.' : 'Calidad y precio por maple. La primera va al precio del cliente o de lista; la segunda, al precio que escribas.',
       contenido: (
         <>
-          {codigos.map((c) => (
-            <Campo key={c.varianteId} etiqueta={`${c.codigo}: precio por maple`} ayuda={`${palets.filter((p) => p.varianteId === c.varianteId).reduce((a, p) => a + p.paquetes * p.maplesPorPaquete, 0).toLocaleString('es-AR')} maples`}>
-              <EntradaNumero unidad="$" value={precios[c.varianteId] ?? ''} disabled={!cambiaPrecios} onChange={(e) => setPrecios({ ...precios, [c.varianteId]: e.target.value })} />
-            </Campo>
-          ))}
+          {codigos.map((c) => {
+            const es2 = segunda.includes(c.varianteId);
+            const cuantos = lineas.filter((p) => p.varianteId === c.varianteId).reduce((a, p) => a + p.paquetes * p.maplesPorPaquete, 0);
+            return (
+              <div key={c.varianteId} className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <span className="con-muestra"><Muestra color={c.colorHex} /> <span><b>{c.codigo}</b><br /><span className="chico tenue">{cuantos.toLocaleString('es-AR')} maples</span></span></span>
+                  <div className="pestanas" role="group" aria-label={`Calidad del ${c.codigo}`}>
+                    <button type="button" aria-pressed={!es2} onClick={() => setSegunda(segunda.filter((x) => x !== c.varianteId))}>Primera</button>
+                    <button type="button" aria-pressed={es2} onClick={() => setSegunda([...segunda, c.varianteId])}>Segunda</button>
+                  </div>
+                </div>
+                <Campo etiqueta={`Precio por maple${es2 ? ' de segunda' : ''}`}>
+                  {es2
+                    ? <EntradaNumero unidad="$" value={preciosSegunda[c.varianteId] ?? ''} onChange={(e) => setPreciosSegunda({ ...preciosSegunda, [c.varianteId]: e.target.value })} autoFocus />
+                    : <EntradaNumero unidad="$" value={precios[c.varianteId] ?? ''} disabled={!cambiaPrecios} onChange={(e) => setPrecios({ ...precios, [c.varianteId]: e.target.value })} />}
+                </Campo>
+              </div>
+            );
+          })}
           <div className="lectura"><span>Total sin IVA</span><span className="cifra">{formatPesos(totales.neto)}</span></div>
         </>
       ),
       // Sin señal y sin precio guardado: se sigue igual; al subirse, el sistema usa el precio del cliente o el de lista.
-      listo: faltaPrecio && navigator.onLine ? (cambiaPrecios ? `Falta el precio del ${faltaPrecio.codigo}` : `El ${faltaPrecio.codigo} no tiene precio cargado: pedile a administración que lo cargue en Precios.`) : true,
+      listo: faltaSegunda ? `Escribí el precio de segunda del ${faltaSegunda.codigo}` : faltaPrecio && navigator.onLine ? (cambiaPrecios ? `Falta el precio del ${faltaPrecio.codigo}` : `El ${faltaPrecio.codigo} no tiene precio cargado: pedile a administración que lo cargue en Precios.`) : true,
     },
     {
       titulo: '¿Lleva factura?',
       ayuda: 'Marcá si esta venta se factura. No emite la factura: solo deja registrado si va en blanco o en negro.',
       contenido: <PasoFactura v={factura} set={setFactura} />,
       listo: facturaLista(factura),
+    },
+    {
+      titulo: '¿Pagó algo ahora?',
+      ayuda: 'Si pagó en el momento, anotá cuánto con cada forma de pago (puede ser una parte en efectivo y otra por transferencia). Lo que no pagó queda pendiente en su cuenta. Los cheques se registran después, desde el remito.',
+      contenido: (
+        <>
+          <div className="lectura"><span>Total{totales.iva ? ' con IVA' : ''}</span><span className="cifra">{formatPesos(totales.total)}</span></div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="boton secundario" onClick={() => setPagos({ efectivo: aTexto(totales.total), transferencia: '', mercado_pago: '' })}>Todo en efectivo</button>
+            <button type="button" className="boton secundario" onClick={() => setPagos({ efectivo: '', transferencia: aTexto(totales.total), mercado_pago: '' })}>Todo por transferencia</button>
+            <button type="button" className="boton fantasma" onClick={() => setPagos({ efectivo: '', transferencia: '', mercado_pago: '' })}>No pagó</button>
+          </div>
+          <Campo etiqueta="Efectivo"><EntradaNumero unidad="$" value={pagos.efectivo} onChange={(e) => setPagos({ ...pagos, efectivo: e.target.value })} /></Campo>
+          <Campo etiqueta="Transferencia"><EntradaNumero unidad="$" value={pagos.transferencia} onChange={(e) => setPagos({ ...pagos, transferencia: e.target.value })} /></Campo>
+          <Campo etiqueta="Mercado Pago"><EntradaNumero unidad="$" value={pagos.mercado_pago} onChange={(e) => setPagos({ ...pagos, mercado_pago: e.target.value })} /></Campo>
+          {pagado === 0 ? <Estado nivel="atencion">Pendiente: queda en su cuenta {formatPesos(totales.total)}</Estado>
+            : pagado >= totales.total ? <Estado nivel="ok">Cobrado</Estado>
+            : <Estado nivel="atencion">Pagó {formatPesos(pagado)} · queda pendiente {formatPesos(totales.total - pagado)}</Estado>}
+        </>
+      ),
+      listo: pagado > totales.total ? 'Lo que pagó es más que el total. Si dejó plata a cuenta, registralo como cobro aparte.' : true,
     },
     {
       titulo: 'Que firme quien retira',
@@ -241,11 +287,13 @@ export function Despacho() {
             <dt>Cliente</dt><dd>{cliente?.nombre}</dd>
             <dt>Retira</dt><dd>{retira}{vehiculo ? ` · ${LABEL_VEHICULO[vehiculo]}` : ''}{patente ? ` · ${patente.toUpperCase()}` : ''}</dd>
             <dt>Factura</dt><dd>{factura.conFactura ? `Sí · ${formatIva(factura.ivaBp)}` : 'No'}</dd>
+            {segunda.length > 0 && <><dt>Segunda</dt><dd>{codigos.filter((c) => segunda.includes(c.varianteId)).map((c) => c.codigo).join(', ')}</dd></>}
+            <dt>Pago</dt><dd>{pagado === 0 ? 'Pendiente (queda en su cuenta)' : pagado >= totales.total ? `Cobrado · ${pagosLista.map((p) => LABEL_MEDIO[p.medio]).join(' + ')}` : `Pagó ${formatPesos(pagado)}, queda pendiente ${formatPesos(totales.total - pagado)}`}</dd>
           </dl>
           {carga}
           <div className="lectura"><span>Total{totales.iva ? ' con IVA' : ''}</span><span className="cifra">{formatPesos(totales.total)}</span></div>
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}><Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} /></Campo>
-          <Campo etiqueta="Notas" ayuda="Opcional"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
+          <Campo etiqueta="Observaciones" ayuda="Opcional"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
         </>
       ),
       listo: true,
@@ -259,7 +307,8 @@ export function Despacho() {
       const r = await enviarOGuardar<{ id: string }>('/ventas', {
         clienteId: cliente!.id, fecha, palets: elegidos, sueltos, pedidoId, firma, retira, vehiculo, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura),
         // Solo los precios conocidos: si alguno falta (sin señal), el sistema usa el del cliente o el de lista.
-        precios: cambiaPrecios ? codigos.map((c) => ({ varianteId: c.varianteId, precioMaple: aCentavos(precios[c.varianteId] ?? '') ?? 0 })).filter((x) => x.precioMaple > 0) : [],
+        precios: codigos.filter((c) => cambiaPrecios || segunda.includes(c.varianteId)).map((c) => ({ varianteId: c.varianteId, precioMaple: precioDe(c.varianteId) })).filter((x) => x.precioMaple > 0),
+        segunda, pagos: pagosLista,
       }, `despacho a ${cliente!.nombre}`);
       if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Despacho guardado en el teléfono: se sube solo cuando vuelva la señal. El remito se imprime después desde Ventas.' } }); return; }
       await qc.invalidateQueries();

@@ -108,7 +108,7 @@ export function NuevoMovimiento() {
           </dl>
           <div className="lectura"><span>{tipo === 'cobro' ? 'Cobrado' : 'Pagado'}</span><span className="cifra">{centavos !== null && formatPesos(centavos)}</span></div>
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}><Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} /></Campo>
-          <Campo etiqueta="Notas" ayuda="Opcional"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
+          <Campo etiqueta="Observaciones" ayuda="Opcional"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
         </>
       ),
       listo: true,
@@ -135,5 +135,5 @@ export function NuevoMovimiento() {
     }
   };
 
-  return <Asistente proceso={`dinero-${tipo}`} pasos={pasos} onTerminar={guardar} textoTerminar={tipo === 'cobro' ? 'Guardar cobro' : 'Guardar pago'} guardando={guardando} error={error} onCancelar={() => navegar(-1)} />;
+  return <Asistente proceso={`dinero-${tipo}`} pasos={pasos} onTerminar={guardar} textoTerminar={tipo === 'cobro' ? 'Guardar pago a cuenta' : 'Guardar pago'} guardando={guardando} error={error} onCancelar={() => navegar(-1)} />;
 }

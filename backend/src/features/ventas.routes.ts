@@ -8,7 +8,7 @@ import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
 import { atencion, recompra } from './avisos.service.js';
 import { avisar } from './avisos-vivo.js';
-import { actualizarEstadoPedido, despachadoDelPedido, guardarFirma, guardarPedido, anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
+import { cobroPorVenta, actualizarEstadoPedido, despachadoDelPedido, guardarFirma, guardarPedido, anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
 
 // Clientes, precios, ventas (despacho de palets), bancos, cobros/pagos y cuentas corrientes.
 // ponytail: CRUD chico con la query en la ruta; las reglas viven en ventas.service.
@@ -165,11 +165,12 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
-  app.get<{ Querystring: { desde?: string; hasta?: string; clienteId?: string; pagina?: string; q?: string } }>('/ventas', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; clienteId?: string; pagina?: string; q?: string; cobro?: string } }>('/ventas', async (req) => {
     await requerir(db, req, 'ventas', 1);
     const q = req.query;
-    return {
-      data: await db('ventas as v').join('clientes as c', 'c.id', 'v.cliente_id')
+    const pendientes = q.cobro === 'pendientes';
+    const pagina = Math.max(0, Number(q.pagina) || 0);
+    const filas = await db('ventas as v').join('clientes as c', 'c.id', 'v.cliente_id')
         .modify((qb) => {
           if (fechaOk(q.desde)) qb.where('v.fecha', '>=', q.desde!);
           if (fechaOk(q.hasta)) qb.where('v.fecha', '<=', q.hasta!);
@@ -177,11 +178,16 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
         })
         .modify(buscar(q.q, ['c.nombre', 'v.retira', 'v.patente', 'v.nro_factura'], 'v.numero'))
         .select('v.id', 'v.numero', 'v.fecha', 'v.total_centavos as total', 'v.con_factura as conFactura', 'v.retira', 'v.anulado_at as anuladoAt', 'c.nombre as cliente',
-          db.raw('(select count(*)::int from venta_items i where i.venta_id = v.id) as palets'),
-          db.raw('(select coalesce(sum(i.maples), 0)::int from venta_items i where i.venta_id = v.id) as maples'))
+          db.raw('(select count(i.palet_id)::int from venta_items i where i.venta_id = v.id) as palets'),
+          db.raw('(select coalesce(sum(i.maples), 0)::int from venta_items i where i.venta_id = v.id) as maples'),
+          db.raw("exists (select 1 from venta_items i where i.venta_id = v.id and i.calidad = 'segunda') as segunda"))
         .orderBy([{ column: 'v.fecha', order: 'desc' }, { column: 'v.numero', order: 'desc' }])
-        .limit(50).offset(Math.max(0, Number(q.pagina) || 0) * 50),
-    };
+        // ponytail: "pendientes de cobro" filtra en memoria (el estado sale de aplicar cobros a lo más viejo); con miles de ventas abiertas, pasarlo a SQL.
+        .modify((qb) => { if (pendientes) qb.whereNull('v.anulado_at'); else qb.limit(50).offset(pagina * 50); });
+    const lista = filas as { id: string; anuladoAt: string | null }[];
+    const cobros = await cobroPorVenta(db, lista.filter((f) => !f.anuladoAt).map((f) => f.id));
+    const conCobro = lista.map((f) => ({ ...f, cobro: cobros.get(f.id) ?? null }));
+    return { data: pendientes ? conCobro.filter((f) => f.cobro && f.cobro.debe > 0).slice(pagina * 50, pagina * 50 + 50) : conCobro };
   });
 
   app.get<{ Params: { id: string } }>('/ventas/:id', async (req) => {
@@ -194,17 +200,19 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
         'ua.nombre as anuladoPor', 'u.nombre as cargadoPor', 'c.id as clienteId', 'c.nombre as cliente', 'c.cuit as clienteCuit', 'c.direccion as clienteDireccion',
         'v.firma_id as firmaId', 'v.firmado_at as firmadoAt', 'v.pedido_id as pedidoId', db.raw('(select numero from pedidos where id = v.pedido_id) as "pedidoNumero"'));
     if (!v) throw new NotFoundError('No encontramos esa venta');
-    const items = await db('venta_items as i').join('palets as p', 'p.id', 'i.palet_id').join('variantes as va', 'va.id', 'i.variante_id').where('i.venta_id', v.id)
-      .select('i.id', 'p.id as paletId', 'p.numero as palet', 'p.suelto', 'p.paquetes', 'va.codigo', 'va.nombre as variante', 'va.color_hex as colorHex', 'i.maples', 'i.precio_maple_centavos as precioMaple', 'i.subtotal_centavos as subtotal')
+    const items = await db('venta_items as i').leftJoin('palets as p', 'p.id', 'i.palet_id').join('variantes as va', 'va.id', 'i.variante_id').where('i.venta_id', v.id)
+      .select('i.id', 'p.id as paletId', 'p.numero as palet', 'p.suelto', 'p.paquetes', 'va.codigo', 'va.nombre as variante', 'va.color_hex as colorHex', 'i.maples', 'i.precio_maple_centavos as precioMaple', 'i.subtotal_centavos as subtotal', 'i.calidad')
       .orderBy('p.numero');
-    return { data: { ...v, items } };
+    const cobro = v.anuladoAt ? null : (await cobroPorVenta(db, [v.id])).get(v.id) ?? null;
+    return { data: { ...v, items, cobro } };
   });
 
   app.post('/ventas', async (req, reply) => {
     const s = await requerir(db, req, 'ventas', 2);
     const i = ventaSchema.parse(req.body);
     // Cambiar precios en el momento es de quien tiene "todo" en ventas; el resto despacha a precio de lista/cliente.
-    if ((await matriz(db))[s.rol].ventas < 3) i.precios = [];
+    // La segunda no tiene precio de lista: su precio se escribe siempre en la venta.
+    if ((await matriz(db))[s.rol].ventas < 3) i.precios = i.precios.filter((p) => i.segunda.includes(p.varianteId));
     return reply.code(201).send({ data: await crearVenta(db, s.usuarioId, i) });
   });
   app.post<{ Params: { id: string } }>('/ventas/:id/anular', async (req) => {

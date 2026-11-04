@@ -130,7 +130,7 @@ export function NuevoPedido() {
         <>
           <Campo etiqueta="Fecha de entrega" ayuda={fechaEntrega ? verFecha(fechaEntrega) : 'Opcional'}><Entrada type="date" value={fechaEntrega} min={hoy()} onChange={(e) => setFechaEntrega(e.target.value)} /></Campo>
           <Campo etiqueta="Vehículo"><Opciones columnas valor={vehiculo} onChange={setVehiculo} opciones={VEHICULOS.map((v) => ({ valor: v, titulo: LABEL_VEHICULO[v] }))} /></Campo>
-          <Campo etiqueta="Notas" ayuda="Opcional"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
+          <Campo etiqueta="Observaciones" ayuda="Opcional"><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
         </>
       ),
       listo: true,
@@ -192,7 +192,7 @@ export function PedidoDetalleVista() {
           {p.ventas.map((v) => <Link key={v.id} to={`/ventas/${v.numero}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}><span>Remito {nroTicket(v.numero)} · {verFecha(v.fecha)}{v.retira ? ` · retiró ${v.retira}` : ''}</span><span className="chico tenue">Ver</span></Link>)}
         </section>
       )}
-      <p className="chico tenue">Cargado por {p.cargadoPor}</p>
+      <p className="chico tenue">Registrado por {p.cargadoPor}</p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {p.estado === 'abierto' && puede('ventas', 2) && <Link to={`/ventas/nueva?pedido=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Despachar</Link>}
         {p.estado === 'abierto' && puede('ventas', 2) && <button className="boton secundario" onClick={() => setCancelando(true)}><Ban size={18} aria-hidden /> Cancelar pedido</button>}

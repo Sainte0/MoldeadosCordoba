@@ -151,7 +151,7 @@ export function PaletDetalle() {
         <dt>Armado por</dt><dd>{p.armadoPor}, {verMomento(p.armadoAt)}</dd>
         <dt>Medidas</dt><dd>{p.ancho} × {p.largo} paquetes, {p.alto} de alto{p.vehiculo ? ` · para ${LABEL_VEHICULO[p.vehiculo].toLowerCase()}` : ''}</dd>
         {p.destino && <><dt>Para</dt><dd>{p.destino}</dd></>}
-        {p.notas && <><dt>Notas</dt><dd>{p.notas}</dd></>}
+        {p.notas && <><dt>Observaciones</dt><dd>{p.notas}</dd></>}
       </dl>
 
       {!recien && (

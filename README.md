@@ -75,6 +75,13 @@ y pedidos nuevos; con la app cerrada llegan como notificación del teléfono (We
 guardadas en la base; en iPhone requiere la app en la pantalla de inicio). Se entra desde Inicio y la campana, sin
 sumar ítems al menú.
 
+**Finanzas como su planilla (hecho):** ajustado a "FINANZAS MOLDEADOS 2.0": calidad primera/segunda en la venta (la
+segunda, mismo stock, precio escrito en la venta); lo que paga en el momento, repartido por forma de pago; estado
+Cobrado / Pendiente / Debe por venta (lo cobrado se aplica a lo más viejo); egresos con proveedor / beneficiario,
+pendientes con vencimiento (avisan 3 días antes) y monto en US$; sus categorías; balance mensual con sus columnas;
+próximo número de remito configurable; importadores de sus hojas VENTAS (sin palet, IVA separado en las A-…) y
+EGRESOS; vocabulario de la planilla (Egresos, Saldos, Pago a cuenta, Observaciones, Registrado por).
+
 **Importar planillas (hecho):** Ajustes › Importar planillas: clientes, proveedores, stock inicial, saldos iniciales
 de clientes y proveedores, y precios. Lee .xlsx (sin dependencias: DecompressionStream + DOMParser) y CSV; detecta la
 fila de títulos, propone columnas por nombre, prueba en seco con errores por n.º de fila del Excel, importa todo o

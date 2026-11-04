@@ -35,12 +35,12 @@ const entre = (col: string, p: Periodo) => (q: Knex.QueryBuilder) => { if (p.des
 /** Cada conjunto exportable: quién lo puede bajar, si usa período, y cómo se arma. */
 const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boolean; armar: (p: Periodo) => Promise<Buffer> }> = {
   ventas: { titulo: 'Ventas (un renglón por palet)', modulo: 'ventas', periodo: true, armar: async (p) => csv(
-    await db('venta_items as i').join('ventas as v', 'v.id', 'i.venta_id').join('clientes as c', 'c.id', 'v.cliente_id').join('palets as pa', 'pa.id', 'i.palet_id').join('variantes as va', 'va.id', 'i.variante_id')
+    await db('venta_items as i').join('ventas as v', 'v.id', 'i.venta_id').join('clientes as c', 'c.id', 'v.cliente_id').leftJoin('palets as pa', 'pa.id', 'i.palet_id').join('variantes as va', 'va.id', 'i.variante_id')
       .modify(entre('v.fecha', p)).orderBy(['v.fecha', 'v.numero', 'pa.numero'])
-      .select('v.fecha', 'v.numero', 'c.nombre as cliente', 'c.cuit', 'v.retira', 'v.vehiculo', 'v.patente', 'pa.numero as palet', 'va.codigo', 'i.maples', 'i.precio_maple_centavos as precio', 'i.subtotal_centavos as subtotal',
+      .select('v.fecha', 'v.numero', 'c.nombre as cliente', 'c.cuit', 'v.retira', 'v.vehiculo', 'v.patente', 'pa.numero as palet', 'va.codigo', 'i.calidad', 'i.maples', 'i.precio_maple_centavos as precio', 'i.subtotal_centavos as subtotal',
         'v.con_factura', 'v.nro_factura', 'v.iva_bp', 'v.total_centavos as total', db.raw('v.anulado_at is not null as anulada')),
     [['Fecha', 'fecha', fecha], ['Remito', 'numero', nro], ['Cliente', 'cliente'], ['CUIT', 'cuit'], ['Retiró', 'retira'], ['Vehículo', 'vehiculo', vehiculo], ['Patente', 'patente'], ['Palet', 'palet', nro],
-      ['Código', 'codigo'], ['Maples', 'maples'], ['Precio por maple', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Con factura', 'con_factura', sino], ['N.º factura', 'nro_factura'],
+      ['Código', 'codigo'], ['Calidad', 'calidad', (v) => (v === 'segunda' ? 'Segunda' : 'Primera')], ['Cantidad (maples)', 'maples'], ['Precio unitario ($/maple)', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Con factura', 'con_factura', sino], ['N.º factura', 'nro_factura'],
       ['IVA %', 'iva_bp', (v) => String(Number(v) / 100).replace('.', ',')], ['Total del remito', 'total', pesos], ['Anulada', 'anulada', sino]]) },
   compras: { titulo: 'Compras y pesajes (un renglón por producto)', modulo: 'compras', periodo: true, armar: async (p) => csv(
     await db('compra_items as i').join('compras as c', 'c.id', 'i.compra_id').join('proveedores as pr', 'pr.id', 'c.proveedor_id').join('materias_primas as m', 'm.id', 'i.materia_prima_id')
@@ -83,13 +83,15 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
     await db('materias_primas as m').whereNull('m.deleted_at').orderBy('m.nombre')
       .select('m.nombre', 'm.tipo', 'm.unidad', 'm.stock_minimo', db.raw('(select coalesce(sum(cantidad), 0) from movimientos_stock s where s.materia_prima_id = m.id) as stock'), 'm.activo'),
     [['Materia prima', 'nombre'], ['Tipo', 'tipo'], ['Unidad', 'unidad', (v) => (v === 'kg' ? 'kg' : 'L')], ['Stock', 'stock', mili], ['Mínimo', 'stock_minimo', mili], ['Activa', 'activo', sino]]) },
-  gastos: { titulo: 'Gastos', modulo: 'gastos', periodo: true, armar: async (p) => csv(
-    await db('gastos as g').join('categorias_gasto as k', 'k.id', 'g.categoria_id').leftJoin('bancos as b', 'b.id', 'g.banco_id').leftJoin('empleados as e', 'e.id', 'g.empleado_id')
+  // Mismas columnas que la hoja EGRESOS de su planilla de finanzas (se puede pegar ahí o reimportar).
+  gastos: { titulo: 'Egresos', modulo: 'gastos', periodo: true, armar: async (p) => csv(
+    await db('gastos as g').join('categorias_gasto as k', 'k.id', 'g.categoria_id').leftJoin('bancos as b', 'b.id', 'g.banco_id').leftJoin('empleados as e', 'e.id', 'g.empleado_id').join('usuarios as u', 'u.id', 'g.usuario_id')
       .modify(entre('g.fecha', p)).orderBy(['g.fecha', 'g.numero'])
-      .select('g.fecha', 'g.numero', 'k.nombre as categoria', 'g.descripcion', 'e.nombre as empleado', 'g.monto_centavos as monto', 'g.medio', 'b.nombre as banco', 'g.con_factura', 'g.nro_factura',
-        db.raw('g.comprobante_id is not null as foto'), db.raw('g.anulado_at is not null as anulado')),
-    [['Fecha', 'fecha', fecha], ['N.º', 'numero', nro], ['Categoría', 'categoria'], ['Qué', 'descripcion'], ['Persona', 'empleado'], ['Monto', 'monto', pesos], ['Medio', 'medio', medio], ['Banco', 'banco'],
-      ['Con factura', 'con_factura', sino], ['N.º factura', 'nro_factura'], ['Con foto', 'foto', sino], ['Anulado', 'anulado', sino]]) },
+      .select('g.fecha', 'g.nro_factura', db.raw('coalesce(g.beneficiario, e.nombre) as beneficiario'), 'g.descripcion', 'k.nombre as categoria', 'g.medio', 'b.nombre as banco', 'g.monto_centavos as monto',
+        'g.monto_usd_centavos as usd', db.raw("case when g.anulado_at is not null then 'Anulado' when g.a_pagar then 'Pendiente' else 'Pagado' end as estado"), 'g.vencimiento', 'u.nombre as registro', 'g.notas', 'g.numero'),
+    [['Fecha', 'fecha', fecha], ['N° Comprobante', 'nro_factura'], ['Proveedor / Beneficiario', 'beneficiario'], ['Concepto / Descripción', 'descripcion'], ['Categoría', 'categoria'],
+      ['Forma de Pago', 'medio', (v) => (v ? medio(v) : '')], ['Banco', 'banco'], ['Monto ($)', 'monto', pesos], ['Monto (USD)', 'usd', (v) => (v ? pesos(v) : '')], ['Estado', 'estado'], ['Vence', 'vencimiento', (v) => (v ? fecha(v) : '')],
+      ['Registrado por', 'registro'], ['Observaciones', 'notas'], ['N.º interno', 'numero', nro]]) },
   dinero: { titulo: 'Cobros y pagos', modulo: 'cuentas', periodo: true, armar: async (p) => csv(
     await db('movimientos_dinero as m').leftJoin('clientes as c', 'c.id', 'm.cliente_id').leftJoin('proveedores as pr', 'pr.id', 'm.proveedor_id').leftJoin('bancos as b', 'b.id', 'm.banco_id')
       .modify(entre('m.fecha', p)).orderBy(['m.fecha', 'm.numero'])
