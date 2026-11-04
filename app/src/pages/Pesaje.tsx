@@ -6,7 +6,7 @@ import { api, hoy, verFecha } from '../api';
 import { enviarOGuardar } from '../cola';
 import { useMaterias, type Proveedor } from '../datos';
 import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
-import { ElegirProveedor } from './ElegirProveedor';
+import { ElegirProveedor, asegurarProveedor } from './ElegirProveedor';
 import { PasoFactura, facturaBody, facturaLista, type DatosFactura } from './Factura';
 
 /** Ticket de pesaje: el camión entra cargado, se pesa, descarga, se pesa vacío. Neto = bruto − tara. */
@@ -33,7 +33,7 @@ export function Pesaje() {
 
   // Precio sugerido: el último que se le pagó a este proveedor por este cartón.
   useEffect(() => {
-    if (!proveedor || !materiaId) return;
+    if (!proveedor?.id || !materiaId) return;
     api<number | null>(`/compras/ultimo-precio?proveedorId=${proveedor.id}&materiaPrimaId=${materiaId}`)
       .then((p) => { if (p !== null) setPrecio((v) => v || String(p / 100).replace('.', ',')); })
       .catch(() => {});
@@ -129,7 +129,10 @@ export function Pesaje() {
     setGuardando(true);
     setError(null);
     try {
-      const body = { proveedorId: proveedor!.id, materiaPrimaId: materiaId, fecha, brutoG, taraG, precioPorKg: precioC, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura) };
+      // Proveedor nuevo: se crea recién ahora; si algo falla después, el reintento ya lo usa.
+      const prov = await asegurarProveedor(proveedor!);
+      setProveedor(prov);
+      const body = { proveedorId: prov.id, materiaPrimaId: materiaId, fecha, brutoG, taraG, precioPorKg: precioC, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura) };
       const r = await enviarOGuardar<{ id: string }>('/compras/pesaje', body, `pesaje de ${proveedor!.nombre}`);
       if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Pesaje guardado en el teléfono: se sube solo cuando vuelva la señal (el ticket se imprime después).' } }); return; }
       await qc.invalidateQueries();

@@ -8,7 +8,7 @@ import { useStockMaples, type Cliente } from '../datos';
 import { useDemorado, useFiltros, useUrlConNumero } from '../filtros';
 import { Muestra } from '../MapleVista';
 import { Asistente, Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
-import { ElegirCliente } from './ElegirCliente';
+import { ElegirCliente, asegurarCliente } from './ElegirCliente';
 
 interface PedidoFila { id: string; numero: number; estado: 'abierto' | 'entregado' | 'cancelado'; fechaEntrega: string | null; vehiculo: Vehiculo | null; clienteId: string; cliente: string; paquetes: number; despachado: number; resumen: string }
 export interface PedidoDetalle extends Omit<PedidoFila, 'paquetes' | 'despachado' | 'resumen'> {
@@ -142,7 +142,9 @@ export function NuevoPedido() {
     setGuardando(true);
     setError(null);
     try {
-      const r = await api<{ id: string }>('/pedidos', { method: 'POST', body: { clienteId: cliente!.id, fechaEntrega: fechaEntrega || null, vehiculo, notas: notas || undefined, items } });
+      const cli = await asegurarCliente(cliente!);
+      setCliente(cli);
+      const r = await api<{ id: string }>('/pedidos', { method: 'POST', body: { clienteId: cli.id, fechaEntrega: fechaEntrega || null, vehiculo, notas: notas || undefined, items } });
       await qc.invalidateQueries();
       navegar(`/pedidos/${r.id}?nuevo=1`, { replace: true });
     } catch (e) {

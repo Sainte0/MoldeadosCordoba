@@ -31,7 +31,7 @@ export const AREAS: Area[] = [
   { texto: 'Tablero', icono: ChartColumn, pestanas: [{ a: '/tablero', texto: 'Tablero', modulo: 'tablero' }] },
 ];
 export const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
-  { a: '/maples', texto: 'Maples y recetas', modulo: 'productos' },
+  { a: '/maples', texto: 'Maples y máquinas', modulo: 'productos' },
   { a: '/equipo', texto: 'Equipo y permisos', modulo: 'usuarios' },
   { a: '/registro', texto: 'Registro de cambios', modulo: 'auditoria' },
   { a: '/importar', texto: 'Importar planillas', modulo: 'tablero' },

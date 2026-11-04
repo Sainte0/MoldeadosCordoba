@@ -194,7 +194,7 @@ const TIPOS: Record<string, Tipo> = {
     // (comprobante A-…) traen el precio con IVA: se separa el 21 %.
     procesar: async (trx, filas, usuarioId, r, { fecha: hoy }) => {
       const variantes = await trx('variantes').whereNull('deleted_at').select('id', 'codigo');
-      if (!variantes.length) { r.errores.push({ fila: 1, mensaje: 'Primero creá al menos un código de maple en Ajustes › Maples y recetas' }); return; }
+      if (!variantes.length) { r.errores.push({ fila: 1, mensaje: 'Primero creá al menos un código de maple en Ajustes › Maples y máquinas' }); return; }
       // Sin código en la planilla: el que más se produjo (o el primero).
       const masProducido = (await trx('partes').whereNull('anulado_at').groupBy('variante_id').orderByRaw('sum(paquetes) desc').first('variante_id'))?.variante_id;
       const porDefecto = masProducido ?? variantes.sort((a, b) => String(a.codigo).localeCompare(String(b.codigo)))[0]!.id;
@@ -341,7 +341,7 @@ const TIPOS: Record<string, Tipo> = {
         if (!codigo) { r.errores.push({ fila: nf(f, i), mensaje: 'Falta el código' }); continue; }
         if (precio === null || precio < 0) { r.errores.push({ fila: nf(f, i), mensaje: `El precio "${txt(f.precio)}" no es válido` }); continue; }
         const v = await trx('variantes').whereNull('deleted_at').whereRaw('upper(codigo) = ?', [codigo]).first('id', 'precio_maple_centavos');
-        if (!v) { r.errores.push({ fila: nf(f, i), mensaje: `No hay ningún maple con código "${codigo}": crealo en Ajustes › Maples y recetas` }); continue; }
+        if (!v) { r.errores.push({ fila: nf(f, i), mensaje: `No hay ningún maple con código "${codigo}": crealo en Ajustes › Maples y máquinas` }); continue; }
         if (Number(v.precio_maple_centavos) === precio) { r.sinCambios++; continue; }
         await trx('variantes').where({ id: v.id }).update({ precio_maple_centavos: precio, updated_at: trx.fn.now() });
         await auditar(trx, { usuarioId, accion: 'editar', entidad: 'precio', entidadId: v.id, antes: { precio: Number(v.precio_maple_centavos) }, despues: { precio }, motivo: 'Importado de planilla' });

@@ -28,10 +28,12 @@ export function Maples() {
 
   return (
     <div className="ancho" style={{ display: 'grid', gap: 32 }}>
-      <section>
-        <Cabecera titulo="Maples y recetas" bajada="Cada código de maple con su color, su máquina y cuánto consume por hora. Con esto se calcula cada parte.">
+      <Cabecera titulo="Maples y máquinas" bajada="Los códigos de maple con su color y su receta (cuánto consume por hora), y las máquinas con su service. Con esto se calcula cada parte." />
+      <section style={{ display: 'grid', gap: 12 }}>
+        <div className="titulo-seccion">
+          <h2>Códigos de maple</h2>
           {edita && <button className="boton primario" onClick={() => setEditando({ tamano: 'grande', maplesPorPaquete: 60, maplesPorHora: 0, activo: true, receta: [], colorHex: null })}><Plus size={18} aria-hidden /> Nuevo código</button>}
-        </Cabecera>
+        </div>
         {isLoading ? <Cargando /> : (
           <div className="hoja filas">
             {variantes?.map((v) => (
@@ -50,10 +52,11 @@ export function Maples() {
         )}
       </section>
 
-      <section>
-        <Cabecera titulo="Máquinas">
+      <section style={{ display: 'grid', gap: 12 }}>
+        <div className="titulo-seccion">
+          <h2>Máquinas</h2>
           {edita && <button className="boton secundario" onClick={() => setMaquina({ activo: true, serviceCadaHoras: null, horasDesdeService: 0 })}><Plus size={18} aria-hidden /> Agregar máquina</button>}
-        </Cabecera>
+        </div>
         <div className="hoja filas">
           {maquinas?.map((m) => (
             <button key={m.id} className="fila" onClick={() => setMaquina(m)} style={{ opacity: m.activo ? 1 : 0.55 }}>
@@ -75,6 +78,12 @@ export function Maples() {
 
 const aTexto = (mili: number) => String(mili / 1000).replace('.', ',');
 
+// Código y nombre que salen del tamaño y el color: MGR-ROJ / "Maple grande rojo". Natural = sin color.
+const sinAcentos = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+export const codigoSugerido = (tamano: 'chico' | 'grande', color: string | null) =>
+  `M${tamano === 'chico' ? 'CH' : 'GR'}-${color?.trim() ? sinAcentos(color.trim()).replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase() : 'NAT'}`;
+export const nombreSugerido = (tamano: 'chico' | 'grande', color: string | null) => `Maple ${tamano} ${color?.trim() ? color.trim().toLowerCase() : 'natural'}`;
+
 function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Variante>; editable: boolean; onCerrar: () => void }) {
   const qc = useQueryClient();
   const { data: maquinas } = useMaquinas();
@@ -86,7 +95,18 @@ function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Vari
   });
   const [receta, setReceta] = useState((inicial.receta ?? []).map((r) => ({ materiaPrimaId: r.materiaPrimaId, cantidad: aTexto(r.cantidadPorHora) })));
   const [error, setError] = useState<string | null>(null);
-  const set = (c: Partial<typeof v>) => setV({ ...v, ...c });
+  // Al cambiar tamaño o color, el código y el nombre los acompañan, salvo que alguien los haya escrito a mano
+  // (si ya no coinciden con lo que sale del tamaño y el color de antes, se respetan).
+  const set = (c: Partial<typeof v>) => {
+    const n = { ...v, ...c };
+    const colorDe = (x: typeof v) => (x.colorHex ? x.color : null);
+    if ('color' in c || 'colorHex' in c || 'tamano' in c) {
+      if (!v.codigo || v.codigo === codigoSugerido(v.tamano, colorDe(v))) n.codigo = codigoSugerido(n.tamano, colorDe(n));
+      if (!v.nombre || v.nombre.toLowerCase() === nombreSugerido(v.tamano, colorDe(v)).toLowerCase()) n.nombre = nombreSugerido(n.tamano, colorDe(n));
+    }
+    setV(n);
+  };
+  const cambioIdentidad = !!inicial.id && (v.colorHex !== (inicial.colorHex ?? null) || v.tamano !== inicial.tamano);
   const libres = (materias ?? []).filter((m) => m.activo && !receta.some((r) => r.materiaPrimaId === m.id));
 
   const guardar = async () => {
@@ -117,14 +137,15 @@ function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Vari
                 style={{ background: c.hex ?? '#bfae90' }} onClick={() => set({ colorHex: c.hex, color: c.hex ? c.nombre : '' })} />
             ))}
             <label>
-              <input type="color" value={v.colorHex ?? '#bfae90'} onChange={(e) => set({ colorHex: e.target.value })} aria-label="Otro color" />
+              <input type="color" value={v.colorHex ?? '#bfae90'} onChange={(e) => set({ colorHex: e.target.value, color: COLORES.some((c) => c.nombre === v.color) ? '' : v.color })} aria-label="Otro color" />
               Otro
             </label>
           </div>
         </Campo>
         {v.colorHex && <Campo etiqueta="Nombre del color"><Entrada value={v.color} onChange={(e) => set({ color: e.target.value })} placeholder="Rojo" /></Campo>}
         <Campo etiqueta="Tamaño"><Opciones columnas valor={v.tamano} onChange={(tamano) => set({ tamano })} opciones={(['chico', 'grande'] as const).map((t) => ({ valor: t, titulo: LABEL_TAMANO[t] }))} /></Campo>
-        <Campo etiqueta="Código" ayuda="El que va en la etiqueta. Ej.: MGR-ROJ"><Entrada value={v.codigo} onChange={(e) => set({ codigo: e.target.value.toUpperCase() })} /></Campo>
+        {cambioIdentidad && <p className="atencion-item atencion" style={{ display: 'block' }}>Cambiaste el {v.tamano !== inicial.tamano ? 'tamaño' : 'color'}: el código y el nombre se actualizan solos. Si ya se fabricaron o vendieron maples de {inicial.codigo}, conviene crear un código nuevo y marcar este como discontinuado, así la historia sigue diciendo lo que realmente se hizo. Las etiquetas ya impresas dicen {inicial.codigo}.</p>}
+        <Campo etiqueta="Código" ayuda="El que va en la etiqueta. Se arma solo con el tamaño y el color; podés cambiarlo."><Entrada value={v.codigo} onChange={(e) => set({ codigo: e.target.value.toUpperCase() })} /></Campo>
         <Campo etiqueta="Nombre"><Entrada value={v.nombre} onChange={(e) => set({ nombre: e.target.value })} placeholder="Maple grande rojo" /></Campo>
         <Campo etiqueta="Máquina">
           <Opciones columnas valor={v.maquinaId} onChange={(maquinaId) => set({ maquinaId })} opciones={(maquinas ?? []).filter((m) => m.activo || m.id === v.maquinaId).map((m) => ({ valor: m.id, titulo: m.codigo, detalle: m.nombre }))} />

@@ -5,8 +5,8 @@ import { aCentavos, formatPesos, LABEL_MEDIO, MEDIOS, type Medio } from '@moldea
 import { api, hoy, verFecha } from '../api';
 import { useBancos, type Cliente, type Proveedor } from '../datos';
 import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
-import { ElegirCliente } from './ElegirCliente';
-import { ElegirProveedor } from './ElegirProveedor';
+import { ElegirCliente, asegurarCliente } from './ElegirCliente';
+import { ElegirProveedor, asegurarProveedor } from './ElegirProveedor';
 
 /** Cobro a un cliente o pago a un proveedor, paso a paso. */
 export function NuevoMovimiento() {
@@ -19,7 +19,7 @@ export function NuevoMovimiento() {
   const { data: bancos } = useBancos();
   const [quien, setQuien] = useState<{ id: string; nombre: string } | null>(null);
   const { data: pre } = useQuery({ queryKey: ['cuenta', de, preId], queryFn: () => api<{ id: string; nombre: string; movimientos: { saldo: number }[] }>(`/cuentas/${de}/${preId}`), enabled: !!preId });
-  const { data: cuenta } = useQuery({ queryKey: ['cuenta', de, quien?.id], queryFn: () => api<{ movimientos: { saldo: number }[] }>(`/cuentas/${de}/${quien!.id}`), enabled: !!quien });
+  const { data: cuenta } = useQuery({ queryKey: ['cuenta', de, quien?.id], queryFn: () => api<{ movimientos: { saldo: number }[] }>(`/cuentas/${de}/${quien!.id}`), enabled: !!quien?.id });
   useEffect(() => { if (pre && !quien) setQuien({ id: pre.id, nombre: pre.nombre }); }, [pre, quien]);
 
   const [monto, setMonto] = useState('');
@@ -119,16 +119,19 @@ export function NuevoMovimiento() {
     setGuardando(true);
     setError(null);
     try {
+      const nuevo = tipo === 'cobro' ? await asegurarCliente(quien as Cliente) : await asegurarProveedor(quien as Proveedor);
+      setQuien(nuevo);
+      const id = nuevo.id;
       await api('/dinero', {
         method: 'POST',
         body: {
-          tipo, clienteId: tipo === 'cobro' ? quien!.id : null, proveedorId: tipo === 'pago' ? quien!.id : null, fecha, monto: centavos, medio,
+          tipo, clienteId: tipo === 'cobro' ? id : null, proveedorId: tipo === 'pago' ? id : null, fecha, monto: centavos, medio,
           bancoId: medio === 'efectivo' || medio === 'mercado_pago' || medio === 'endoso' ? null : bancoId, endosoDe: medio === 'endoso' ? endosoDe : null, chequeNumero: esCheque ? nro || undefined : undefined,
           chequeFechaCobro: esCheque && fechaCobro ? fechaCobro : null, referencia: referencia || undefined, notas: notas || undefined,
         },
       });
       await qc.invalidateQueries();
-      navegar(`/cuentas/${de}/${quien!.id}`, { replace: true });
+      navegar(`/cuentas/${de}/${id}`, { replace: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
       setGuardando(false);

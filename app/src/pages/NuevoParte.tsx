@@ -84,7 +84,7 @@ export function NuevoParte() {
             </button>
           ))}
         </div>
-      ) : <p className="tenue">Esta máquina no tiene códigos de maple cargados. Se agregan en Maples y recetas.</p>,
+      ) : <p className="tenue">Esta máquina no tiene códigos de maple cargados. Se agregan en Ajustes › Maples y máquinas.</p>,
       listo: varianteId ? true : 'Elegí el maple',
       rapido: true,
     },

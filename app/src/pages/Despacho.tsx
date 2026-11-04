@@ -11,7 +11,7 @@ import { Escaner, idDePalet } from '../Escaner';
 import { Firma } from '../Firma';
 import { Muestra } from '../MapleVista';
 import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
-import { ElegirCliente } from './ElegirCliente';
+import { ElegirCliente, asegurarCliente } from './ElegirCliente';
 import { Estado } from '../Estado';
 import { PasoFactura, facturaBody, facturaLista, type DatosFactura } from './Factura';
 
@@ -51,7 +51,7 @@ export function Despacho() {
   const [pagos, setPagos] = useState<Record<'efectivo' | 'transferencia' | 'mercado_pago', string>>({ efectivo: '', transferencia: '', mercado_pago: '' });
   const { data: stock } = useStockMaples();
   const { data: pedido } = useQuery({ queryKey: ['pedido', pedidoId], queryFn: () => api<PedidoDetalle>(`/pedidos/${pedidoId}`), enabled: !!pedidoId });
-  const { data: pedidosCliente } = useQuery({ queryKey: ['pedidos', 'abierto', cliente?.id], queryFn: () => api<{ id: string; numero: number; fechaEntrega: string | null; resumen: string }[]>(`/pedidos?estado=abierto&clienteId=${cliente!.id}`), enabled: !!cliente && !params.get('pedido') });
+  const { data: pedidosCliente } = useQuery({ queryKey: ['pedidos', 'abierto', cliente?.id], queryFn: () => api<{ id: string; numero: number; fechaEntrega: string | null; resumen: string }[]>(`/pedidos?estado=abierto&clienteId=${cliente!.id}`), enabled: !!cliente?.id && !params.get('pedido') });
   // Entrando desde un pedido: el cliente ya está elegido.
   useEffect(() => {
     if (pedido && !cliente) api<Cliente>(`/clientes/${pedido.clienteId}`).then(setCliente).catch(() => {});
@@ -76,7 +76,7 @@ export function Despacho() {
 
   // Precio del cliente (o de lista) al elegirlo.
   // (Va por useQuery para que quede guardado en el teléfono y sirva sin señal.)
-  const { data: preciosCliente } = useQuery({ queryKey: ['precios-cliente', cliente?.id], queryFn: () => api<Record<string, number>>(`/precios/cliente/${cliente!.id}`), enabled: !!cliente });
+  const { data: preciosCliente } = useQuery({ queryKey: ['precios-cliente', cliente?.id], queryFn: () => api<Record<string, number>>(`/precios/cliente/${cliente!.id}`), enabled: !!cliente?.id });
   useEffect(() => { if (cliente) setVehiculo((v) => v ?? cliente.vehiculoHabitual); }, [cliente]);
   useEffect(() => {
     if (preciosCliente) setPrecios(Object.fromEntries(Object.entries(preciosCliente).map(([k, v]) => [k, aTexto(v)])));
@@ -304,8 +304,11 @@ export function Despacho() {
     setGuardando(true);
     setError(null);
     try {
+      // Cliente nuevo: se crea recién al confirmar (necesita señal; el resto puede quedar en la cola).
+      const cli = await asegurarCliente(cliente!);
+      setCliente(cli);
       const r = await enviarOGuardar<{ id: string }>('/ventas', {
-        clienteId: cliente!.id, fecha, palets: elegidos, sueltos, pedidoId, firma, retira, vehiculo, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura),
+        clienteId: cli.id, fecha, palets: elegidos, sueltos, pedidoId, firma, retira, vehiculo, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura),
         // Solo los precios conocidos: si alguno falta (sin señal), el sistema usa el del cliente o el de lista.
         precios: codigos.filter((c) => cambiaPrecios || segunda.includes(c.varianteId)).map((c) => ({ varianteId: c.varianteId, precioMaple: precioDe(c.varianteId) })).filter((x) => x.precioMaple > 0),
         segunda, pagos: pagosLista,

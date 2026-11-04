@@ -6,7 +6,7 @@ import { aCentavos, aMili, calcularCompra, formatCantidad, formatIva, formatPeso
 import { api, hoy, verFecha } from '../api';
 import { useMaterias, type Proveedor } from '../datos';
 import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
-import { ElegirProveedor } from './ElegirProveedor';
+import { ElegirProveedor, asegurarProveedor } from './ElegirProveedor';
 import { PasoFactura, facturaBody, facturaLista, type DatosFactura } from './Factura';
 
 interface Item { materiaPrimaId: string; cantidad: number; precioUnitario: number }
@@ -34,7 +34,7 @@ export function NuevaCompra() {
   const elegirMp = (id: string) => {
     setMpId(id);
     setPrecio('');
-    if (proveedor) {
+    if (proveedor?.id) {
       api<number | null>(`/compras/ultimo-precio?proveedorId=${proveedor.id}&materiaPrimaId=${id}`)
         .then((p) => p !== null && setPrecio(String(p / 100).replace('.', ',')))
         .catch(() => {});
@@ -131,7 +131,9 @@ export function NuevaCompra() {
     setGuardando(true);
     setError(null);
     try {
-      const r = await api<{ id: string }>('/compras', { method: 'POST', body: { proveedorId: proveedor!.id, fecha, items, notas: notas || undefined, ...facturaBody(factura) } });
+      const prov = await asegurarProveedor(proveedor!);
+      setProveedor(prov);
+      const r = await api<{ id: string }>('/compras', { method: 'POST', body: { proveedorId: prov.id, fecha, items, notas: notas || undefined, ...facturaBody(factura) } });
       await qc.invalidateQueries();
       navegar(`/compras/${r.id}?nuevo=1`, { replace: true });
     } catch (e) {

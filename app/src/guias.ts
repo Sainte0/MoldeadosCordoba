@@ -332,7 +332,7 @@ export const GUIAS: Guia[] = [
     id: 'maples', area: 'Ajustes', titulo: 'Crear un código de maple con su color y receta', pantallas: ['/maples'],
     palabras: 'codigo maple color receta consumo por hora maquina variante nuevo',
     pasos: [
-      'En Ajustes › Maples y recetas tocá "Nuevo código".',
+      'En Ajustes › Maples y máquinas tocá "Nuevo código".',
       'Elegí el color: el maple 3D se pinta para que lo veas. Si no está, tocá "Otro".',
       'Elegí tamaño, código (por ejemplo MGR-AZU), nombre y máquina.',
       'Anotá cuántos maples por hora hace la máquina.',
@@ -344,7 +344,7 @@ export const GUIAS: Guia[] = [
     id: 'service', area: 'Ajustes', titulo: 'Service de las máquinas', pantallas: ['/maples'],
     palabras: 'service mantenimiento maquina horas aviso mp-1 mp-2 reparacion',
     pasos: [
-      'En Ajustes › Maples y recetas, en Máquinas, tocá la máquina y poné cada cuántas horas le toca service.',
+      'En Ajustes › Maples y máquinas, en Máquinas, tocá la máquina y poné cada cuántas horas le toca service.',
       'Las horas se cuentan solas con los partes de producción. Cuando falta poco, aparece el aviso en el Inicio.',
       'Cuando se hace el service, tocá "Registrar service", la fecha y qué se hizo: el contador vuelve a cero.',
     ],

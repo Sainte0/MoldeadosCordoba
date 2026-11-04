@@ -20,7 +20,7 @@ const AYUDA: Record<string, string> = {
   stock: 'Deja el stock en lo que dice la planilla. Si la volvés a subir, no suma dos veces: corrige la diferencia.',
   'saldos-clientes': 'Lo que cada cliente debía el día que arrancan con el sistema. Si un cliente no existe, se crea.',
   'saldos-proveedores': 'Lo que se le debía a cada proveedor el día que arrancan con el sistema. Si no existe, se crea.',
-  precios: 'Precio por maple, sin IVA, según el código. Los códigos tienen que existir en Maples y recetas.',
+  precios: 'Precio por maple, sin IVA, según el código. Los códigos tienen que existir en Ajustes › Maples y máquinas.',
 };
 
 /** Planilla modelo: los títulos que reconoce el sistema y un ejemplo, en CSV (abre en Excel). */

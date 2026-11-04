@@ -103,13 +103,15 @@ export function Asistente({ proceso, pasos, onTerminar, textoTerminar, guardando
   const titulo = useRef<HTMLHeadingElement>(null);
   useEffect(() => titulo.current?.focus(), [i]);
   const puedeSeguir = paso.listo === true;
-  const [toque, setToque] = useState(0);
+  // Paso rápido: al tocar una opción queda "esperando" y, apenas el paso está completo (la opción ya se marcó en la
+  // pantalla), pasa solo al siguiente. Se espera a que el paso esté listo porque el toque llega antes que la elección.
+  const [esperando, setEsperando] = useState(false);
+  useEffect(() => setEsperando(false), [i]);
   useEffect(() => {
-    if (!toque || !paso.rapido || paso.listo !== true || ultimo) return;
-    const t = setTimeout(() => setI((x) => x + 1), 200); // un instante para que se vea la opción marcada
+    if (!esperando || !paso.rapido || paso.listo !== true || ultimo) return;
+    const t = setTimeout(() => { setEsperando(false); setI((x) => x + 1); }, 200); // un instante para que se vea la opción marcada
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo reacciona al toque
-  }, [toque]);
+  }, [esperando, paso.listo, paso.rapido, ultimo]);
 
   const seguir = () => {
     if (!puedeSeguir) return;
@@ -120,7 +122,7 @@ export function Asistente({ proceso, pasos, onTerminar, textoTerminar, guardando
   return (
     <form className="asistente columna" onSubmit={(e) => { e.preventDefault(); seguir(); }}>
       <Alveolos total={pasos.length} actual={i} />
-      <div className="paso-cuerpo" key={i} onClickCapture={(e) => { if ((e.target as HTMLElement).closest('.opcion')) setToque((n) => n + 1); }}>
+      <div className="paso-cuerpo" key={i} onClickCapture={(e) => { if ((e.target as HTMLElement).closest('.opcion, [data-elige]')) setEsperando(true); }}>
         <h1 ref={titulo} tabIndex={-1}>{paso.titulo}</h1>
         <Instructivo clave={`${proceso}:${paso.titulo}`} original={paso.ayuda} />
         {paso.contenido}

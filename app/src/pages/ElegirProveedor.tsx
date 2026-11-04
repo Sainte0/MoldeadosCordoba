@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import type { TipoMp } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
@@ -12,21 +11,18 @@ export function ElegirProveedor({ tipo, valor, onChange }: { tipo?: TipoMp; valo
   const [nuevo, setNuevo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { puede } = useSesion();
-  const qc = useQueryClient();
   // Sin búsqueda: los que venden este tipo. Buscando: todos.
   const { data, isLoading } = useProveedores(q, q || !tipo ? '' : tipo);
 
-  const crear = async () => {
-    if (!nuevo?.trim()) return;
+  // El proveedor nuevo NO se guarda acá: queda pendiente y se crea recién al confirmar el asistente
+  // (asegurarProveedor). Si se abandona a mitad de camino, no queda un proveedor vacío cargado.
+  const crear = () => {
+    const nombre = nuevo?.trim();
+    if (!nombre) return;
     setError(null);
-    try {
-      const p = await api<Proveedor>('/proveedores', { method: 'POST', body: { nombre: nuevo, tipos: tipo ? [tipo] : [] } });
-      await qc.invalidateQueries({ queryKey: ['proveedores'] });
-      onChange(p);
-      setNuevo(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo crear');
-    }
+    const existe = data?.find((x) => x.nombre.trim().toLowerCase() === nombre.toLowerCase());
+    onChange(existe ?? { id: '', nombre, cuit: null, telefono: null, email: null, direccion: null, tipos: tipo ? [tipo] : [], notas: null });
+    setNuevo(null);
   };
 
   return (
@@ -40,6 +36,12 @@ export function ElegirProveedor({ tipo, valor, onChange }: { tipo?: TipoMp; valo
         />
       )}
       {data?.length === 0 && <p className="tenue">{q ? 'No hay proveedores con ese nombre.' : 'Todavía no hay proveedores cargados.'}</p>}
+      {valor && !valor.id && (
+        <div className="atencion-item" style={{ gridTemplateColumns: '1fr auto' }}>
+          <span><b>{valor.nombre}</b><br /><span className="chico tenue">Proveedor nuevo: se guarda al terminar.</span></span>
+          <button type="button" className="boton fantasma" onClick={() => setNuevo(valor.nombre)}>Cambiar</button>
+        </div>
+      )}
       {puede('proveedores', 2) && (nuevo === null ? (
         <button type="button" className="boton secundario" onClick={() => setNuevo(q)}><Plus size={18} aria-hidden /> Es un proveedor nuevo</button>
       ) : (
@@ -50,11 +52,17 @@ export function ElegirProveedor({ tipo, valor, onChange }: { tipo?: TipoMp; valo
           <p className="chico tenue">El CUIT y los demás datos los podés completar después en Proveedores.</p>
           <Aviso>{error}</Aviso>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="boton primario" onClick={crear}>Agregar y elegir</button>
+            <button type="button" className="boton primario" data-elige onClick={crear}>Elegir</button>
             <button type="button" className="boton fantasma" onClick={() => setNuevo(null)}>Cancelar</button>
           </div>
         </div>
       ))}
     </div>
   );
+}
+
+/** Al confirmar el asistente: si el proveedor es nuevo, se crea ahora. */
+export async function asegurarProveedor(p: Proveedor): Promise<Proveedor> {
+  if (p.id) return p;
+  return api<Proveedor>('/proveedores', { method: 'POST', body: { nombre: p.nombre, tipos: p.tipos } });
 }
