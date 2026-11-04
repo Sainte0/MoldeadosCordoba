@@ -57,7 +57,7 @@ export function Agenda() {
   return (
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       <Cabecera titulo="Agenda" bajada="Recordatorios para vos o para el equipo. Les llega un aviso a la hora; lo marca hecho uno y queda hecho para todos.">
-        <button className="boton primario" onClick={() => ir(`/agenda/nuevo${f.dia ? `?fecha=${f.dia}` : ''}`)}><CalendarPlus size={18} aria-hidden /> Nuevo recordatorio</button>
+        <button className="boton primario" data-guia="agenda-nuevo" onClick={() => ir(`/agenda/nuevo${f.dia ? `?fecha=${f.dia}` : ''}`)}><CalendarPlus size={18} aria-hidden /> Nuevo recordatorio</button>
       </Cabecera>
 
       {jefe && (

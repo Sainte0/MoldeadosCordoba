@@ -37,7 +37,7 @@ en el **mismo VPS que Centrolab y Hassuru**.
 - **Sistema visual prolijo:** fondo `#F3F4F6`, superficies blancas con borde fino y sombra mínima, un solo color de
   acción (azul del logo). Estado activo = fondo suave (pastilla), **nunca rayas de color a un costado**. Pestañas como
   control segmentado. El navy queda para login y visor 3D.
-- **Ayuda:** toda función nueva lleva su guía en `app/src/guias.ts` (pasos cortos, `pantallas` donde aplica,
+- **Ayuda:** toda función nueva lleva su guía en `app/src/guias.ts` (y, si es un proceso, su recorrido "Mostrame cómo" en `app/src/recorridos.ts`) (pasos cortos, `pantallas` donde aplica,
   `palabras` con las que la buscaría alguien de planta). Los procedimientos de la fábrica los escribe el cliente
   (tabla `procedimientos`). Todo listado nuevo con datos se suma a `CONJUNTOS` en `backend/src/features/exportar.ts`.
 - **Filtros en la URL** (`useFiltros` en `app/src/filtros.ts`): todo listado guarda filtros y búsqueda en la

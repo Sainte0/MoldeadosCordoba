@@ -172,7 +172,7 @@ export function Despacho() {
               </div>
             </div>
           ) : (
-            <button type="button" className="boton secundario" style={{ justifySelf: 'start' }} onClick={() => setFormSuelto({ varianteId: null, cantidad: '' })}>+ Paquetes sueltos (sin palet)</button>
+            <button type="button" data-guia="sueltos" className="boton secundario" style={{ justifySelf: 'start' }} onClick={() => setFormSuelto({ varianteId: null, cantidad: '' })}>+ Paquetes sueltos (sin palet)</button>
           )}
         </>
       ),

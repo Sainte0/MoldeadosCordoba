@@ -49,7 +49,7 @@ export function ElegirCliente({ valor, onChange, conDeuda }: { valor: Cliente | 
         </div>
       )}
       {puede('ventas', 2) && (nuevo === null ? (
-        <button type="button" className="boton secundario" onClick={() => setNuevo(q)}><Plus size={18} aria-hidden /> Es un cliente nuevo</button>
+        <button type="button" data-guia="nuevo" className="boton secundario" onClick={() => setNuevo(q)}><Plus size={18} aria-hidden /> Es un cliente nuevo</button>
       ) : (
         <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
           <b>Cliente nuevo</b>

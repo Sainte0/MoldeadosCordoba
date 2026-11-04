@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, FileDown, Pencil, Plus, Printer } from 'lucide-react';
+import { ArrowRight, BookOpen, FileDown, Pencil, PlayCircle, Plus, Printer } from 'lucide-react';
 import { api, useSesion, verMomento } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { useEmpresa } from '../datos';
 import { GUIAS, normalizar, type Guia } from '../guias';
+import { hayRecorrido, iniciarRecorrido } from '../Recorrido';
 import { Aviso, Buscador, Cabecera, Campo, Dialogo, Entrada } from '../ui';
 
 interface Procedimiento { id: string; titulo: string; resumen: string | null; pasos: string; actualizado: string }
@@ -106,12 +107,18 @@ export function Ayuda() {
 }
 
 function TarjetaGuia({ g, abierta, onImprimir }: { g: Guia; abierta?: boolean; onImprimir: () => void }) {
+  const ir = useNavigate();
+  const pantalla = g.pantallas.find((p) => p !== '/' && !p.endsWith('/'));
   return (
     <details className="hoja guia" open={abierta}>
-      <summary><span>{g.titulo}</span></summary>
+      <summary><span>{g.titulo}</span>{hayRecorrido(g.id) && <span className="marca-texto">Interactiva</span>}</summary>
       <div className="guia-cuerpo">
         <ol>{g.pasos.map((s, i) => <li key={i}>{s}</li>)}</ol>
-        <button className="boton fantasma" style={{ justifySelf: 'start' }} onClick={onImprimir}><Printer size={16} aria-hidden /> Imprimir o guardar PDF</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {hayRecorrido(g.id) && <button className="boton primario" onClick={() => iniciarRecorrido(g.id, g.titulo)}><PlayCircle size={18} aria-hidden /> Mostrame cómo</button>}
+          {pantalla && <button className="boton secundario" onClick={() => ir(pantalla)}><ArrowRight size={16} aria-hidden /> Ir a la pantalla</button>}
+          <button className="boton fantasma" onClick={onImprimir}><Printer size={16} aria-hidden /> Imprimir o guardar PDF</button>
+        </div>
       </div>
     </details>
   );

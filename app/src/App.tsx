@@ -12,6 +12,7 @@ import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
 import { Campana } from './Campana';
+import { Recorrido } from './Recorrido';
 import { useAvisosEnVivo, type AvisoVivo } from './vivo';
 import { desactivarPush, reafirmarPush } from './push';
 import { Inicio } from './pages/Inicio';
@@ -164,6 +165,7 @@ export function App() {
           </div>
         </Dialogo>
       )}
+      <Recorrido />
       {asoma && (
         <button className="toast" role="status" onClick={() => { setAsoma(null); if (asoma.ruta) ir(asoma.ruta); }}>
           <BellRing size={22} aria-hidden />

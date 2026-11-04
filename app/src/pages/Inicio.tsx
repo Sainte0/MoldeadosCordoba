@@ -9,6 +9,8 @@ import { TAREAS } from '../navegacion';
 import { Atencion, ParaVender, PedidosProximos } from './Avisos';
 import { Estado } from '../Estado';
 import { AgendaHoy } from './AgendaHoy';
+import { iniciarRecorrido } from '../Recorrido';
+import { useState } from 'react';
 
 function saludo(): string {
   const h = Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
@@ -33,6 +35,7 @@ export function Inicio() {
         <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar? · <Link to="/agenda" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><CalendarClock size={16} aria-hidden /> Agenda</Link>{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Tablero</Link></>}</p>
       </header>
 
+      <Bienvenida />
       {/* Orden por prioridad: lo urgente, lo que hay que cargar, lo que viene, y después cómo estamos. */}
       <Atencion />
       <AgendaHoy />
@@ -95,6 +98,23 @@ export function Inicio() {
             ))}
           </section>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** La primera vez que alguien entra (en este teléfono): ofrece el recorrido por el sistema. */
+function Bienvenida() {
+  const clave = 'moldeados:recorrido-visto';
+  const [visto, setVisto] = useState(() => { try { return localStorage.getItem(clave) === '1'; } catch { return true; } });
+  if (visto) return null;
+  const cerrar = () => { try { localStorage.setItem(clave, '1'); } catch { /* sin almacenamiento: se vuelve a ofrecer */ } setVisto(true); };
+  return (
+    <div className="atencion-item" style={{ gridTemplateColumns: '1fr', gap: 10 }}>
+      <span><b>¿Primera vez en el sistema?</b><br /><span className="chico tenue">Un recorrido de un minuto por lo principal. Cada guía de Ayuda tiene el suyo.</span></span>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button className="boton primario" onClick={() => { cerrar(); iniciarRecorrido('inicio', 'Conocé el sistema'); }}>Mostrame</button>
+        <button className="boton fantasma" onClick={cerrar}>Ahora no</button>
       </div>
     </div>
   );

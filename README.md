@@ -82,6 +82,11 @@ pendientes con vencimiento (avisan 3 días antes) y monto en US$; sus categoría
 próximo número de remito configurable; importadores de sus hojas VENTAS (sin palet, IVA separado en las A-…) y
 EGRESOS; vocabulario de la planilla (Egresos, Saldos, Pago a cuenta, Observaciones, Registrado por).
 
+**Guías interactivas (hecho):** "Mostrame cómo" en las guías de Ayuda (inicio, buscador, avisos, despacho, parte,
+palet, pesaje, cobro, egreso, agenda, tablero): lleva a la pantalla, resalta cada botón o campo y lo explica en un globo,
+sin bloquear la pantalla. La primera vez que alguien entra, Inicio le ofrece el recorrido. Los pasos están en
+`app/src/recorridos.ts` (selectores con alternativa para iPhone e iPad).
+
 **Importar planillas (hecho):** Ajustes › Importar planillas: clientes, proveedores, stock inicial, saldos iniciales
 de clientes y proveedores, y precios. Lee .xlsx (sin dependencias: DecompressionStream + DOMParser) y CSV; detecta la
 fila de títulos, propone columnas por nombre, prueba en seco con errores por n.º de fila del Excel, importa todo o

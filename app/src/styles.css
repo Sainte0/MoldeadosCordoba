@@ -515,3 +515,16 @@ select.entrada { appearance: none; -webkit-appearance: none; font-size: 16px; ba
   .calendario .puntos { display: flex; justify-content: center; }
   .calendario .dia-semana { font-size: 0.7rem; padding: 6px 2px; }
 }
+
+/* Recorrido guiado: foco sobre lo que se explica (sin bloquear la pantalla) y un globo con el texto. */
+.recorrido-foco { position: fixed; z-index: 70; border-radius: 12px; pointer-events: none; box-shadow: 0 0 0 3px var(--senal), 0 0 0 9999px rgba(14, 26, 48, 0.5); transition: top 0.25s, left 0.25s, width 0.25s, height 0.25s; }
+.recorrido-velo { position: fixed; inset: 0; z-index: 70; background: rgba(14, 26, 48, 0.5); pointer-events: none; }
+.recorrido-globo { position: fixed; z-index: 71; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom)); width: min(460px, calc(100vw - 24px)); background: var(--superficie); border-radius: 16px; box-shadow: var(--sombra-2); padding: 14px 16px 16px; display: grid; gap: 10px; }
+.recorrido-globo.arriba { bottom: auto; top: calc(16px + env(safe-area-inset-top)); }
+.recorrido-globo p { font-size: 1rem; line-height: 1.45; }
+.recorrido-cabeza { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: -4px -8px -4px 0; }
+.recorrido-puntos { display: flex; gap: 5px; }
+.recorrido-puntos i { width: 7px; height: 7px; border-radius: 50%; background: var(--linea-fuerte); }
+.recorrido-puntos i.activo { background: var(--accion); width: 18px; border-radius: 4px; }
+.recorrido-acciones { display: flex; justify-content: flex-end; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .recorrido-foco { transition: none; } }
