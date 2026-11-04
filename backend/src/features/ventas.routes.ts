@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import { anularSchema, bancoSchema, clienteSchema, movimientoDineroSchema, precioSchema, ventaSchema } from '@moldeados/shared';
+import { anularSchema, bancoSchema, clienteSchema, movimientoDineroSchema, pedidoSchema, precioSchema, ventaSchema } from '@moldeados/shared';
 import { db } from '../db.js';
 import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
-import { NotFoundError } from '../lib/errors.js';
+import { ConflictError, NotFoundError } from '../lib/errors.js';
 import { materiasPorAcabarse, recompra } from './avisos.service.js';
 import { maquinasConService } from './produccion.service.js';
-import { anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
+import { actualizarEstadoPedido, despachadoDelPedido, guardarFirma, guardarPedido, anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
 
 // Clientes, precios, ventas (despacho de palets), bancos, cobros/pagos y cuentas corrientes.
 // ponytail: CRUD chico con la query en la ruta; las reglas viven en ventas.service.
@@ -178,10 +178,11 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
       .where('v.id', uuidOk(req.params.id) ?? null)
       .first('v.id', 'v.numero', 'v.fecha', 'v.con_factura as conFactura', 'v.nro_factura as nroFactura', 'v.iva_bp as ivaBp', 'v.neto_centavos as neto', 'v.iva_centavos as iva',
         'v.total_centavos as total', 'v.vehiculo', 'v.patente', 'v.retira', 'v.notas', 'v.created_at as cargadaAt', 'v.anulado_at as anuladoAt', 'v.motivo_anulacion as motivoAnulacion',
-        'ua.nombre as anuladoPor', 'u.nombre as cargadoPor', 'c.id as clienteId', 'c.nombre as cliente', 'c.cuit as clienteCuit', 'c.direccion as clienteDireccion');
+        'ua.nombre as anuladoPor', 'u.nombre as cargadoPor', 'c.id as clienteId', 'c.nombre as cliente', 'c.cuit as clienteCuit', 'c.direccion as clienteDireccion',
+        'v.firma_id as firmaId', 'v.firmado_at as firmadoAt', 'v.pedido_id as pedidoId', db.raw('(select numero from pedidos where id = v.pedido_id) as "pedidoNumero"'));
     if (!v) throw new NotFoundError('No encontramos esa venta');
     const items = await db('venta_items as i').join('palets as p', 'p.id', 'i.palet_id').join('variantes as va', 'va.id', 'i.variante_id').where('i.venta_id', v.id)
-      .select('i.id', 'p.id as paletId', 'p.numero as palet', 'p.paquetes', 'va.codigo', 'va.nombre as variante', 'va.color_hex as colorHex', 'i.maples', 'i.precio_maple_centavos as precioMaple', 'i.subtotal_centavos as subtotal')
+      .select('i.id', 'p.id as paletId', 'p.numero as palet', 'p.suelto', 'p.paquetes', 'va.codigo', 'va.nombre as variante', 'va.color_hex as colorHex', 'i.maples', 'i.precio_maple_centavos as precioMaple', 'i.subtotal_centavos as subtotal')
       .orderBy('p.numero');
     return { data: { ...v, items } };
   });
@@ -197,6 +198,75 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
     const s = await requerir(db, req, 'ventas', 3);
     if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos esa venta');
     await anularVenta(db, s.usuarioId, req.params.id, anularSchema.parse(req.body).motivo);
+    return { data: { ok: true } };
+  });
+
+  // Firmar un remito ya hecho (si no se firmó en el despacho).
+  app.post<{ Params: { id: string }; Body: { firma?: string } }>('/ventas/:id/firma', { bodyLimit: 1024 * 1024 }, async (req) => {
+    const s = await requerir(db, req, 'ventas', 2);
+    if (!uuidOk(req.params.id) || typeof req.body?.firma !== 'string') throw new NotFoundError('No encontramos esa venta');
+    await db.transaction(async (trx) => {
+      const v = await trx('ventas').where({ id: req.params.id }).forUpdate().first('id', 'firma_id', 'anulado_at');
+      if (!v || v.anulado_at) throw new NotFoundError('No encontramos esa venta');
+      if (v.firma_id) throw new ConflictError('Este remito ya está firmado');
+      const id = await guardarFirma(trx, s.usuarioId, req.body.firma!);
+      await trx('ventas').where({ id: v.id }).update({ firma_id: id, firmado_at: trx.fn.now(), updated_at: trx.fn.now() });
+      await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'venta', entidadId: v.id, motivo: 'Remito firmado' });
+    });
+    return { data: { ok: true } };
+  });
+
+  // ---------- Pedidos ----------
+  const SUMA_DESPACHADO = `coalesce((select sum(pa.paquetes) from palets pa join ventas ve on ve.id = pa.venta_id
+    where ve.pedido_id = p.id and ve.anulado_at is null), 0)::int`;
+  app.get<{ Querystring: { estado?: string; clienteId?: string; q?: string } }>('/pedidos', async (req) => {
+    await requerir(db, req, 'ventas', 1);
+    const { estado = 'abierto', clienteId, q } = req.query;
+    return {
+      data: await db('pedidos as p').join('clientes as c', 'c.id', 'p.cliente_id')
+        .modify((qb) => {
+          if (['abierto', 'entregado', 'cancelado'].includes(estado)) qb.where('p.estado', estado);
+          if (uuidOk(clienteId)) qb.where('p.cliente_id', clienteId!);
+        })
+        .modify(buscar(q, ['c.nombre', 'p.notas'], 'p.numero'))
+        .select('p.id', 'p.numero', 'p.estado', 'p.fecha_entrega as fechaEntrega', 'p.vehiculo', 'p.notas', 'p.created_at as cargadoAt', 'c.id as clienteId', 'c.nombre as cliente',
+          db.raw('(select sum(i.paquetes) from pedido_items i where i.pedido_id = p.id)::int as paquetes'),
+          db.raw(`${SUMA_DESPACHADO} as despachado`),
+          db.raw(`(select string_agg(v.codigo || ' × ' || i.paquetes, ', ' order by v.codigo) from pedido_items i join variantes v on v.id = i.variante_id where i.pedido_id = p.id) as resumen`))
+        .orderByRaw('p.fecha_entrega asc nulls last, p.numero desc').limit(200),
+    };
+  });
+  app.get<{ Params: { id: string } }>('/pedidos/:id', async (req) => {
+    await requerir(db, req, 'ventas', 1);
+    const p = await db('pedidos as p').join('clientes as c', 'c.id', 'p.cliente_id').join('usuarios as u', 'u.id', 'p.usuario_id').where('p.id', uuidOk(req.params.id) ?? null)
+      .first('p.id', 'p.numero', 'p.estado', 'p.fecha_entrega as fechaEntrega', 'p.vehiculo', 'p.notas', 'p.created_at as cargadoAt', 'u.nombre as cargadoPor', 'c.id as clienteId', 'c.nombre as cliente');
+    if (!p) throw new NotFoundError('No encontramos ese pedido');
+    const hecho = await despachadoDelPedido(db, p.id);
+    const items = (await db('pedido_items as i').join('variantes as v', 'v.id', 'i.variante_id').where('i.pedido_id', p.id)
+      .select('v.id as varianteId', 'v.codigo', 'v.nombre', 'v.color_hex as colorHex', 'v.maples_por_paquete as maplesPorPaquete', 'i.paquetes').orderBy('v.codigo'))
+      .map((i) => ({ ...i, despachado: hecho.get(i.varianteId) ?? 0 }));
+    const ventas = await db('ventas').where({ pedido_id: p.id }).orderBy('fecha').select('id', 'numero', 'fecha', 'retira', 'total_centavos as total', 'anulado_at as anuladoAt');
+    return { data: { ...p, items, ventas } };
+  });
+  app.post('/pedidos', async (req, reply) => {
+    const s = await requerir(db, req, 'ventas', 2);
+    return reply.code(201).send({ data: await guardarPedido(db, s.usuarioId, pedidoSchema.parse(req.body)) });
+  });
+  app.put<{ Params: { id: string } }>('/pedidos/:id', async (req) => {
+    const s = await requerir(db, req, 'ventas', 2);
+    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese pedido');
+    return { data: await guardarPedido(db, s.usuarioId, pedidoSchema.parse(req.body), req.params.id) };
+  });
+  app.post<{ Params: { id: string }; Body: { cancelar?: boolean; motivo?: string } }>('/pedidos/:id/estado', async (req) => {
+    const s = await requerir(db, req, 'ventas', 2);
+    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese pedido');
+    await db.transaction(async (trx) => {
+      const p = await trx('pedidos').where({ id: req.params.id }).forUpdate().first('id', 'estado');
+      if (!p) throw new NotFoundError('No encontramos ese pedido');
+      if (req.body?.cancelar) await trx('pedidos').where({ id: p.id }).update({ estado: 'cancelado', updated_at: trx.fn.now() });
+      else { await trx('pedidos').where({ id: p.id }).update({ estado: 'abierto', updated_at: trx.fn.now() }); await actualizarEstadoPedido(trx, p.id); }
+      await auditar(trx, { usuarioId: s.usuarioId, accion: req.body?.cancelar ? 'anular' : 'editar', entidad: 'pedido', entidadId: p.id, motivo: req.body?.motivo ?? (req.body?.cancelar ? 'Cancelado' : 'Reabierto') });
+    });
     return { data: { ok: true } };
   });
 

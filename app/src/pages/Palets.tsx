@@ -9,7 +9,7 @@ import { Muestra } from '../MapleVista';
 import { BotonExportar } from './Exportar';
 import { Buscador, Cabecera, Cargando } from '../ui';
 
-interface PaletFila { ventaId: string | null; id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; vehiculo: Vehiculo | null; destino: string | null; armadoAt: string; anuladoAt: string | null; codigo: string; variante: string; colorHex: string | null }
+interface PaletFila { suelto: boolean; ventaId: string | null; id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; vehiculo: Vehiculo | null; destino: string | null; armadoAt: string; anuladoAt: string | null; codigo: string; variante: string; colorHex: string | null }
 
 export function Palets() {
   const { puede } = useSesion();
@@ -30,7 +30,7 @@ export function Palets() {
           <div className="fila" key={s.id}>
             <div className="con-muestra">
               <Muestra color={s.colorHex} grande />
-              <div><div className="principal">{s.codigo}</div><div className="chico tenue">{s.nombre} · {s.enPalets - s.vendido} en palets listos · {s.vendido} vendidos</div></div>
+              <div><div className="principal">{s.codigo}</div><div className="chico tenue">{s.nombre} · {s.enPalets - s.vendido} en palets listos · {s.vendido} vendidos{s.comprometido ? ` · ${s.comprometido} comprometidos en pedidos` : ''}</div></div>
             </div>
             <div className="derecha">
               <div className="cifra" style={{ fontSize: '1.5rem' }}>{(s.producido - s.enPalets).toLocaleString('es-AR')}</div>
@@ -57,7 +57,7 @@ export function Palets() {
                 <div className="con-muestra">
                   <Muestra color={p.colorHex} />
                   <div>
-                    <div className="principal">Palet {nroTicket(p.numero)} · {p.codigo}</div>
+                    <div className="principal">{p.suelto ? 'Paquetes sueltos' : 'Palet'} {nroTicket(p.numero)} · {p.codigo}</div>
                     <div className="chico tenue">{p.ancho}×{p.largo}×{p.alto}{p.vehiculo ? ` · ${LABEL_VEHICULO[p.vehiculo]}` : ''}{p.destino ? ` · ${p.destino}` : ''} · {verMomento(p.armadoAt)}</div>
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { ChartColumn, Coins, Factory, Home, Layers, Receipt, Scale, ScanLine, Settings, ShoppingCart, Wallet } from 'lucide-react';
+import { ChartColumn, ClipboardList, Coins, Factory, Home, Layers, Receipt, Scale, ScanLine, Settings, ShoppingCart, Wallet } from 'lucide-react';
 import type { Modulo } from '@moldeados/shared/base';
 
 // Mapa de la app: áreas del menú, sus pestañas y las tareas frecuentes. Lo usan el menú, el inicio y el buscador.
@@ -15,6 +15,7 @@ export const AREAS: Area[] = [
   ] },
   { texto: 'Ventas', icono: Receipt, pestanas: [
     { a: '/ventas', texto: 'Despachos', modulo: 'ventas' },
+    { a: '/pedidos', texto: 'Pedidos', modulo: 'ventas' },
     { a: '/clientes', texto: 'Clientes', modulo: 'ventas' },
     { a: '/precios', texto: 'Precios', modulo: 'ventas' },
   ] },
@@ -46,6 +47,7 @@ export const TAREAS: { a: string; titulo: string; detalle: string; icono: typeof
   { a: '/pesaje', titulo: 'Pesaje de cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
   { a: '/dinero/nuevo?tipo=cobro', titulo: 'Registrar cobro', detalle: 'Efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
   { a: '/gastos/nuevo', titulo: 'Cargar gasto', detalle: 'Con foto del ticket', icono: Coins, modulo: 'gastos' },
+  { a: '/pedidos/nuevo', titulo: 'Nuevo pedido', detalle: 'Un cliente encarga maples', icono: ClipboardList, modulo: 'ventas' },
   { a: '/compras/nueva', titulo: 'Compra de insumos', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
 ];
 

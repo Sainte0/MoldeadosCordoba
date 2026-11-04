@@ -25,7 +25,7 @@ export async function gastosRoutes(app: FastifyInstance): Promise<void> {
     return reply.code(201).send({ data: a });
   });
   app.get<{ Params: { id: string } }>('/archivos/:id', async (req, reply) => {
-    await requerirAlguno(db, req, [['gastos', 1], ['tablero', 1]]);
+    await requerirAlguno(db, req, [['gastos', 1], ['tablero', 1], ['ventas', 1]]);
     const a = await db('archivos').where({ id: uuidOk(req.params.id) ?? null }).first('mime', 'datos');
     if (!a) throw new NotFoundError('No encontramos ese archivo');
     return reply.header('Content-Type', a.mime).header('Cache-Control', 'private, max-age=86400').send(a.datos);

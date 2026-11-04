@@ -171,7 +171,30 @@ export const GUIAS: Guia[] = [
       'Anotá quién se lo lleva, el vehículo y la patente.',
       'Revisá el precio por maple: viene el del cliente o el de lista.',
       'Marcá si lleva factura, revisá y tocá "Confirmar despacho".',
-      'Imprimí el remito y que lo firme quien retira. Los palets quedan vendidos.',
+      'Que firme quien retira: pasale el teléfono o el iPad y firma con el dedo. Si no, imprimí el remito y que firme en papel.',
+      'Los palets quedan vendidos. Si se llevan paquetes sueltos (sin palet), en el primer paso tocá "+ Paquetes sueltos".',
+      'Si el cliente tenía un pedido, el sistema te pregunta si la carga es de ese pedido.',
+    ],
+  },
+  {
+    id: 'pedidos', area: 'Ventas', titulo: 'Cargar un pedido de un cliente', pantallas: ['/pedidos'],
+    palabras: 'pedido encargo reserva cliente pide entrega fecha comprometido',
+    pasos: [
+      'Cuando un cliente encarga maples, en Ventas › Pedidos tocá "Nuevo pedido".',
+      'Elegí el cliente, qué maples y cuántos (en palets o en paquetes): te avisa si hay stock o falta producir.',
+      'Poné para cuándo es y en qué vehículo lo buscan.',
+      'Los pedidos aparecen en Inicio cuando están por vencer. Para entregarlo, abrilo y tocá "Despachar".',
+      'Se cierra solo cuando se entregó todo. Puede entregarse en varios viajes.',
+      'En Stock y palets ves cuánto está comprometido en pedidos.',
+    ],
+  },
+  {
+    id: 'firma', area: 'Ventas', titulo: 'Firma del remito en pantalla', pantallas: ['/ventas/'],
+    palabras: 'firma firmar remito dedo pantalla conformidad retira',
+    pasos: [
+      'Al despachar, el penúltimo paso es la firma: quien retira firma con el dedo en el recuadro.',
+      'Si no firmó en el momento, abrí el remito y tocá "Firmar en pantalla".',
+      'La firma queda guardada en el remito y sale al imprimirlo.',
     ],
   },
   {

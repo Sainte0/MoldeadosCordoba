@@ -6,7 +6,7 @@ import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
 import { Muestra } from '../MapleVista';
 import { TAREAS } from '../navegacion';
-import { ParaVender, PorAcabarse, ServiceMaquinas } from './Avisos';
+import { ParaVender, PedidosProximos, PorAcabarse, ServiceMaquinas } from './Avisos';
 
 function saludo(): string {
   const h = Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
@@ -39,6 +39,7 @@ export function Inicio() {
       </div>
 
       <div className="rejilla par">
+        <PedidosProximos />
         <ParaVender limite={5} />
         <PorAcabarse />
         <ServiceMaquinas />

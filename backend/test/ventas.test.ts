@@ -3,7 +3,9 @@ import { calcularVenta, movimientoDineroSchema, ventaSchema } from '@moldeados/s
 import { db } from '../src/db.js';
 import { anularPalet } from '../src/features/produccion.service.js';
 import { buscar } from '../src/lib/buscar.js';
-import { anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, saldos } from '../src/features/ventas.service.js';
+import { anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, guardarPedido, saldos } from '../src/features/ventas.service.js';
+import { stockMaples } from '../src/features/produccion.service.js';
+import { pedidoSchema } from '@moldeados/shared';
 
 describe('cálculo de venta', () => {
   it('maples × precio por maple + IVA', () => {
@@ -21,7 +23,7 @@ describe('despacho y cuentas (moldeados_test)', () => {
   let u: string, cliente: string, otro: string, variante: string, palet1: string, palet2: string, banco: string;
 
   beforeEach(async () => {
-    await db.raw('truncate saldos_iniciales, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
+    await db.raw('truncate pedido_items, pedidos, saldos_iniciales, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
     [{ id: u }] = await db('usuarios').insert({ nombre: 'Test', usuario: 'test', password_hash: 'x', rol: 'dueno' }).returning('id');
     const [{ id: maq }] = await db('maquinas').insert({ codigo: 'MP-2', nombre: 'Grande' }).returning('id');
     [{ id: variante }] = await db('variantes').insert({ codigo: 'MGR-ROJ', nombre: 'Grande rojo', tamano: 'grande', maquina_id: maq, precio_maple_centavos: 15000 }).returning('id');
@@ -89,5 +91,41 @@ describe('despacho y cuentas (moldeados_test)', () => {
     expect((await db('movimientos_dinero').where({ id: ch.id }).first()).cheque_estado).toBe('cartera');
     await cambiarEstadoCheque(db, u, ch.id, 'depositado');
     expect((await db('movimientos_dinero').where({ id: ch.id }).first()).cheque_estado).toBe('depositado');
+  });
+
+  it('paquetes sueltos: salen de lo sin paletizar (FIFO) y anular la venta los devuelve', async () => {
+    // El parte del beforeEach hizo 72 paquetes y 72 están en los dos palets: no queda nada suelto.
+    await expect(venta(cliente, [], { sueltos: [{ varianteId: variante, paquetes: 5 }] })).rejects.toThrow('hay 0 sueltos');
+    const maq = (await db('maquinas').first('id')).id;
+    await db('partes').insert({ fecha: '2026-11-04', turno: 'tarde', maquina_id: maq, variante_id: variante, minutos: 60, paquetes: 10, maples_por_paquete: 60, maples_por_hora: 0, usuario_id: u });
+    const v = await venta(cliente, [], { sueltos: [{ varianteId: variante, paquetes: 4 }] });
+    expect((await db('ventas').where({ id: v.id }).first()).total_centavos).toBe(4 * 60 * 15000);
+    let [s] = await stockMaples(db);
+    expect([s.producido, s.vendido]).toEqual([82, 4]);
+    await anularVenta(db, u, v.id, 'error');
+    [s] = await stockMaples(db);
+    expect([s.enPalets, s.vendido]).toEqual([72, 0]); // los 4 vuelven a estar sueltos
+  });
+
+  it('pedido: los despachos ligados lo cierran al completarlo y anularlos lo reabre', async () => {
+    const p = await guardarPedido(db, u, pedidoSchema.parse({ clienteId: cliente, items: [{ varianteId: variante, paquetes: 72 }] }));
+    expect((await stockMaples(db))[0].comprometido).toBe(72);
+    await venta(cliente, [palet1], { pedidoId: p.id });
+    expect((await db('pedidos').where({ id: p.id }).first()).estado).toBe('abierto');
+    expect((await stockMaples(db))[0].comprometido).toBe(36);
+    const v2 = await venta(cliente, [palet2], { pedidoId: p.id });
+    expect((await db('pedidos').where({ id: p.id }).first()).estado).toBe('entregado');
+    await expect(venta(otro, [], { pedidoId: p.id, sueltos: [{ varianteId: variante, paquetes: 1 }] })).rejects.toThrow('no es de este cliente');
+    await anularVenta(db, u, v2.id, 'volvió');
+    expect((await db('pedidos').where({ id: p.id }).first()).estado).toBe('abierto');
+  });
+
+  it('firma: guarda solo imágenes PNG', async () => {
+    await expect(venta(cliente, [palet1], { firma: Buffer.from('no es una imagen'.repeat(10)).toString('base64') })).rejects.toThrow('firma');
+    const png = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(200)]).toString('base64');
+    const v = await venta(cliente, [palet1], { firma: png });
+    const fila = await db('ventas').where({ id: v.id }).first('firma_id', 'firmado_at');
+    expect(fila.firma_id).toBeTruthy();
+    expect(fila.firmado_at).toBeTruthy();
   });
 });

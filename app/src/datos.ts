@@ -26,7 +26,7 @@ export interface Variante {
 }
 export interface Empleado { id: string; nombre: string; turnoHabitual: 'manana' | 'tarde' | null; valorHora: number | null; activo: boolean }
 export interface Empresa { razonSocial: string; direccion: string | null; telefono: string | null; email: string | null; cuit: string | null }
-export interface StockMaple { id: string; codigo: string; nombre: string; colorHex: string | null; maplesPorPaquete: number; activo: boolean; producido: number; enPalets: number; vendido: number }
+export interface StockMaple { id: string; codigo: string; nombre: string; colorHex: string | null; maplesPorPaquete: number; activo: boolean; producido: number; enPalets: number; vendido: number; comprometido: number }
 
 export const useMaquinas = () => useQuery({ queryKey: ['maquinas'], queryFn: () => api<Maquina[]>('/maquinas') });
 export const useVariantes = () => useQuery({ queryKey: ['variantes'], queryFn: () => api<Variante[]>('/variantes') });

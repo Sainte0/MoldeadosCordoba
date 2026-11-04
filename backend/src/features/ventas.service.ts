@@ -1,5 +1,6 @@
 import type { Knex } from 'knex';
-import { calcularVenta, type MovimientoDineroInput, type VentaInput } from '@moldeados/shared';
+import { calcularVenta, type MovimientoDineroInput, type PedidoInput, type VentaInput } from '@moldeados/shared';
+import { armarPalet } from './produccion.service.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError, ValidationError } from '../lib/errors.js';
 
@@ -18,9 +19,19 @@ export async function preciosParaCliente(db: Knex, clienteId: string | null): Pr
 
 export async function crearVenta(db: Knex, usuarioId: string, i: VentaInput): Promise<{ id: string; numero: number }> {
   return db.transaction(async (trx) => {
-    const c = await trx('clientes').where({ id: i.clienteId }).whereNull('deleted_at').first('id');
+    const c = await trx('clientes').where({ id: i.clienteId }).whereNull('deleted_at').first('id', 'nombre');
     if (!c) throw new NotFoundError('No encontramos ese cliente');
-    const ids = [...new Set(i.palets)];
+    if (i.pedidoId) {
+      const p = await trx('pedidos').where({ id: i.pedidoId }).forUpdate().first('cliente_id', 'estado');
+      if (!p || p.cliente_id !== i.clienteId) throw new ValidationError('Ese pedido no es de este cliente');
+      if (p.estado !== 'abierto') throw new ConflictError('Ese pedido ya está entregado o cancelado');
+    }
+    // Paquetes sueltos: un palet 1×1×N armado ahora (FIFO de producción, misma trazabilidad), sin etiqueta.
+    const sueltos = [];
+    for (const s of i.sueltos) {
+      sueltos.push((await armarPalet(trx, usuarioId, { varianteId: s.varianteId, ancho: 1, largo: 1, alto: s.paquetes, vehiculo: i.vehiculo, destino: c.nombre, notas: null }, true)).id);
+    }
+    const ids = [...new Set([...i.palets, ...sueltos])];
     // Bloquea los palets: dos ventas a la vez no pueden llevarse el mismo.
     const palets = await trx('palets as p').join('variantes as v', 'v.id', 'p.variante_id').whereIn('p.id', ids).forUpdate('p')
       .select('p.id', 'p.numero', 'p.variante_id', 'p.paquetes', 'p.anulado_at', 'p.venta_id', 'v.maples_por_paquete', 'v.codigo');
@@ -38,7 +49,11 @@ export async function crearVenta(db: Knex, usuarioId: string, i: VentaInput): Pr
     const ivaBp = i.conFactura ? i.ivaBp : 0;
     const t = calcularVenta(items, ivaBp);
 
+    // Firma de quien retira (dibujada en la pantalla): se guarda como imagen.
+    let firmaId: string | null = null;
+    if (i.firma) firmaId = await guardarFirma(trx, usuarioId, i.firma);
     const [venta] = await trx('ventas').insert({
+      pedido_id: i.pedidoId, firma_id: firmaId, firmado_at: firmaId ? trx.fn.now() : null,
       cliente_id: i.clienteId, fecha: i.fecha, con_factura: i.conFactura, nro_factura: i.conFactura ? i.nroFactura : null, iva_bp: ivaBp,
       neto_centavos: t.neto, iva_centavos: t.iva, total_centavos: t.total, vehiculo: i.vehiculo, patente: i.patente, retira: i.retira, notas: i.notas, usuario_id: usuarioId,
     }).returning(['id', 'numero']);
@@ -46,18 +61,22 @@ export async function crearVenta(db: Knex, usuarioId: string, i: VentaInput): Pr
       venta_id: venta.id, palet_id: it.palet.id, variante_id: it.palet.variante_id, maples: it.maples, precio_maple_centavos: it.precioMaple, subtotal_centavos: it.maples * it.precioMaple,
     })));
     await trx('palets').whereIn('id', ids).update({ venta_id: venta.id, updated_at: trx.fn.now() });
-    await auditar(trx, { usuarioId, accion: 'crear', entidad: 'venta', entidadId: venta.id, despues: { ...i, totales: t } });
+    if (i.pedidoId) await actualizarEstadoPedido(trx, i.pedidoId);
+    await auditar(trx, { usuarioId, accion: 'crear', entidad: 'venta', entidadId: venta.id, despues: { ...i, firma: i.firma ? '(firma)' : null, totales: t } });
     return venta;
   });
 }
 
 export async function anularVenta(db: Knex, usuarioId: string, ventaId: string, motivo: string): Promise<void> {
   await db.transaction(async (trx) => {
-    const v = await trx('ventas').where({ id: ventaId }).forUpdate().first('id', 'anulado_at');
+    const v = await trx('ventas').where({ id: ventaId }).forUpdate().first('id', 'anulado_at', 'pedido_id');
     if (!v) throw new NotFoundError('No encontramos esa venta');
     if (v.anulado_at) throw new ConflictError('Esta venta ya estaba anulada');
     await trx('ventas').where({ id: v.id }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: motivo, updated_at: trx.fn.now() });
-    await trx('palets').where({ venta_id: v.id }).update({ venta_id: null, updated_at: trx.fn.now() }); // vuelven a estar disponibles
+    // Los paquetes sueltos vuelven a estar sueltos (su palet 1×1×N se deshace); los palets, disponibles para otro despacho.
+    await trx('palets').where({ venta_id: v.id, suelto: true }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: `Venta anulada: ${motivo}`, venta_id: null, updated_at: trx.fn.now() });
+    await trx('palets').where({ venta_id: v.id }).update({ venta_id: null, updated_at: trx.fn.now() });
+    if (v.pedido_id) await actualizarEstadoPedido(trx, v.pedido_id);
     await auditar(trx, { usuarioId, accion: 'anular', entidad: 'venta', entidadId: v.id, motivo });
   });
 }
@@ -170,5 +189,56 @@ export async function cuentaCorriente(db: Knex, de: 'cliente' | 'proveedor', id:
   return todos.map(({ created_at: _, ...m }) => {
     if (!m.anuladoAt) saldo += m.signo * Number(m.monto);
     return { ...m, saldo };
+  });
+}
+
+/** Guarda la firma (PNG en base64) como archivo y devuelve su id. */
+export async function guardarFirma(trx: Knex.Transaction, usuarioId: string, base64: string): Promise<string> {
+  const datos = Buffer.from(base64, 'base64');
+  // Un PNG empieza con 89 50 4E 47: lo que no lo sea, no se guarda.
+  if (datos.length < 100 || datos.subarray(0, 4).toString('hex') !== '89504e47') throw new ValidationError('La firma no se pudo leer. Probá firmar de nuevo.');
+  const [a] = await trx('archivos').insert({ mime: 'image/png', datos, bytes: datos.length, usuario_id: usuarioId }).returning('id');
+  return a.id;
+}
+
+/** Paquetes despachados por código para un pedido (ventas vigentes ligadas a él). */
+export async function despachadoDelPedido(q: Knex | Knex.Transaction, pedidoId: string): Promise<Map<string, number>> {
+  const filas = await q('palets as pa').join('ventas as v', 'v.id', 'pa.venta_id').where('v.pedido_id', pedidoId).whereNull('v.anulado_at')
+    .groupBy('pa.variante_id').select('pa.variante_id', q.raw('sum(pa.paquetes)::int as paquetes'));
+  return new Map(filas.map((f: { variante_id: string; paquetes: number }) => [f.variante_id, f.paquetes]));
+}
+
+/** Un pedido se da por entregado solo cuando se despachó todo lo pedido; si se anula un despacho, se reabre. */
+export async function actualizarEstadoPedido(trx: Knex.Transaction, pedidoId: string): Promise<void> {
+  const p = await trx('pedidos').where({ id: pedidoId }).first('estado');
+  if (!p || p.estado === 'cancelado') return;
+  const items = await trx('pedido_items').where({ pedido_id: pedidoId }).select('variante_id', 'paquetes');
+  const hecho = await despachadoDelPedido(trx, pedidoId);
+  const completo = items.every((i) => (hecho.get(i.variante_id) ?? 0) >= i.paquetes);
+  const estado = completo ? 'entregado' : 'abierto';
+  if (estado !== p.estado) await trx('pedidos').where({ id: pedidoId }).update({ estado, updated_at: trx.fn.now() });
+}
+
+export async function guardarPedido(db: Knex, usuarioId: string, i: PedidoInput, id?: string): Promise<{ id: string; numero: number }> {
+  return db.transaction(async (trx) => {
+    if (!(await trx('clientes').where({ id: i.clienteId }).whereNull('deleted_at').first('id'))) throw new NotFoundError('No encontramos ese cliente');
+    const variantes = await trx('variantes').whereIn('id', i.items.map((x) => x.varianteId)).whereNull('deleted_at').count<{ c: number }>('id as c').first();
+    if (Number(variantes?.c) !== i.items.length) throw new ValidationError('Hay un maple que no existe');
+    let pedido: { id: string; numero: number };
+    if (id) {
+      const antes = await trx('pedidos').where({ id }).forUpdate().first('id', 'numero', 'estado');
+      if (!antes) throw new NotFoundError('No encontramos ese pedido');
+      if (antes.estado === 'cancelado') throw new ConflictError('Ese pedido está cancelado');
+      await trx('pedidos').where({ id }).update({ cliente_id: i.clienteId, fecha_entrega: i.fechaEntrega, vehiculo: i.vehiculo, notas: i.notas, updated_at: trx.fn.now() });
+      await trx('pedido_items').where({ pedido_id: id }).delete();
+      pedido = { id: antes.id, numero: antes.numero };
+    } else {
+      const [nuevo] = await trx('pedidos').insert({ cliente_id: i.clienteId, fecha_entrega: i.fechaEntrega, vehiculo: i.vehiculo, notas: i.notas, usuario_id: usuarioId }).returning(['id', 'numero']);
+      pedido = nuevo!;
+    }
+    await trx('pedido_items').insert(i.items.map((x) => ({ pedido_id: pedido.id, variante_id: x.varianteId, paquetes: x.paquetes })));
+    await actualizarEstadoPedido(trx, pedido.id);
+    await auditar(trx, { usuarioId, accion: id ? 'editar' : 'crear', entidad: 'pedido', entidadId: pedido.id, despues: i });
+    return pedido;
   });
 }

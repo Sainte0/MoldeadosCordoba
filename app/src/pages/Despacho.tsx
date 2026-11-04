@@ -4,8 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { List, ScanLine, Trash2 } from 'lucide-react';
 import { aCentavos, calcularVenta, formatIva, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
-import type { Cliente, PaletDisponible } from '../datos';
+import { useStockMaples, type Cliente, type PaletDisponible } from '../datos';
+import type { PedidoDetalle } from './Pedidos';
 import { Escaner, idDePalet } from '../Escaner';
+import { Firma } from '../Firma';
 import { Muestra } from '../MapleVista';
 import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
 import { ElegirCliente } from './ElegirCliente';
@@ -36,12 +38,34 @@ export function Despacho() {
   const [factura, setFactura] = useState<DatosFactura>({ conFactura: null, nroFactura: '', ivaBp: 0 });
   const [fecha, setFecha] = useState(hoy());
   const [notas, setNotas] = useState('');
+  const [sueltos, setSueltos] = useState<{ varianteId: string; paquetes: number }[]>([]);
+  const [formSuelto, setFormSuelto] = useState<{ varianteId: string | null; cantidad: string } | null>(null);
+  const [pedidoId, setPedidoId] = useState<string | null>(params.get('pedido'));
+  const [firma, setFirma] = useState<string | null>(null);
+  const { data: stock } = useStockMaples();
+  const { data: pedido } = useQuery({ queryKey: ['pedido', pedidoId], queryFn: () => api<PedidoDetalle>(`/pedidos/${pedidoId}`), enabled: !!pedidoId });
+  const { data: pedidosCliente } = useQuery({ queryKey: ['pedidos', 'abierto', cliente?.id], queryFn: () => api<{ id: string; numero: number; fechaEntrega: string | null; resumen: string }[]>(`/pedidos?estado=abierto&clienteId=${cliente!.id}`), enabled: !!cliente && !params.get('pedido') });
+  // Entrando desde un pedido: el cliente ya está elegido.
+  useEffect(() => {
+    if (pedido && !cliente) api<Cliente>(`/clientes/${pedido.clienteId}`).then(setCliente).catch(() => {});
+  }, [pedido]); // eslint-disable-line react-hooks/exhaustive-deps
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const palets = (disponibles ?? []).filter((p) => elegidos.includes(p.id));
-  const codigos = useMemo(() => [...new Map(palets.map((p) => [p.varianteId, p])).values()], [palets]);
-  const maples = palets.reduce((a, p) => a + p.paquetes * p.maplesPorPaquete, 0);
+  // Todo lo que sube al camión: palets escaneados y paquetes sueltos, con la misma forma.
+  const lineas = [
+    ...palets.map((p) => ({ clave: p.id, varianteId: p.varianteId, codigo: p.codigo, colorHex: p.colorHex, paquetes: p.paquetes, maplesPorPaquete: p.maplesPorPaquete,
+      titulo: `Palet ${nroTicket(p.numero)} · ${p.codigo}`, detalle: `${p.paquetes} paquetes (${p.ancho}×${p.largo}×${p.alto})`, quitar: () => setElegidos((e) => e.filter((x) => x !== p.id)) })),
+    ...sueltos.map((s, i) => {
+      const v = stock?.find((x) => x.id === s.varianteId);
+      return { clave: `s${i}`, varianteId: s.varianteId, codigo: v?.codigo ?? '', colorHex: v?.colorHex ?? null, paquetes: s.paquetes, maplesPorPaquete: v?.maplesPorPaquete ?? 60,
+        titulo: `Paquetes sueltos · ${v?.codigo ?? ''}`, detalle: `${s.paquetes} paquetes`, quitar: () => setSueltos((x) => x.filter((_, j) => j !== i)) };
+    }),
+  ];
+  const codigos = useMemo(() => [...new Map(lineas.map((p) => [p.varianteId, p])).values()], [lineas]); // eslint-disable-line react-hooks/exhaustive-deps
+  const maples = lineas.reduce((a, p) => a + p.paquetes * p.maplesPorPaquete, 0);
+  const sueltosLibres = (id: string) => { const v = stock?.find((x) => x.id === id); return v ? v.producido - v.enPalets - sueltos.filter((s) => s.varianteId === id).reduce((a, s) => a + s.paquetes, 0) : 0; };
 
   // Precio del cliente (o de lista) al elegirlo.
   useEffect(() => {
@@ -68,25 +92,32 @@ export function Despacho() {
     setLectura({ ok: true, texto: `Palet ${nroTicket(p.numero)} · ${p.codigo} · ${p.paquetes} paquetes` });
   };
 
-  const items = palets.map((p) => ({ maples: p.paquetes * p.maplesPorPaquete, precioMaple: aCentavos(precios[p.varianteId] ?? '') ?? 0 }));
+  const items = lineas.map((p) => ({ maples: p.paquetes * p.maplesPorPaquete, precioMaple: aCentavos(precios[p.varianteId] ?? '') ?? 0 }));
   const totales = calcularVenta(items, factura.conFactura ? factura.ivaBp : 0);
   const faltaPrecio = codigos.find((c) => !((aCentavos(precios[c.varianteId] ?? '') ?? 0) > 0));
 
-  const carga = palets.length > 0 && (
+  const carga = lineas.length > 0 && (
     <div className="hoja filas carrito">
-      {palets.map((p) => (
-        <div className="fila" key={p.id}>
+      {lineas.map((p) => (
+        <div className="fila" key={p.clave}>
           <Muestra color={p.colorHex} />
           <div>
-            <div className="principal">Palet {nroTicket(p.numero)} · {p.codigo}</div>
-            <div className="chico tenue">{p.paquetes} paquetes ({p.ancho}×{p.largo}×{p.alto}) · {(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')} maples</div>
+            <div className="principal">{p.titulo}</div>
+            <div className="chico tenue">{p.detalle} · {(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')} maples</div>
           </div>
-          <button type="button" className="boton icono" aria-label={`Sacar palet ${nroTicket(p.numero)}`} onClick={() => setElegidos(elegidos.filter((x) => x !== p.id))}><Trash2 size={18} /></button>
+          <button type="button" className="boton icono" aria-label={`Sacar ${p.titulo}`} onClick={p.quitar}><Trash2 size={18} /></button>
         </div>
       ))}
-      <div className="fila"><span className="tenue">{palets.length} palets</span><span /><span className="cifra">{maples.toLocaleString('es-AR')} maples</span></div>
+      <div className="fila"><span className="tenue">{palets.length} palets{sueltos.length ? ` y ${sueltos.reduce((a, s) => a + s.paquetes, 0)} paquetes sueltos` : ''}</span><span /><span className="cifra">{maples.toLocaleString('es-AR')} maples</span></div>
     </div>
   );
+  const faltaDelPedido = pedido?.items.filter((i) => i.paquetes > i.despachado) ?? [];
+  const agregarSuelto = () => {
+    const n = Number(formSuelto?.cantidad);
+    if (!formSuelto?.varianteId || !n || n < 1) return;
+    setSueltos((s) => [...s, { varianteId: formSuelto.varianteId!, paquetes: n }]);
+    setFormSuelto(null);
+  };
 
   const pasos: Paso[] = [
     {
@@ -112,10 +143,28 @@ export function Despacho() {
             </div>
           )}
           {lectura && !lectura.ok && <Aviso>{lectura.texto}</Aviso>}
+          {pedido && faltaDelPedido.length > 0 && (
+            <p className="tenue chico">Pedido {nroTicket(pedido.numero)} de {pedido.cliente}: falta entregar {faltaDelPedido.map((i) => `${i.codigo} ${i.paquetes - i.despachado} paquetes`).join(', ')}.</p>
+          )}
           {carga}
+          {formSuelto ? (
+            <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+              <b>Paquetes sueltos (sin palet)</b>
+              <Opciones columnas valor={formSuelto.varianteId} onChange={(varianteId) => setFormSuelto({ ...formSuelto, varianteId })}
+                opciones={(stock ?? []).filter((v) => sueltosLibres(v.id) > 0).map((v) => ({ valor: v.id, titulo: v.codigo, detalle: `${sueltosLibres(v.id)} sueltos` }))} />
+              {formSuelto.varianteId && <EntradaNumero unidad="paq." value={formSuelto.cantidad} onChange={(e) => setFormSuelto({ ...formSuelto, cantidad: e.target.value.replace(/\D/g, '') })} aria-label="Cantidad de paquetes" autoFocus />}
+              {formSuelto.varianteId && Number(formSuelto.cantidad) > sueltosLibres(formSuelto.varianteId) && <Aviso>Hay {sueltosLibres(formSuelto.varianteId)} paquetes sueltos de ese maple.</Aviso>}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="boton primario" disabled={!formSuelto.varianteId || !Number(formSuelto.cantidad) || Number(formSuelto.cantidad) > sueltosLibres(formSuelto.varianteId)} onClick={agregarSuelto}>Agregar</button>
+                <button type="button" className="boton fantasma" onClick={() => setFormSuelto(null)}>Cancelar</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" className="boton secundario" style={{ justifySelf: 'start' }} onClick={() => setFormSuelto({ varianteId: null, cantidad: '' })}>+ Paquetes sueltos (sin palet)</button>
+          )}
         </>
       ),
-      listo: palets.length ? true : 'Escaneá al menos un palet',
+      listo: lineas.length ? true : 'Escaneá al menos un palet o agregá paquetes sueltos',
     },
     {
       titulo: '¿Para quién es?',
@@ -123,6 +172,17 @@ export function Despacho() {
       contenido: <ElegirCliente valor={cliente} onChange={setCliente} />,
       listo: cliente ? true : 'Elegí el cliente',
     },
+    ...(!params.get('pedido') && pedidosCliente?.length ? [{
+      titulo: '¿Es de un pedido?',
+      ayuda: 'Este cliente tiene pedidos sin entregar. Si esta carga es de uno, elegilo: el pedido se cierra solo cuando se entrega todo.',
+      contenido: (
+        <Opciones<string | null> valor={pedidoId} onChange={setPedidoId} opciones={[
+          ...pedidosCliente.map((p) => ({ valor: p.id, titulo: `Pedido ${nroTicket(p.numero)}${p.fechaEntrega ? ` · para el ${verFecha(p.fechaEntrega)}` : ''}`, detalle: p.resumen })),
+          { valor: null, titulo: 'No, es una venta sin pedido' },
+        ]} />
+      ),
+      listo: true,
+    } as Paso] : []),
     {
       titulo: '¿Quién se lo lleva?',
       ayuda: 'Anotá el nombre de quien retira y en qué vehículo. Queda en el remito para firmar.',
@@ -157,6 +217,17 @@ export function Despacho() {
       listo: facturaLista(factura),
     },
     {
+      titulo: 'Que firme quien retira',
+      ayuda: 'Pasale el teléfono o el iPad a quien se lleva la carga para que firme con el dedo. Si preferís, seguí sin firma e imprimí el remito para firmar en papel.',
+      contenido: (
+        <>
+          <p className="tenue">{retira} recibe {maples.toLocaleString('es-AR')} maples para {cliente?.nombre}.</p>
+          <Firma onCambio={setFirma} />
+        </>
+      ),
+      listo: true,
+    },
+    {
       titulo: 'Revisá y confirmá',
       ayuda: 'Al confirmar, los palets quedan vendidos a este cliente y se genera el remito para que firme quien retira.',
       contenido: (
@@ -183,7 +254,7 @@ export function Despacho() {
       const r = await api<{ id: string }>('/ventas', {
         method: 'POST',
         body: {
-          clienteId: cliente!.id, fecha, palets: elegidos, retira, vehiculo, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura),
+          clienteId: cliente!.id, fecha, palets: elegidos, sueltos, pedidoId, firma, retira, vehiculo, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura),
           precios: cambiaPrecios ? codigos.map((c) => ({ varianteId: c.varianteId, precioMaple: aCentavos(precios[c.varianteId] ?? '') ?? 0 })) : [],
         },
       });

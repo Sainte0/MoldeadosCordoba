@@ -379,3 +379,9 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
   .velo-buscador { padding: 0; place-items: stretch; }
   .buscador-global { width: 100%; max-height: none; height: 100dvh; border-radius: 0; padding-top: env(safe-area-inset-top); }
 }
+
+/* Firma en pantalla */
+.firma-pad { position: relative; }
+.firma-pad canvas { display: block; width: 100%; background: #fff; border: 1px dashed var(--linea-fuerte); border-radius: var(--radio-s); touch-action: none; cursor: crosshair; }
+.firma-guia { position: absolute; left: 16px; bottom: 14px; color: var(--tinta-3); pointer-events: none; }
+.firma-borrar { position: absolute; right: 6px; top: 6px; }

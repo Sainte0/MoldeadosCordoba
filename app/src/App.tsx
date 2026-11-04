@@ -38,6 +38,9 @@ const Gastos = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.Gas
 const NuevoGasto = lazy(() => import('./pages/NuevoGasto').then((m) => ({ default: m.NuevoGasto })));
 const Caja = lazy(() => import('./pages/Caja').then((m) => ({ default: m.Caja })));
 const Ayuda = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.Ayuda })));
+const Pedidos = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.Pedidos })));
+const NuevoPedido = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.NuevoPedido })));
+const PedidoDetalleVista = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.PedidoDetalleVista })));
 const Importar = lazy(() => import('./pages/Importar').then((m) => ({ default: m.Importar })));
 const Exportar = lazy(() => import('./pages/Exportar').then((m) => ({ default: m.Exportar })));
 
@@ -120,6 +123,9 @@ export function App() {
           {p('gastos') && <Route path="/caja" element={<Caja />} />}
           {p('ventas', 2) && <Route path="/ventas/nueva" element={<Despacho />} />}
           {p('ventas') && <Route path="/ventas" element={<Ventas />} />}
+          {p('ventas') && <Route path="/pedidos" element={<Pedidos />} />}
+          {p('ventas', 2) && <Route path="/pedidos/nuevo" element={<NuevoPedido />} />}
+          {p('ventas') && <Route path="/pedidos/:id" element={<PedidoDetalleVista />} />}
           {p('ventas') && <Route path="/ventas/:id" element={<VentaDetalle />} />}
           {p('ventas') && <Route path="/clientes" element={<Clientes />} />}
           {p('ventas') && <Route path="/precios" element={<Precios />} />}

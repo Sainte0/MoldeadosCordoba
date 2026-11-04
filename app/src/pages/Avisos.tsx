@@ -105,3 +105,24 @@ export function ServiceMaquinas() {
     </section>
   );
 }
+
+/** Pedidos por entregar en los próximos días (y los atrasados). */
+export function PedidosProximos() {
+  const { puede } = useSesion();
+  const { data } = useQuery({ queryKey: ['pedidos', 'abierto', ''], queryFn: () => api<{ id: string; numero: number; fechaEntrega: string | null; cliente: string; resumen: string; paquetes: number; despachado: number }[]>('/pedidos?estado=abierto'), enabled: puede('ventas') });
+  const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
+  const limite = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+  const lista = (data ?? []).filter((p) => !p.fechaEntrega || p.fechaEntrega <= limite).slice(0, 6);
+  if (!lista.length) return null;
+  return (
+    <section className="hoja">
+      <div className="fila"><div><h3>Pedidos para entregar</h3><p className="chico tenue">Atrasados y de los próximos 3 días.</p></div><Link to="/pedidos" className="chico">Ver todos</Link></div>
+      {lista.map((p) => (
+        <Link to={`/pedidos/${p.id}`} className="fila" key={p.id}>
+          <div><div className="principal">{p.cliente}</div><div className="chico tenue">{p.resumen} · {p.despachado} de {p.paquetes} paq. entregados</div></div>
+          <span className={`marca-texto ${p.fechaEntrega && p.fechaEntrega < hoyStr ? 'peligro' : p.fechaEntrega === hoyStr ? 'alerta' : ''}`}>{!p.fechaEntrega ? 'Sin fecha' : p.fechaEntrega < hoyStr ? 'Atrasado' : p.fechaEntrega === hoyStr ? 'Hoy' : verFecha(p.fechaEntrega)}</span>
+        </Link>
+      ))}
+    </section>
+  );
+}

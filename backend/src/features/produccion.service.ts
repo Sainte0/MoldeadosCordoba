@@ -74,17 +74,25 @@ function lotesLibres(q: Knex | Knex.Transaction, varianteId: string) {
 }
 
 export async function crearPalet(db: Knex, usuarioId: string, i: PaletInput): Promise<{ id: string; numero: number }> {
-  return db.transaction(async (trx) => {
+  return db.transaction((trx) => armarPalet(trx, usuarioId, i, false));
+}
+
+/**
+ * Arma un palet dentro de una transacción ya abierta. `suelto`: paquetes sueltos que se venden sin palet (1×1×N,
+ * se arma en el despacho y no lleva etiqueta), con el mismo FIFO y la misma trazabilidad.
+ */
+export async function armarPalet(trx: Knex.Transaction, usuarioId: string, i: PaletInput, suelto: boolean): Promise<{ id: string; numero: number }> {
+  {
     // Bloquea la variante: dos palets armados a la vez no pueden tomar los mismos paquetes.
     const v = await trx('variantes').where({ id: i.varianteId }).whereNull('deleted_at').forUpdate().first('id', 'nombre');
     if (!v) throw new ValidationError('Ese maple no existe');
     const paquetes = i.ancho * i.largo * i.alto;
     const lotes = (await lotesLibres(trx, v.id)).filter((l: { libres: number }) => l.libres > 0) as { id: string; libres: number }[];
     const disponibles = lotes.reduce((a, l) => a + l.libres, 0);
-    if (disponibles < paquetes) throw new ConflictError(`Para este palet hacen falta ${paquetes} paquetes de ${v.nombre} y hay ${disponibles} sin paletizar.`);
+    if (disponibles < paquetes) throw new ConflictError(`${suelto ? 'Se piden' : 'Para este palet hacen falta'} ${paquetes} paquetes de ${v.nombre} y hay ${disponibles} sueltos (sin paletizar).`);
 
     const [palet] = await trx('palets')
-      .insert({ variante_id: v.id, ancho: i.ancho, largo: i.largo, alto: i.alto, paquetes, vehiculo: i.vehiculo, destino: i.destino, notas: i.notas, usuario_id: usuarioId })
+      .insert({ variante_id: v.id, ancho: i.ancho, largo: i.largo, alto: i.alto, paquetes, vehiculo: i.vehiculo, destino: i.destino, notas: i.notas, usuario_id: usuarioId, suelto })
       .returning(['id', 'numero']);
     let falta = paquetes;
     const asignados: { palet_id: string; parte_id: string; paquetes: number }[] = [];
@@ -95,9 +103,9 @@ export async function crearPalet(db: Knex, usuarioId: string, i: PaletInput): Pr
       falta -= toma;
     }
     await trx('palet_lotes').insert(asignados);
-    await auditar(trx, { usuarioId, accion: 'crear', entidad: 'palet', entidadId: palet.id, despues: { ...i, paquetes, lotes: asignados.map((a) => ({ parteId: a.parte_id, paquetes: a.paquetes })) } });
+    await auditar(trx, { usuarioId, accion: 'crear', entidad: 'palet', entidadId: palet.id, despues: { ...i, suelto, paquetes, lotes: asignados.map((a) => ({ parteId: a.parte_id, paquetes: a.paquetes })) } });
     return palet;
-  });
+  }
 }
 
 export async function anularPalet(db: Knex, usuarioId: string, paletId: string, motivo: string): Promise<void> {
@@ -120,6 +128,10 @@ export async function stockMaples(db: Knex) {
       db.raw('coalesce((select sum(p.paquetes) from partes p where p.variante_id = v.id and p.anulado_at is null), 0)::int as producido'),
       db.raw('coalesce((select sum(l.paquetes) from palet_lotes l join palets pa on pa.id = l.palet_id where pa.variante_id = v.id and pa.anulado_at is null), 0)::int as "enPalets"'),
       db.raw('coalesce((select sum(pa.paquetes) from palets pa join ventas ve on ve.id = pa.venta_id where pa.variante_id = v.id and pa.anulado_at is null), 0)::int as vendido'),
+      // Lo que falta entregar de pedidos abiertos: para saber si el stock alcanza.
+      db.raw(`coalesce((select sum(greatest(pi.paquetes - coalesce((select sum(pa.paquetes) from palets pa join ventas ve on ve.id = pa.venta_id
+               where ve.pedido_id = pe.id and ve.anulado_at is null and pa.variante_id = pi.variante_id), 0), 0))
+             from pedido_items pi join pedidos pe on pe.id = pi.pedido_id where pe.estado = 'abierto' and pi.variante_id = v.id), 0)::int as "comprometido"`),
     )
     .orderBy('v.codigo');
 }

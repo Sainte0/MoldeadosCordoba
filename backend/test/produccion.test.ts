@@ -52,7 +52,7 @@ describe('partes y palets (moldeados_test)', () => {
     expect(lotes).toEqual([{ parte_id: viejo.id, paquetes: 20 }, { parte_id: nuevo.id, paquetes: 16 }]);
     const [s] = await stockMaples(db);
     expect([s.producido, s.enPalets]).toEqual([50, 36]);
-    await expect(crearPalet(db, usuarioId, { varianteId: variante, ancho: 2, largo: 3, alto: 4, vehiculo: null, destino: null, notas: null })).rejects.toThrow('hay 14 sin paletizar');
+    await expect(crearPalet(db, usuarioId, { varianteId: variante, ancho: 2, largo: 3, alto: 4, vehiculo: null, destino: null, notas: null })).rejects.toThrow('hay 14 sueltos');
 
     // Un parte que está en un palet no se anula hasta desarmar el palet.
     await expect(anularParte(db, usuarioId, viejo.id, 'x')).rejects.toThrow('Anulá ese palet primero');

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Ban, CheckCircle2, Printer, Wallet } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCircle2, PenLine, Printer, Wallet } from 'lucide-react';
 import { formatIva, formatPesos, LABEL_VEHICULO, type Vehiculo } from '@moldeados/shared/base';
-import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
+import { api, apiBlobUrl, nroTicket, useSesion, verFecha, verMomento } from '../api';
+import { Firma } from '../Firma';
 import { useEmpresa } from '../datos';
 import { Muestra } from '../MapleVista';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';
@@ -12,7 +13,8 @@ interface Detalle {
   id: string; numero: number; fecha: string; conFactura: boolean; nroFactura: string | null; ivaBp: number; neto: number; iva: number; total: number;
   vehiculo: Vehiculo | null; patente: string | null; retira: string | null; notas: string | null; cargadaAt: string; anuladoAt: string | null; motivoAnulacion: string | null;
   anuladoPor: string | null; cargadoPor: string; clienteId: string; cliente: string; clienteCuit: string | null; clienteDireccion: string | null;
-  items: { id: string; paletId: string; palet: number; paquetes: number; codigo: string; variante: string; colorHex: string | null; maples: number; precioMaple: number; subtotal: number }[];
+  firmaId: string | null; firmadoAt: string | null; pedidoId: string | null; pedidoNumero: number | null;
+  items: { id: string; paletId: string; palet: number; suelto: boolean; paquetes: number; codigo: string; variante: string; colorHex: string | null; maples: number; precioMaple: number; subtotal: number }[];
 }
 
 /** Remito de la venta: lo firma quien retira. */
@@ -26,6 +28,15 @@ export function VentaDetalle() {
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [err, setErr] = useState<string | null>(null);
+  const [firmando, setFirmando] = useState(false);
+  const [trazo, setTrazo] = useState<string | null>(null);
+  const [firma, setFirma] = useState<string | null>(null);
+  useEffect(() => {
+    if (!v?.firmaId) return;
+    let url = '';
+    apiBlobUrl(`/archivos/${v.firmaId}`).then((u) => { url = u; setFirma(u); }).catch(() => setFirma(null));
+    return () => { if (url) URL.revokeObjectURL(url); };
+  }, [v?.firmaId]);
 
   if (isLoading) return <Cargando />;
   if (!v) return <Aviso>{error instanceof Error ? error.message : 'No encontramos esa venta'}</Aviso>;
@@ -45,7 +56,7 @@ export function VentaDetalle() {
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
       <Link to="/ventas" className="boton fantasma no-imprimir" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Ventas</Link>
-      {params.get('nuevo') && !v.anuladoAt && <div className="aviso ok no-imprimir" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Despacho confirmado. Los palets quedaron vendidos. Imprimí el remito para que lo firme quien retira.</div>}
+      {params.get('nuevo') && !v.anuladoAt && <div className="aviso ok no-imprimir" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Despacho confirmado: la carga quedó vendida{v.firmaId ? ' y el remito firmado' : '. Imprimí el remito para que lo firme quien retira'}.</div>}
 
       <article className="ticket remito">
         <div className="encabezado">
@@ -61,6 +72,7 @@ export function VentaDetalle() {
           <dt>Cliente</dt><dd>{v.cliente}{v.clienteCuit && <span className="tenue"> · CUIT {v.clienteCuit}</span>}</dd>
           {v.clienteDireccion && <><dt>Dirección</dt><dd>{v.clienteDireccion}</dd></>}
           <dt>Retira</dt><dd>{v.retira}</dd>
+          {v.pedidoId && <><dt>Pedido</dt><dd><Link to={`/pedidos/${v.pedidoId}`}>{nroTicket(v.pedidoNumero ?? 0)}</Link></dd></>}
           {(v.vehiculo || v.patente) && <><dt>Vehículo</dt><dd>{[v.vehiculo && LABEL_VEHICULO[v.vehiculo], v.patente].filter(Boolean).join(' · ')}</dd></>}
           <dt>Factura</dt><dd>{v.conFactura ? `Sí${v.nroFactura ? ` · ${v.nroFactura}` : ''}` : 'No'}</dd>
         </dl>
@@ -69,7 +81,7 @@ export function VentaDetalle() {
           <tbody>
             {v.items.map((i) => (
               <tr key={i.id}>
-                <td><Link to={`/palets/${i.paletId}`}>{nroTicket(i.palet)}</Link></td>
+                <td>{i.suelto ? `${i.paquetes} sueltos` : <Link to={`/palets/${i.paletId}`}>{nroTicket(i.palet)}</Link>}</td>
                 <td><span className="con-muestra" style={{ gap: 6 }}><Muestra color={i.colorHex} />{i.codigo}</span></td>
                 <td>{i.maples.toLocaleString('es-AR')}</td><td>{formatPesos(i.precioMaple)}</td><td>{formatPesos(i.subtotal)}</td>
               </tr>
@@ -79,16 +91,37 @@ export function VentaDetalle() {
           </tbody>
         </table>
         {v.notas && <p><b>Notas:</b> {v.notas}</p>}
-        <div className="firma"><div>Firma de quien retira</div><div>Aclaración y DNI</div></div>
+        {firma ? (
+          <div style={{ display: 'grid', gap: 4, justifyItems: 'start' }}>
+            <img src={firma} alt={`Firma de ${v.retira ?? 'quien retira'}`} style={{ maxHeight: 110, maxWidth: '100%' }} />
+            <div className="chico tenue" style={{ borderTop: '1px solid var(--tinta)', paddingTop: 4, minWidth: 220 }}>{v.retira} · firmó en pantalla {v.firmadoAt && verMomento(v.firmadoAt)}</div>
+          </div>
+        ) : <div className="firma"><div>Firma de quien retira</div><div>Aclaración y DNI</div></div>}
         <p className="chico tenue">Despachado por {v.cargadoPor}, {verMomento(v.cargadaAt)}</p>
       </article>
 
       <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <button className="boton primario grande" onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir remito</button>
+        {!v.anuladoAt && !v.firmaId && puede('ventas', 2) && <button className="boton secundario" onClick={() => setFirmando(true)}><PenLine size={18} aria-hidden /> Firmar en pantalla</button>}
         {!v.anuladoAt && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=cobro&id=${v.clienteId}`} className="boton secundario"><Wallet size={18} aria-hidden /> Registrar cobro</Link>}
         {!v.anuladoAt && puede('ventas', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
       </div>
 
+      {firmando && (
+        <Dialogo titulo="Firma de quien retira" onCerrar={() => setFirmando(false)}>
+          <p className="tenue">{v.retira} recibe {maples.toLocaleString('es-AR')} maples para {v.cliente}.</p>
+          <Firma onCambio={setTrazo} />
+          <Aviso>{err}</Aviso>
+          <div className="acciones">
+            <button className="boton secundario" onClick={() => setFirmando(false)}>Cancelar</button>
+            <button className="boton primario" disabled={!trazo} onClick={async () => {
+              setErr(null);
+              try { await api(`/ventas/${v.id}/firma`, { method: 'POST', body: { firma: trazo } }); await qc.invalidateQueries({ queryKey: ['venta', id] }); setFirmando(false); }
+              catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo guardar la firma'); }
+            }}>Guardar firma</button>
+          </div>
+        </Dialogo>
+      )}
       {anulando && (
         <Dialogo titulo={`Anular remito ${nroTicket(v.numero)}`} onCerrar={() => setAnulando(false)}>
           <p className="tenue">Los palets vuelven a estar disponibles y se descuenta de la cuenta del cliente. Queda registrado con tu nombre y el motivo.</p>

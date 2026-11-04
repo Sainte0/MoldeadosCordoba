@@ -188,10 +188,15 @@ export const ventaSchema = z.object({
   patente: opcional(15).transform((v) => (v ? v.toUpperCase().replace(/\s/g, '') : null)),
   retira: texto(120).min(2, 'Anotá quién se lleva los palets'),
   notas: opcional(1000),
-  palets: z.array(z.string().uuid()).min(1, 'Elegí al menos un palet'),
+  palets: z.array(z.string().uuid()).default([]),
+  /** Paquetes que se llevan sin palet. */
+  sueltos: z.array(z.object({ varianteId: z.string().uuid(), paquetes: z.number().int().min(1).max(5000) })).default([]),
+  pedidoId: z.string().uuid().nullable().default(null),
+  /** Firma de quien retira: PNG en base64 (sin el prefijo data:). */
+  firma: z.string().max(600_000, 'La firma es muy grande').nullable().default(null),
   /** Precio por maple de cada código. Lo que no viene, se toma el del cliente o el de lista. */
   precios: z.array(z.object({ varianteId: z.string().uuid(), precioMaple: z.number().int().min(0) })).default([]),
-});
+}).refine((v) => v.palets.length + v.sueltos.length > 0, { message: 'Escaneá al menos un palet o agregá paquetes sueltos', path: ['palets'] });
 
 export const movimientoDineroSchema = z
   .object({
@@ -259,6 +264,16 @@ export const procedimientoSchema = z.object({
 
 export type GastoInput = z.infer<typeof gastoSchema>;
 
+export const pedidoSchema = z.object({
+  clienteId: uuid('Elegí el cliente'),
+  fechaEntrega: fecha.nullable().default(null),
+  vehiculo: z.enum(VEHICULOS).nullable().default(null),
+  notas: opcional(1000),
+  items: z.array(z.object({ varianteId: z.string().uuid(), paquetes: z.number().int().min(1, 'La cantidad tiene que ser mayor a cero') })).min(1, 'Agregá al menos un maple al pedido')
+    .refine((r) => new Set(r.map((i) => i.varianteId)).size === r.length, 'Hay un maple repetido en el pedido'),
+});
+
+export type PedidoInput = z.infer<typeof pedidoSchema>;
 export type VentaInput = z.infer<typeof ventaSchema>;
 
 export type MovimientoDineroInput = z.infer<typeof movimientoDineroSchema>;
