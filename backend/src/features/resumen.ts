@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import { enviarMail } from '../lib/mail.js';
 import type { FastifyInstance } from 'fastify';
 import type { Knex } from 'knex';
 import { formatCantidad, formatPesos, LABEL_TURNO, type Turno, type Unidad } from '@moldeados/shared';
@@ -74,16 +74,6 @@ export async function armarResumen(q: Knex, fecha: string): Promise<{ titulo: st
 /** ¿Hay que mandar el resumen ahora? Una vez por día, a partir de la hora configurada. */
 export const toca = (hora: number, ahora: number, enviado: string | null, hoy: string) => ahora >= hora && enviado !== hoy;
 
-async function enviarMail(para: string[], asunto: string, texto: string): Promise<void> {
-  if (env.EMAIL_PROVIDER === 'log' || !env.SMTP_USER) {
-    console.log(`[resumen] (mail no configurado) para ${para.join(', ')}:\n${texto}`);
-    return;
-  }
-  const t = nodemailer.createTransport({ host: env.SMTP_HOST, port: env.SMTP_PORT, secure: env.SMTP_PORT === 465, auth: { user: env.SMTP_USER, pass: env.SMTP_PASS } });
-  const html = `<div style="font-family:system-ui,sans-serif;font-size:15px;line-height:1.5;white-space:pre-wrap">${texto
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*([^*]+)\*/g, '<b>$1</b>')}</div>`;
-  await t.sendMail({ from: env.EMAIL_FROM, to: para, subject: asunto, text: texto.replace(/\*/g, ''), html });
-}
 
 /** Lo llama un timer del servidor cada minuto. "Reclama" el envío del día en la base antes de mandar: aunque haya dos procesos, sale uno solo. */
 export async function revisarResumenDiario(log: (msg: string, err?: unknown) => void): Promise<void> {
@@ -95,7 +85,7 @@ export async function revisarResumenDiario(log: (msg: string, err?: unknown) => 
   if (!reclamado) return;
   try {
     const r = await armarResumen(db, hoy);
-    await enviarMail(para, `Moldeados Córdoba · ${r.titulo}`, r.texto);
+    await enviarMail({ para, asunto: `Moldeados Córdoba · ${r.titulo}`, texto: r.texto });
     log(`resumen diario enviado a ${para.join(', ')}`);
   } catch (err) {
     await db('empresa').where({ id: 1 }).update({ resumen_enviado: null }); // que lo reintente en el próximo minuto

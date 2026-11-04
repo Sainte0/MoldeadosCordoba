@@ -250,7 +250,15 @@ button.fila:last-child { border-bottom: 0; }
 .login-escena {
   position: relative; overflow: hidden; color: #fff; display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
   padding: max(32px, env(safe-area-inset-top)) clamp(24px, 4vw, 56px) 40px;
-  background: radial-gradient(ellipse 70% 55% at 55% 48%, #1d3157 0%, var(--tinta) 70%);
+  /* Su fachada de fondo, oscurecida hacia abajo para que el nombre y el maple se lean. */
+  background:
+    linear-gradient(to top, rgba(14, 26, 48, 0.96) 0%, rgba(14, 26, 48, 0.82) 30%, rgba(14, 26, 48, 0.62) 60%, rgba(14, 26, 48, 0.3) 100%),
+    url('/fachada-1600.webp') 30% 35% / cover no-repeat, var(--tinta);
+}
+@media (max-width: 900px) {
+  .login-escena { background:
+    linear-gradient(to top, rgba(14, 26, 48, 0.96) 0%, rgba(14, 26, 48, 0.7) 55%, rgba(14, 26, 48, 0.35) 100%),
+    url('/fachada-900.webp') 25% 30% / cover no-repeat, var(--tinta); }
 }
 .login-marca { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; color: #b9c4d6; }
 .login-marca img { border-radius: 9px; }
@@ -265,6 +273,8 @@ button.fila:last-child { border-bottom: 0; }
 .login-logo { display: none; border-radius: 11px; }
 .login-contacto { text-align: center; }
 .con-ojo { position: relative; }
+.entrada.codigo { font-size: 1.6rem; letter-spacing: 0.4em; text-align: center; font-variant-numeric: tabular-nums; }
+.login-form .enlace { display: inline-flex; align-items: center; gap: 6px; font-size: 0.95rem; }
 .con-ojo .entrada { padding-right: 52px; }
 .con-ojo .boton.icono { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); }
 @media (max-width: 900px) {

@@ -4,7 +4,7 @@ import type { Modulo, Nivel, Rol } from '@moldeados/shared/base';
 const BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4800') + '/api';
 const CLAVE = 'moldeados_sesion';
 
-export interface Usuario { id: string; nombre: string; usuario: string; rol: Rol; activo: boolean }
+export interface Usuario { id: string; nombre: string; usuario: string; rol: Rol; activo: boolean; email?: string | null }
 type Permisos = Record<Modulo, Nivel>;
 interface Sesion { token: string; usuario: Usuario; permisos: Permisos }
 

@@ -89,13 +89,14 @@ function EditarUsuario({ inicial, onCerrar }: { inicial: Partial<Usuario>; onCer
   const [rol, setRol] = useState<Rol>(inicial.rol ?? 'operario');
   const [activo, setActivo] = useState(inicial.activo ?? true);
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(inicial.email ?? '');
   const [error, setError] = useState<string | null>(null);
   const roles = ROLES.filter((r) => r !== 'dueno' || sesion?.usuario.rol === 'dueno');
 
   const guardar = async () => {
     setError(null);
     try {
-      await api(inicial.id ? `/usuarios/${inicial.id}` : '/usuarios', { method: inicial.id ? 'PUT' : 'POST', body: { nombre, usuario, rol, activo, password: password || undefined } });
+      await api(inicial.id ? `/usuarios/${inicial.id}` : '/usuarios', { method: inicial.id ? 'PUT' : 'POST', body: { nombre, usuario, rol, activo, password: password || undefined, email: email.trim() || null } });
       await qc.invalidateQueries({ queryKey: ['usuarios'] });
       onCerrar();
     } catch (e) {
@@ -107,6 +108,7 @@ function EditarUsuario({ inicial, onCerrar }: { inicial: Partial<Usuario>; onCer
     <Dialogo titulo={inicial.id ? inicial.nombre ?? '' : 'Agregar persona'} onCerrar={onCerrar}>
       <Campo etiqueta="Nombre y apellido"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus /></Campo>
       <Campo etiqueta="Usuario" ayuda="Con esto entra. Sin espacios, ej.: juan.perez"><Entrada value={usuario} onChange={(e) => setUsuario(e.target.value)} autoCapitalize="none" /></Campo>
+      <Campo etiqueta="Mail" ayuda="Opcional. Con el mail puede recuperar la contraseña sola, con un código."><Entrada type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoCapitalize="none" autoComplete="off" placeholder="nombre@ejemplo.com" /></Campo>
       <Campo etiqueta={inicial.id ? 'Contraseña nueva' : 'Contraseña'} ayuda={inicial.id ? 'Dejalo vacío para no cambiarla' : 'Al menos 6 caracteres. Pasásela en persona.'}>
         <Entrada type="text" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
       </Campo>

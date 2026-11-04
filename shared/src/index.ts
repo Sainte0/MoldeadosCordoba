@@ -21,6 +21,15 @@ export const usuarioSchema = z.object({
   rol: z.enum(ROLES),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').max(200).optional(),
   activo: z.boolean().default(true),
+  /** Para recuperar la contraseña con un código por mail. */
+  email: z.string().trim().toLowerCase().max(160).email('El mail no es válido').nullable().optional().or(z.literal('').transform(() => null)),
+});
+
+export const recuperarSchema = z.object({ usuario: texto(160).min(2, 'Escribí tu usuario o tu mail').transform((v) => v.toLowerCase()) });
+export const restablecerSchema = z.object({
+  usuario: texto(160).min(2).transform((v) => v.toLowerCase()),
+  codigo: z.string().trim().regex(/^\d{6}$/, 'El código tiene 6 números'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').max(200),
 });
 
 export const permisoSchema = z.object({

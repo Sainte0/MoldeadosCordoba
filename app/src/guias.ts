@@ -25,11 +25,12 @@ export const GUIAS: Guia[] = [
   },
   {
     id: 'entrar', area: 'Primeros pasos', titulo: 'Entrar, salir y cambiar la contraseña', pantallas: ['/'],
-    palabras: 'login usuario contraseña clave olvidé sesión cerrar',
+    palabras: 'login usuario contraseña clave olvidé olvide recuperar codigo mail sesión cerrar',
     pasos: [
-      'Entrá con el usuario y la contraseña que te dio el encargado.',
+      'Entrá con tu usuario y tu contraseña. El sistema recuerda el último usuario que entró en ese teléfono.',
       'Para salir, abrí el menú y tocá "Salir" abajo de todo.',
-      'Si te olvidaste la contraseña, pedile al dueño que te ponga una nueva desde Ajustes › Equipo y permisos.',
+      '¿Te olvidaste la contraseña? En la pantalla de entrada tocá "¿Olvidaste tu contraseña?", escribí tu usuario o tu mail y te llega un código de 6 números. Con el código elegís una contraseña nueva y entrás.',
+      'Para que funcione, tu usuario tiene que tener un mail cargado (Ajustes › Equipo y permisos). Si no tiene, quien administra el sistema te puede poner una contraseña nueva desde ahí.',
       'La sesión dura una semana y se renueva sola cada vez que abrís el sistema: si lo usás seguido, no te vuelve a pedir la contraseña.',
     ],
   },
