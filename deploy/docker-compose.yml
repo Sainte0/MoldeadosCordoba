@@ -1,0 +1,114 @@
+# Moldeados Córdoba — deploy en el VPS de Centrolab y Hassuru, integrado al Traefik de Coolify (red "coolify"),
+# igual que hassuru-consignacion.
+#
+# Un solo origen: Traefik manda /api al backend y el resto al frontend (estáticos con nginx). Sin CORS.
+# Dos hostnames: ${DOMINIO_SSLIP} (sslip.io, con HTTPS desde el día cero: la cámara del iPhone para escanear
+# QR exige HTTPS) y ${DOMINIO} (el definitivo, en cuanto el DNS del cliente apunte acá; Traefik reintenta solo).
+# La base no publica puertos: solo la ve el backend por la red interna. Backups: deploy/backup.sh (cron del host).
+name: moldeados
+
+networks:
+  coolify:
+    external: true
+  moldeados:
+    driver: bridge
+
+volumes:
+  moldeados-db-data:
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: moldeados-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moldeados_app
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: moldeados
+      TZ: America/Argentina/Buenos_Aires
+    volumes:
+      - moldeados-db-data:/var/lib/postgresql/data
+    networks: [moldeados]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moldeados_app -d moldeados"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backend
+    image: moldeados-backend:local
+    container_name: moldeados-backend
+    restart: unless-stopped
+    env_file: [ ./backend.env ]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [moldeados, coolify]
+    labels:
+      com.matias.autorestart: "true"
+      traefik.enable: "true"
+      traefik.docker.network: "coolify"
+      traefik.http.routers.moldeados-api-http.rule: "(Host(`${DOMINIO_SSLIP}`) || Host(`${DOMINIO}`)) && PathPrefix(`/api`)"
+      traefik.http.routers.moldeados-api-http.entryPoints: "http"
+      traefik.http.routers.moldeados-api-http.priority: "100"
+      traefik.http.routers.moldeados-api-http.service: "moldeados-api"
+      # Un router HTTPS por hostname: un cert por router, así sslip.io no espera al DNS del dominio.
+      traefik.http.routers.moldeados-api-sslip.rule: "Host(`${DOMINIO_SSLIP}`) && PathPrefix(`/api`)"
+      traefik.http.routers.moldeados-api-sslip.entryPoints: "https"
+      traefik.http.routers.moldeados-api-sslip.priority: "100"
+      traefik.http.routers.moldeados-api-sslip.tls: "true"
+      traefik.http.routers.moldeados-api-sslip.tls.certresolver: "letsencrypt"
+      traefik.http.routers.moldeados-api-sslip.service: "moldeados-api"
+      traefik.http.routers.moldeados-api-https.rule: "Host(`${DOMINIO}`) && PathPrefix(`/api`)"
+      traefik.http.routers.moldeados-api-https.entryPoints: "https"
+      traefik.http.routers.moldeados-api-https.priority: "100"
+      traefik.http.routers.moldeados-api-https.tls: "true"
+      traefik.http.routers.moldeados-api-https.tls.certresolver: "letsencrypt"
+      traefik.http.routers.moldeados-api-https.service: "moldeados-api"
+      traefik.http.services.moldeados-api.loadbalancer.server.port: "4800"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4800/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.frontend
+    image: moldeados-frontend:local
+    container_name: moldeados-frontend
+    restart: unless-stopped
+    depends_on: [backend]
+    networks: [moldeados, coolify]
+    labels:
+      com.matias.autorestart: "true"
+      traefik.enable: "true"
+      traefik.docker.network: "coolify"
+      traefik.http.routers.moldeados-http.rule: "Host(`${DOMINIO_SSLIP}`) || Host(`${DOMINIO}`)"
+      traefik.http.routers.moldeados-http.entryPoints: "http"
+      traefik.http.routers.moldeados-http.priority: "10"
+      traefik.http.routers.moldeados-http.service: "moldeados"
+      traefik.http.routers.moldeados-sslip.rule: "Host(`${DOMINIO_SSLIP}`)"
+      traefik.http.routers.moldeados-sslip.entryPoints: "https"
+      traefik.http.routers.moldeados-sslip.priority: "10"
+      traefik.http.routers.moldeados-sslip.tls: "true"
+      traefik.http.routers.moldeados-sslip.tls.certresolver: "letsencrypt"
+      traefik.http.routers.moldeados-sslip.service: "moldeados"
+      traefik.http.routers.moldeados-https.rule: "Host(`${DOMINIO}`)"
+      traefik.http.routers.moldeados-https.entryPoints: "https"
+      traefik.http.routers.moldeados-https.priority: "10"
+      traefik.http.routers.moldeados-https.tls: "true"
+      traefik.http.routers.moldeados-https.tls.certresolver: "letsencrypt"
+      traefik.http.routers.moldeados-https.service: "moldeados"
+      traefik.http.services.moldeados.loadbalancer.server.port: "80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/ >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

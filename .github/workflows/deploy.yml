@@ -1,0 +1,31 @@
+name: Deploy
+
+# Auto-deploy al VPS cuando el CI termina OK en main. Nunca se deploya un build rojo.
+# Apagado hasta que el servidor esté listo: se prende con la variable del repo DEPLOY_ACTIVO = true
+# (Settings → Secrets and variables → Actions → Variables). Ver deploy/README.md.
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy a producción (VPS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.DEPLOY_ACTIVO == 'true' }}
+    steps:
+      - name: SSH al VPS y correr update.sh
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 15m
+          script: bash /home/deploy/repos/MoldeadosCordoba/deploy/update.sh
