@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Layers } from 'lucide-react';
+import { ClipboardList, Factory, Layers } from 'lucide-react';
 import { LABEL_VEHICULO, type Vehiculo } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verMomento } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
@@ -26,25 +26,7 @@ export function Palets() {
         {puede('produccion', 2) && <Link to="/palets/nuevo" className="boton primario"><Layers size={18} aria-hidden /> Armar palet</Link>}
       </Cabecera>
 
-      <section className="hoja">
-        <div className="fila"><h3>Stock de maples</h3><span className="chico tenue">en paquetes</span></div>
-        {/* Primero lo que hay; los códigos sin stock, juntos en una línea al final. */}
-        {stock?.filter((s) => s.producido - s.vendido > 0).sort((a, b) => (b.producido - b.vendido) - (a.producido - a.vendido)).map((s) => (
-          <div className="fila" key={s.id}>
-            <div className="con-muestra">
-              <Muestra color={s.colorHex} grande />
-              <div><div className="principal">{s.codigo}</div><div className="chico tenue">{s.nombre} · {s.enPalets - s.vendido} en palets listos · {s.vendido} vendidos{s.comprometido ? ` · ${s.comprometido} comprometidos en pedidos` : ''}</div></div>
-            </div>
-            <div className="derecha">
-              <div className="cifra" style={{ fontSize: '1.5rem' }}>{(s.producido - s.enPalets).toLocaleString('es-AR')}</div>
-              <div className="chico tenue">sueltos de {(s.producido - s.vendido).toLocaleString('es-AR')} en planta</div>
-            </div>
-          </div>
-        ))}
-        {stock && stock.filter((s) => s.activo && s.producido - s.vendido <= 0).length > 0 && (
-          <div className="fila"><span className="chico tenue">Sin stock: {stock.filter((s) => s.activo && s.producido - s.vendido <= 0).map((s) => s.codigo).join(', ')}</span></div>
-        )}
-      </section>
+      <StockMaples stock={stock} />
 
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
@@ -74,5 +56,66 @@ export function Palets() {
         )}
       </section>
     </div>
+  );
+}
+
+type Fila = NonNullable<ReturnType<typeof useStockMaples>['data']>[number];
+
+/**
+ * Stock por código, con lo que significa y qué hacer: cuánto hay (listo en palets y sin paletizar), cuánto piden los
+ * pedidos sin entregar y si alcanza. Lo urgente primero: lo que falta para pedidos, en rojo.
+ */
+function StockMaples({ stock }: { stock: Fila[] | undefined }) {
+  const { puede } = useSesion();
+  if (!stock) return <section className="hoja relleno"><Cargando /></section>;
+  const filas = stock.filter((s) => s.activo || s.producido - s.vendido > 0).map((s) => {
+    const enPlanta = s.producido - s.vendido;
+    const listos = s.enPalets - s.vendido;
+    const sueltos = s.producido - s.enPalets;
+    const falta = Math.max(0, s.comprometido - enPlanta);
+    // Orden: falta para pedidos > sin stock con pedidos > hay para paletizar > hay stock > sin stock y sin pedidos.
+    const orden = falta > 0 ? 0 : enPlanta <= 0 && s.comprometido > 0 ? 1 : sueltos > 0 ? 2 : enPlanta > 0 ? 3 : 4;
+    return { ...s, enPlanta, listos, sueltos, falta, orden };
+  }).sort((a, b) => a.orden - b.orden || b.falta - a.falta || b.enPlanta - a.enPlanta);
+  const faltan = filas.filter((f) => f.falta > 0).length;
+  const sinStock = filas.filter((f) => f.enPlanta <= 0).length;
+
+  return (
+    <section className="hoja">
+      <div className="fila">
+        <div style={{ flex: 1 }}>
+          <h3>Stock de maples</h3>
+          <p className="chico tenue">En paquetes de 60. {faltan ? `${faltan === 1 ? '1 código no alcanza' : `${faltan} códigos no alcanzan`} para los pedidos.` : sinStock ? `${sinStock === 1 ? '1 código' : `${sinStock} códigos`} sin stock, sin pedidos pendientes.` : 'Todo con stock.'}</p>
+        </div>
+        {sinStock > 0 && !faltan && puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton secundario chico-boton"><Factory size={16} aria-hidden /> Cargar parte</Link>}
+      </div>
+      {filas.map((s) => (
+        <div className="fila stock-maple" key={s.id}>
+          <div className="con-muestra">
+            <Muestra color={s.colorHex} grande />
+            <div>
+              <div className="principal">{s.codigo} <span className="tenue" style={{ fontWeight: 400 }}>{s.nombre}</span></div>
+              <div className="chico tenue">
+                {s.enPlanta > 0 ? `${s.listos.toLocaleString('es-AR')} listos en palets · ${s.sueltos.toLocaleString('es-AR')} sin paletizar` : 'No hay paquetes en planta'}
+                {s.comprometido > 0 && ` · pedidos sin entregar: ${s.comprometido.toLocaleString('es-AR')}`}
+              </div>
+              <div className="acciones-stock">
+                {s.falta > 0 && puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton secundario chico-boton"><Factory size={16} aria-hidden /> Cargar parte</Link>}
+                {s.sueltos > 0 && puede('produccion', 2) && <Link to="/palets/nuevo" className="boton secundario chico-boton"><Layers size={16} aria-hidden /> Armar palet</Link>}
+                {s.comprometido > 0 && puede('ventas') && <Link to="/pedidos" className="boton fantasma chico-boton"><ClipboardList size={16} aria-hidden /> Ver pedidos</Link>}
+              </div>
+            </div>
+          </div>
+          <div className="derecha">
+            <div className="cifra" style={{ fontSize: '1.5rem' }}>{Math.max(0, s.enPlanta).toLocaleString('es-AR')}</div>
+            {s.falta > 0 ? <Estado nivel="critico">Faltan {s.falta.toLocaleString('es-AR')} para pedidos</Estado>
+              : s.enPlanta <= 0 ? (s.comprometido > 0 ? <Estado nivel="critico">Sin stock</Estado> : <span className="marca-texto">Sin stock</span>)
+              : s.sueltos > 0 ? <Estado nivel="atencion">{s.sueltos.toLocaleString('es-AR')} para paletizar</Estado>
+              : <Estado nivel="ok">Listo para despachar</Estado>}
+          </div>
+        </div>
+      ))}
+      {!filas.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>No hay códigos de maple cargados. Se crean en Ajustes › Maples y máquinas.</p>}
+    </section>
   );
 }

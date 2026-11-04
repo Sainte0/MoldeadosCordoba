@@ -575,3 +575,7 @@ select.entrada { appearance: none; -webkit-appearance: none; font-size: 16px; ba
 @keyframes etiqueta-entra { from { opacity: 0; transform: translate(-50%, 6px); } }
 @media (prefers-reduced-motion: reduce) { .login-maple-etiqueta { animation: none; } }
 @media (max-width: 900px) { .login-maple-etiqueta { font-size: 0.78rem; padding: 4px 10px; } .login-maple-etiqueta em { display: none; } }
+.stock-maple { align-items: start; }
+.acciones-stock { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.acciones-stock:empty { display: none; }
+.boton.chico-boton { min-height: 36px; padding: 6px 12px; font-size: 0.88rem; }
