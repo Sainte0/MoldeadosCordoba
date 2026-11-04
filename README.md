@@ -57,5 +57,10 @@ de color), revisado en iPhone, iPad mini, iPad 11 vertical/horizontal y notebook
 - *Costo y margen*: costo de materia prima por maple (precio promedio de compra × consumo real) y lo que deja
   cada código y cada cliente. En el Tablero.
 
+**Ayuda y exportación (hecho):** centro de ayuda con buscador (sin acentos) que abre en las guías de la pantalla
+donde estabas; 28 guías del sistema y procedimientos de planta editables (arranca con "Cómo se hace un maple de
+huevo"); cada guía o el manual completo se imprime o guarda como PDF. Exportar a Excel (CSV para Excel en
+castellano) desde cada listado, y todo junto en un .zip desde Ajustes › Exportar datos o desde el Tablero.
+
 Próximo: deploy al VPS (pendiente: dominio con HTTPS). Ideas para más adelante: resumen automático al dueño por
 WhatsApp/mail, cobranzas con recordatorio, service de máquinas por horas, consultas en lenguaje natural con IA.

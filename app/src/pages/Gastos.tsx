@@ -5,6 +5,7 @@ import { Ban, CheckCircle2, Paperclip, Plus } from 'lucide-react';
 import { formatPesos, LABEL_MEDIO_GASTO, type MedioGasto } from '@moldeados/shared';
 import { api, apiBlobUrl, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useCategoriasGasto } from '../datos';
+import { BotonExportar } from './Exportar';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
 
 interface GastoFila { id: string; numero: number; fecha: string; descripcion: string; monto: number; medio: MedioGasto; conFactura: boolean; comprobanteId: string | null; anuladoAt: string | null; categoria: string; empleado: string | null; cargadoPor: string }
@@ -35,6 +36,7 @@ export function Gastos() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
           <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></label>
           <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></label>
+          <div style={{ alignSelf: 'end' }}><BotonExportar que="gastos" desde={desde} hasta={hasta} /></div>
         </div>
         <Opciones columnas valor={categoriaId} onChange={setCategoriaId} opciones={[{ valor: '', titulo: 'Todas' }, ...(categorias ?? []).map((c) => ({ valor: c.id, titulo: c.nombre }))]} />
       </div>

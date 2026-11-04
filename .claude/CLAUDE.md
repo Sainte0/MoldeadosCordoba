@@ -37,6 +37,9 @@ en el **mismo VPS que Centrolab y Hassuru**.
 - **Sistema visual prolijo:** fondo `#F3F4F6`, superficies blancas con borde fino y sombra mínima, un solo color de
   acción (azul del logo). Estado activo = fondo suave (pastilla), **nunca rayas de color a un costado**. Pestañas como
   control segmentado. El navy queda para login y visor 3D.
+- **Ayuda:** toda función nueva lleva su guía en `app/src/guias.ts` (pasos cortos, `pantallas` donde aplica,
+  `palabras` con las que la buscaría alguien de planta). Los procedimientos de la fábrica los escribe el cliente
+  (tabla `procedimientos`). Todo listado nuevo con datos se suma a `CONJUNTOS` en `backend/src/features/exportar.ts`.
 - **Instructivos:** cada paso de asistente tiene su ayuda; el dueño la edita ahí mismo con el lápiz (`instructivos`,
   clave `proceso:título del paso`). Todo `<Asistente>` lleva `proceso`.
 - **Marca del cliente:** logo (`app/public/logo.png`) y azul `#004FBC` de moldeadoscordoba.com.ar, azul marino

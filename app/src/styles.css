@@ -339,3 +339,21 @@ a.tile-link:hover { border-color: var(--linea-fuerte); }
   .acciones-aviso .boton.primario { flex: 1; }
 }
 .con-muestra .principal { white-space: nowrap; }
+
+/* Ayuda */
+.guia summary { list-style: none; cursor: pointer; padding: 14px 18px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
+.guia summary::-webkit-details-marker { display: none; }
+.guia summary::after { content: ''; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--tinta-3); border-bottom: 2px solid var(--tinta-3); transform: rotate(45deg); transition: transform 0.15s; flex: none; }
+.guia[open] summary::after { transform: rotate(-135deg); }
+.guia summary svg { color: var(--kraft); flex: none; }
+.guia-cuerpo { padding: 0 18px 16px; display: grid; gap: 12px; }
+.guia-cuerpo ol, .impresion ol { margin: 0; padding-left: 1.4em; display: grid; gap: 8px; }
+.guia-cuerpo li::marker { color: var(--accion); font-weight: 700; }
+.impresion { display: none; }
+@media print {
+  .ayuda-pantalla { display: none !important; }
+  .impresion { display: block; color: #000; font-size: 11pt; }
+  .impresion header { display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 16px; }
+  .impresion section { break-inside: avoid-page; margin-bottom: 18px; }
+  .impresion h2 { font-size: 14pt; margin: 0 0 8px; }
+}

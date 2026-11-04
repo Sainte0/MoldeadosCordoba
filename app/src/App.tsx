@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { ChartColumn, Factory, Home, LogOut, Menu, Receipt, Settings, ShoppingCart, Wallet, X } from 'lucide-react';
+import { ChartColumn, CircleHelp, Factory, Home, LogOut, Menu, Receipt, Settings, ShoppingCart, Wallet, X } from 'lucide-react';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
@@ -32,6 +32,8 @@ import { Tablero } from './pages/Tablero';
 import { Gastos } from './pages/Gastos';
 import { NuevoGasto } from './pages/NuevoGasto';
 import { Caja } from './pages/Caja';
+import { Ayuda } from './pages/Ayuda';
+import { Exportar } from './pages/Exportar';
 
 // Pocas áreas, siempre las mismas: lo de adentro va en pestañas. Una función nueva entra en un área existente,
 // nunca como un ítem nuevo del menú (pedido del cliente: ultra simple).
@@ -63,6 +65,7 @@ const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
   { a: '/maples', texto: 'Maples y recetas', modulo: 'productos' },
   { a: '/equipo', texto: 'Equipo y permisos', modulo: 'usuarios' },
   { a: '/registro', texto: 'Registro de cambios', modulo: 'auditoria' },
+  { a: '/exportar', texto: 'Exportar datos', modulo: 'tablero' },
 ] };
 const enArea = (area: Area, path: string) => [...area.pestanas.map((x) => x.a), ...(area.tambien ?? [])].some((r) => path === r || path.startsWith(r + '/'));
 
@@ -88,7 +91,10 @@ export function App() {
     <div className="marco">
       <div className="barra-movil">
         <Marca />
-        <button className="boton icono" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={26} /></button>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {pathname !== '/ayuda' && <NavLink className="boton icono" to={`/ayuda?desde=${encodeURIComponent(pathname)}`} aria-label="Ayuda"><CircleHelp size={24} /></NavLink>}
+          <button className="boton icono" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={26} /></button>
+        </div>
       </div>
       <nav className={`lateral${abierto ? ' abierto' : ''}`} aria-label="Secciones">
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -105,6 +111,7 @@ export function App() {
             </NavLink>
           );
         })}
+        <NavLink to={`/ayuda?desde=${encodeURIComponent(pathname === '/ayuda' ? '' : pathname)}`} className={() => `nav-link${pathname === '/ayuda' ? ' activo' : ''}`}><CircleHelp size={20} aria-hidden /> Ayuda</NavLink>
         <div className="nav-pie">
           <div>{sesion.usuario.nombre}</div>
           <div>{LABEL_ROL[sesion.usuario.rol]}</div>
@@ -143,6 +150,8 @@ export function App() {
           {p('proveedores') && <Route path="/proveedores" element={<Proveedores />} />}
           {p('usuarios') && <Route path="/equipo" element={<Equipo />} />}
           {p('auditoria') && <Route path="/registro" element={<Registro />} />}
+          <Route path="/ayuda" element={<Ayuda />} />
+          {p('tablero') && <Route path="/exportar" element={<Exportar />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

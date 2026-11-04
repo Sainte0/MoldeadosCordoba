@@ -5,6 +5,7 @@ import { AlertTriangle } from 'lucide-react';
 import { formatCantidad, formatMinutos, formatPesos, type Unidad } from '@moldeados/shared';
 import { api, hoy, verFecha } from '../api';
 import { Muestra } from '../MapleVista';
+import { BotonExportar } from './Exportar';
 import { Cabecera, Cargando } from '../ui';
 
 // Dos series, siempre en este orden y color (validados para daltonismo con el validador de paleta):
@@ -61,6 +62,7 @@ export function Tablero() {
         <div className="pestanas" role="group" aria-label="Período">
           {PERIODOS.map(([k, l]) => <button key={k} aria-pressed={clave === k} onClick={() => setClave(k)}>{l}</button>)}
         </div>
+        <BotonExportar que="todo" desde={desde} hasta={hasta} texto="Descargar el período (.zip)" />
       </Cabecera>
       {isLoading || !t ? <Cargando /> : (
         <>

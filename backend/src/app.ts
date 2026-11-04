@@ -14,10 +14,13 @@ import { auditoriaRoutes } from './features/auditoria.routes.js';
 import { produccionRoutes } from './features/produccion.routes.js';
 import { ventasRoutes } from './features/ventas.routes.js';
 import { gastosRoutes } from './features/gastos.routes.js';
+import { exportarRoutes } from './features/exportar.js';
+import { ayudaRoutes } from './features/ayuda.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test', bodyLimit: 1_000_000 });
-  await app.register(cors, { origin: [env.APP_URL] });
+  // exposedHeaders: sin esto el navegador no deja leer el nombre del archivo exportado (la app y la API son otro origen).
+  await app.register(cors, { origin: [env.APP_URL], exposedHeaders: ['Content-Disposition'] });
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(rateLimit, { max: 600, timeWindow: '1 minute' });
 
@@ -48,6 +51,8 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(produccionRoutes);
       await api.register(ventasRoutes);
       await api.register(gastosRoutes);
+      await api.register(exportarRoutes);
+      await api.register(ayudaRoutes);
     },
     { prefix: '/api' },
   );

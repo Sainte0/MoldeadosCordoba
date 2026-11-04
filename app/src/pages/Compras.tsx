@@ -5,6 +5,7 @@ import { Plus, Scale } from 'lucide-react';
 import { formatPesos } from '@moldeados/shared';
 import { api, nroTicket, useSesion, verFecha } from '../api';
 import type { CompraFila } from '../datos';
+import { BotonExportar } from './Exportar';
 import { Cabecera, Cargando, Entrada, Opciones } from '../ui';
 
 export function Compras() {
@@ -35,6 +36,7 @@ export function Compras() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
           <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => { setDesde(e.target.value); setPagina(0); }} /></label>
           <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => { setHasta(e.target.value); setPagina(0); }} /></label>
+          <div style={{ alignSelf: 'end' }}><BotonExportar que="compras" desde={desde} hasta={hasta} /></div>
         </div>
       </div>
 

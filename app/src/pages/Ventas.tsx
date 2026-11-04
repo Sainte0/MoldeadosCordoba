@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ScanLine } from 'lucide-react';
 import { formatPesos } from '@moldeados/shared';
 import { api, nroTicket, useSesion, verFecha } from '../api';
+import { BotonExportar } from './Exportar';
 import { Cabecera, Cargando, Entrada } from '../ui';
 
 interface VentaFila { id: string; numero: number; fecha: string; total: number; conFactura: boolean; retira: string | null; anuladoAt: string | null; cliente: string; palets: number; maples: number }
@@ -23,6 +24,7 @@ export function Ventas() {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
         <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></label>
         <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></label>
+        <div style={{ alignSelf: 'end' }}><BotonExportar que="ventas" desde={desde} hasta={hasta} /></div>
       </div>
       {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>No hay ventas {desde || hasta ? 'en estas fechas' : 'todavía'}.</p></div> : (
         <>

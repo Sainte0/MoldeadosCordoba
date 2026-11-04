@@ -410,6 +410,12 @@ export function telefonoWhatsapp(tel: string | null): string | null {
   return d.length === 10 ? `549${d}` : null;
 }
 
+export const procedimientoSchema = z.object({
+  titulo: texto(150).min(3, 'Ingresá el título'),
+  resumen: opcional(400),
+  pasos: texto(20000).min(3, 'Escribí al menos un paso'),
+});
+
 export type GastoInput = z.infer<typeof gastoSchema>;
 export type VentaInput = z.infer<typeof ventaSchema>;
 export type MovimientoDineroInput = z.infer<typeof movimientoDineroSchema>;

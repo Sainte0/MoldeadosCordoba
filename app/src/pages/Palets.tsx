@@ -5,6 +5,7 @@ import { LABEL_VEHICULO, type Vehiculo } from '@moldeados/shared';
 import { api, nroTicket, useSesion, verMomento } from '../api';
 import { useStockMaples } from '../datos';
 import { Muestra } from '../MapleVista';
+import { BotonExportar } from './Exportar';
 import { Cabecera, Cargando } from '../ui';
 
 interface PaletFila { ventaId: string | null; id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; vehiculo: Vehiculo | null; destino: string | null; armadoAt: string; anuladoAt: string | null; codigo: string; variante: string; colorHex: string | null }
@@ -37,7 +38,9 @@ export function Palets() {
       </section>
 
       <section>
-        <h3 style={{ marginBottom: 12 }}>Palets armados</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+          <h3>Palets armados</h3><BotonExportar que="palets" />
+        </div>
         {isLoading ? <Cargando /> : !palets?.length ? <div className="hoja vacio"><p>Todavía no se armó ningún palet.</p></div> : (
           <div className="hoja filas">
             {palets.map((p) => (

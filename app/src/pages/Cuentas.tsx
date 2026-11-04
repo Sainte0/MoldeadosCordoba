@@ -5,6 +5,7 @@ import { ArrowDownLeft, ArrowUpRight, Plus } from 'lucide-react';
 import { formatPesos, LABEL_MEDIO, type Medio } from '@moldeados/shared';
 import { api, useSesion, verFecha } from '../api';
 import { useBancos, type Banco } from '../datos';
+import { BotonExportar } from './Exportar';
 import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
 
 interface Saldo { id: string; nombre: string; debe: number; haber: number; ultimoMovimiento: string | null }
@@ -35,6 +36,7 @@ export function Cuentas() {
           <button aria-pressed={de === 'cliente'} onClick={() => setDe('cliente')}>Clientes</button>
           <button aria-pressed={de === 'proveedor'} onClick={() => setDe('proveedor')}>Proveedores</button>
         </div>
+        <BotonExportar que="cuentas" texto="Exportar saldos" />
         <div style={{ flex: 1, minWidth: 200 }}><Buscador placeholder="Buscar" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar cuenta" /></div>
       </div>
 

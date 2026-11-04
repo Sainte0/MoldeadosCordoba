@@ -127,3 +127,20 @@ export async function comprimirFoto(archivo: File): Promise<{ mime: 'image/jpeg'
   const vista = canvas.toDataURL('image/jpeg', 0.8);
   return { mime: 'image/jpeg', base64: vista.split(',')[1]!, vista };
 }
+
+/** Descarga un archivo de la API con la sesión (un <a href> no manda el token). En iPhone abre "Guardar en Archivos". */
+export async function descargar(ruta: string): Promise<void> {
+  const res = await fetch(BASE + ruta, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (res.status === 401 && token) alExpirar();
+  if (!res.ok) {
+    const j = await res.json().catch(() => null);
+    throw new ErrorApi(j?.error?.message ?? 'No se pudo descargar.');
+  }
+  const nombre = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'moldeados.csv';
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement('a'), { href: url, download: nombre });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
