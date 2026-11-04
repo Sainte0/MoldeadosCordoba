@@ -120,6 +120,6 @@ La web actual (`moldeadoscordoba.com.ar`) no es nuestra. Opciones, en orden:
 |---|---|---|
 | 1 **(hecho)** | Login, roles/permisos, auditoría · proveedores · materias primas · **ticket de pesaje** · compras · stock MP | Ya registran lo que entra |
 | 2 **(hecho)** | Variantes de maple + recetas · máquinas · **parte de producción por turno** · stock producto terminado · etiquetas QR | La planilla productiva |
-| 3 | Clientes · ventas por palet · cobros · cuentas corrientes (clientes y proveedores) · pagos con cheques/e-cheq | La plata |
+| 3 **(hecho)** | Clientes · ventas por palet · cobros · cuentas corrientes (clientes y proveedores) · pagos con cheques/e-cheq | La plata |
 | 4 | Gastos/caja chica · **dashboards** (compras por proveedor, ventas por cliente, producción, consumo real vs teórico, gastos) | El tablero del dueño |
 | 5 | Instructivos editables · escaneo QR desde celular por rol | Pulido |

@@ -56,6 +56,8 @@ export const LABEL_ROL: Record<Rol, string> = {
 export const MODULOS = [
   { id: 'produccion', label: 'Producción y palets', detalle: 'Partes de producción por turno, stock de maples, armado de palets y etiquetas.' },
   { id: 'productos', label: 'Maples, recetas y máquinas', detalle: 'Códigos de maple, cuánto consume cada uno por hora y las máquinas.' },
+  { id: 'ventas', label: 'Ventas, clientes y precios', detalle: 'Vender palets, datos de clientes y lista de precios.' },
+  { id: 'cuentas', label: 'Cobros, pagos y cuentas corrientes', detalle: 'Cobrar a clientes, pagar a proveedores, cheques y saldos.' },
   { id: 'compras', label: 'Pesajes y compras', detalle: 'Ingreso de cartón con ticket de pesaje y compras de tinta, aglutinante y otros.' },
   { id: 'proveedores', label: 'Proveedores', detalle: 'Datos de cada proveedor y lo que se le compró.' },
   { id: 'materias', label: 'Materia prima', detalle: 'Stock de cartón, tintas y aglutinante, y correcciones de stock.' },
@@ -71,10 +73,10 @@ export type MatrizPermisos = Record<Rol, Record<Modulo, Nivel>>;
 
 /** Default de fábrica. La tabla rol_permisos guarda solo lo que el dueño cambió. El dueño ve todo siempre. */
 export const PERMISOS_DEFAULT: MatrizPermisos = {
-  dueno: { produccion: 3, productos: 3, compras: 3, proveedores: 3, materias: 3, usuarios: 3, auditoria: 1 },
-  administracion: { produccion: 1, productos: 1, compras: 3, proveedores: 3, materias: 1, usuarios: 0, auditoria: 1 },
-  encargado: { produccion: 3, productos: 3, compras: 2, proveedores: 2, materias: 3, usuarios: 0, auditoria: 0 },
-  operario: { produccion: 2, productos: 1, compras: 2, proveedores: 1, materias: 1, usuarios: 0, auditoria: 0 },
+  dueno: { ventas: 3, cuentas: 3, produccion: 3, productos: 3, compras: 3, proveedores: 3, materias: 3, usuarios: 3, auditoria: 1 },
+  administracion: { ventas: 3, cuentas: 3, produccion: 1, productos: 1, compras: 3, proveedores: 3, materias: 1, usuarios: 0, auditoria: 1 },
+  encargado: { ventas: 2, cuentas: 0, produccion: 3, productos: 3, compras: 2, proveedores: 2, materias: 3, usuarios: 0, auditoria: 0 },
+  operario: { ventas: 0, cuentas: 0, produccion: 2, productos: 1, compras: 2, proveedores: 1, materias: 1, usuarios: 0, auditoria: 0 },
 };
 
 export function armarMatriz(overrides: { rol: string; modulo: string; nivel: number }[]): MatrizPermisos {
@@ -269,6 +271,78 @@ export const empresaSchema = z.object({
 
 /** Color del cartón sin teñir: el maple "natural" se pinta así en 3D. */
 export const COLOR_CARTON = '#bfae90';
+
+// ---------- Ventas y cuentas ----------
+
+export const MEDIOS = ['efectivo', 'transferencia', 'mercado_pago', 'echeq', 'cheque'] as const;
+export type Medio = (typeof MEDIOS)[number];
+export const LABEL_MEDIO: Record<Medio, string> = { efectivo: 'Efectivo', transferencia: 'Transferencia', mercado_pago: 'Mercado Pago', echeq: 'e-Cheq', cheque: 'Cheque físico' };
+
+/** Venta: cada palet a su precio por maple. Mismo redondeo que las compras. */
+export function calcularVenta(items: { maples: number; precioMaple: number }[], ivaBp: number) {
+  const neto = items.reduce((a, i) => a + i.maples * i.precioMaple, 0);
+  const iva = Math.round((neto * ivaBp) / 10000);
+  return { neto, iva, total: neto + iva };
+}
+
+export const clienteSchema = z.object({
+  nombre: texto(120).min(2, 'Ingresá el nombre del cliente'),
+  cuit: opcional(20).refine((v) => v === null || /^\d{2}-?\d{8}-?\d$/.test(v), 'El CUIT no es válido (11 números)'),
+  telefono: opcional(40),
+  email: opcional(120).refine((v) => v === null || /^\S+@\S+\.\S+$/.test(v), 'El email no es válido'),
+  direccion: opcional(200),
+  vehiculoHabitual: z.enum(VEHICULOS).nullable().default(null),
+  notas: opcional(1000),
+});
+
+export const precioSchema = z.object({
+  varianteId: z.string().uuid(),
+  /** Sin cliente = precio de lista. */
+  clienteId: z.string().uuid().nullable().default(null),
+  /** null = sacar el precio especial y volver a la lista. */
+  precioMaple: z.number().int().min(0, 'El precio no puede ser negativo').nullable(),
+});
+
+export const ventaSchema = z.object({
+  clienteId: uuid('Elegí el cliente'),
+  fecha,
+  conFactura: z.boolean(),
+  nroFactura: opcional(40),
+  ivaBp: z.number().int().refine((v) => (ALICUOTAS_IVA as readonly number[]).includes(v), 'Alícuota de IVA no válida'),
+  vehiculo: z.enum(VEHICULOS).nullable().default(null),
+  patente: opcional(15).transform((v) => (v ? v.toUpperCase().replace(/\s/g, '') : null)),
+  retira: texto(120).min(2, 'Anotá quién se lleva los palets'),
+  notas: opcional(1000),
+  palets: z.array(z.string().uuid()).min(1, 'Elegí al menos un palet'),
+  /** Precio por maple de cada código. Lo que no viene, se toma el del cliente o el de lista. */
+  precios: z.array(z.object({ varianteId: z.string().uuid(), precioMaple: z.number().int().min(0) })).default([]),
+});
+
+export const movimientoDineroSchema = z
+  .object({
+    tipo: z.enum(['cobro', 'pago']),
+    clienteId: z.string().uuid().nullable().default(null),
+    proveedorId: z.string().uuid().nullable().default(null),
+    fecha,
+    monto: z.number().int().positive('Ingresá el monto'),
+    medio: z.enum(MEDIOS),
+    bancoId: z.string().uuid().nullable().default(null),
+    chequeNumero: opcional(30),
+    chequeFechaCobro: fecha.nullable().default(null),
+    referencia: opcional(80),
+    notas: opcional(1000),
+  })
+  .superRefine((v, ctx) => {
+    if (v.tipo === 'cobro' && !v.clienteId) ctx.addIssue({ code: 'custom', path: ['clienteId'], message: 'Elegí el cliente' });
+    if (v.tipo === 'pago' && !v.proveedorId) ctx.addIssue({ code: 'custom', path: ['proveedorId'], message: 'Elegí el proveedor' });
+    if ((v.medio === 'echeq' || v.medio === 'cheque') && !v.bancoId) ctx.addIssue({ code: 'custom', path: ['bancoId'], message: 'Elegí el banco del cheque' });
+    if (v.medio === 'cheque' && (!v.chequeNumero || !v.chequeFechaCobro)) ctx.addIssue({ code: 'custom', path: ['chequeNumero'], message: 'Ingresá el número y la fecha de cobro del cheque' });
+  });
+
+export const bancoSchema = z.object({ nombre: texto(80).min(2, 'Ingresá el nombre del banco'), activo: z.boolean().default(true) });
+
+export type VentaInput = z.infer<typeof ventaSchema>;
+export type MovimientoDineroInput = z.infer<typeof movimientoDineroSchema>;
 
 export type ParteInput = z.infer<typeof parteSchema>;
 export type PaletInput = z.infer<typeof paletSchema>;

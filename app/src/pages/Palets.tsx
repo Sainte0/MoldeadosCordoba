@@ -7,7 +7,7 @@ import { useStockMaples } from '../datos';
 import { Muestra } from '../MapleVista';
 import { Cabecera, Cargando } from '../ui';
 
-interface PaletFila { id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; vehiculo: Vehiculo | null; destino: string | null; armadoAt: string; anuladoAt: string | null; codigo: string; variante: string; colorHex: string | null }
+interface PaletFila { ventaId: string | null; id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; vehiculo: Vehiculo | null; destino: string | null; armadoAt: string; anuladoAt: string | null; codigo: string; variante: string; colorHex: string | null }
 
 export function Palets() {
   const { puede } = useSesion();
@@ -26,11 +26,11 @@ export function Palets() {
           <div className="fila" key={s.id}>
             <div className="con-muestra">
               <Muestra color={s.colorHex} grande />
-              <div><div className="principal">{s.codigo}</div><div className="chico tenue">{s.nombre} · {s.enPalets} en palets</div></div>
+              <div><div className="principal">{s.codigo}</div><div className="chico tenue">{s.nombre} · {s.enPalets - s.vendido} en palets listos · {s.vendido} vendidos</div></div>
             </div>
             <div className="derecha">
               <div className="cifra" style={{ fontSize: '1.5rem' }}>{(s.producido - s.enPalets).toLocaleString('es-AR')}</div>
-              <div className="chico tenue">sueltos de {s.producido.toLocaleString('es-AR')}</div>
+              <div className="chico tenue">sueltos de {(s.producido - s.vendido).toLocaleString('es-AR')} en planta</div>
             </div>
           </div>
         ))}
@@ -49,7 +49,7 @@ export function Palets() {
                     <div className="chico tenue">{p.ancho}×{p.largo}×{p.alto}{p.vehiculo ? ` · ${LABEL_VEHICULO[p.vehiculo]}` : ''}{p.destino ? ` · ${p.destino}` : ''} · {verMomento(p.armadoAt)}</div>
                   </div>
                 </div>
-                <div className="derecha"><div className="cifra">{p.paquetes} paq.</div>{p.anuladoAt && <span className="marca-texto peligro">Anulado</span>}</div>
+                <div className="derecha"><div className="cifra">{p.paquetes} paq.</div>{p.anuladoAt ? <span className="marca-texto peligro">Anulado</span> : p.ventaId ? <span className="marca-texto">Vendido</span> : <span className="marca-texto ok">Listo para salir</span>}</div>
               </Link>
             ))}
           </div>

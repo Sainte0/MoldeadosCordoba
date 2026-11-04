@@ -31,4 +31,12 @@ planilla productiva (rendimiento, paquetes/hora, consumo real contra receta), st
 (toma paquetes de los partes más viejos) con etiqueta QR 100×150 mm y trazabilidad palet → partes → compras.
 Marca del cliente (logo, azul #004FBC y datos de contacto) tomada de moldeadoscordoba.com.ar, editable en Equipo.
 
-Próximo: Corte 3 (clientes, ventas por palet, cobros, cuentas corrientes, pagos con cheque/e-cheq).
+**Corte 3 (hecho):** despacho escaneando el QR de los palets con la cámara del iPhone/iPad (o eligiéndolos de la
+lista): cliente, quién retira, vehículo, patente; los palets quedan vendidos y sale el remito para firmar. Lista de
+precios por maple + precio especial por cliente, IVA opcional. Cobros y pagos (efectivo, transferencia, Mercado Pago,
+e-cheq y cheque con banco, número y fecha de cobro), cheques por fecha, bancos editables y cuentas corrientes de
+clientes y proveedores con saldo acumulado. La app se instala en la pantalla de inicio del iPhone/iPad (pantalla completa).
+
+> La cámara del navegador solo funciona con HTTPS: en producción el dominio tiene que tener certificado.
+
+Próximo: Corte 4 (gastos y caja chica, tablero del dueño).

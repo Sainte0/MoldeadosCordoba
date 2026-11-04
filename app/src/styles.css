@@ -36,6 +36,10 @@
 * { box-sizing: border-box; }
 body { margin: 0; min-height: 100dvh; background: var(--piso); }
 button, input, textarea { font: inherit; color: inherit; }
+/* iPhone/iPad: sin demora ni zoom por doble toque, sin el resaltado gris al tocar. Los campos en 16px o más
+   para que iOS no haga zoom al enfocarlos. */
+button, a, .opcion, input, textarea { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+input, textarea { font-size: max(16px, 1em); }
 a { color: inherit; }
 :focus-visible { outline: 3px solid var(--senal); outline-offset: 2px; border-radius: 4px; }
 
@@ -51,7 +55,7 @@ p { margin: 0; max-width: 68ch; }
 
 /* ---------- Estructura ---------- */
 .marco { display: grid; grid-template-columns: 248px 1fr; min-height: 100dvh; }
-.lateral { background: var(--tinta); color: #e9ece6; padding: 24px 16px; position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 4px; }
+.lateral { background: var(--tinta); color: #e9ece6; padding: max(24px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; gap: 4px; }
 .marca { display: flex; align-items: center; gap: 10px; padding: 0 8px 24px; }
 .marca b { font-variation-settings: 'wdth' 70; font-weight: 800; font-size: 1.25rem; line-height: 1; }
 .marca small { display: block; font-size: 0.75rem; color: #a9b3ad; font-weight: 400; font-variation-settings: 'wdth' 100; }
@@ -60,20 +64,20 @@ p { margin: 0; max-width: 68ch; }
 .nav-link.activo { background: rgba(242, 194, 48, 0.14); color: #fff; box-shadow: inset 3px 0 0 var(--senal); }
 .nav-pie { margin-top: auto; padding: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.875rem; color: #a9b3ad; }
 .nav-pie button { background: none; border: 0; color: #e9ece6; padding: 6px 0; cursor: pointer; display: flex; gap: 8px; align-items: center; }
-.contenido { padding: 32px clamp(16px, 4vw, 48px) 120px; min-width: 0; }
+.contenido { padding: 32px max(clamp(16px, 4vw, 48px), env(safe-area-inset-right)) calc(120px + env(safe-area-inset-bottom)) clamp(16px, 4vw, 48px); min-width: 0; }
 .columna { max-width: 720px; }
 .ancho { max-width: 1100px; }
 .cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .cabecera p { margin-top: 6px; }
 .barra-movil { display: none; }
 
-@media (max-width: 860px) {
+@media (max-width: 760px) {
   .marco { grid-template-columns: 1fr; }
   .lateral { position: fixed; inset: 0 auto 0 0; width: min(300px, 86vw); z-index: 40; transform: translateX(-102%); transition: transform 0.22s ease; }
   .lateral.abierto { transform: none; box-shadow: 0 0 0 100vmax rgba(14, 26, 48, 0.45); }
-  .barra-movil { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: var(--tinta); color: #fff; position: sticky; top: 0; z-index: 30; }
+  .barra-movil { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: max(10px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 10px max(16px, env(safe-area-inset-left)); background: var(--tinta); color: #fff; position: sticky; top: 0; z-index: 30; }
   .barra-movil .marca { padding: 0; }
-  .contenido { padding: 20px 16px 120px; }
+  .contenido { padding: 20px max(16px, env(safe-area-inset-right)) calc(120px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
 }
 
 /* ---------- Controles ---------- */
@@ -126,7 +130,7 @@ textarea.entrada { min-height: 96px; resize: vertical; }
 .instructivo { display: flex; gap: 12px; padding: 14px 16px; border-left: 4px solid var(--senal); background: var(--superficie); border-radius: 0 var(--radio-s) var(--radio-s) 0; color: var(--tinta-2); }
 .instructivo svg { flex: none; color: var(--tinta); margin-top: 2px; }
 .paso-cuerpo { display: grid; gap: 18px; }
-.paso-acciones { display: flex; gap: 12px; justify-content: space-between; position: sticky; bottom: 0; padding: 16px 0; background: linear-gradient(transparent, var(--piso) 30%); }
+.paso-acciones { display: flex; gap: 12px; justify-content: space-between; position: sticky; bottom: 0; padding: 16px 0 max(16px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--piso) 30%); }
 .paso-acciones .boton.primario { flex: 1; max-width: 320px; margin-left: auto; }
 @media (prefers-reduced-motion: no-preference) {
   .paso-cuerpo { animation: entra 0.22s ease-out; }
@@ -166,7 +170,7 @@ button.fila { width: 100%; text-align: left; background: none; border: 0; border
 @media (min-width: 900px) { .rejilla.dos { grid-template-columns: 1.4fr 1fr; align-items: start; } }
 
 /* Tareas de la portada: lo que se carga en planta, grande y a mano. */
-.tareas { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.tareas { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
 .tarea { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: center; padding: 20px; border-radius: var(--radio-m); background: var(--tinta); color: #fff; text-decoration: none; min-height: 96px; }
 .tarea:hover { background: #1a2945; }
 .tarea .ico { width: 48px; height: 48px; border-radius: 50%; background: var(--senal); color: var(--tinta); display: grid; place-items: center; }
@@ -208,7 +212,7 @@ button.fila { width: 100%; text-align: left; background: none; border: 0; border
 .login-escena .nombre span { display: block; color: var(--kraft-claro); }
 .login-form { display: grid; place-items: center; padding: 32px 20px; }
 .login-form form { width: min(380px, 100%); display: grid; gap: 18px; }
-@media (max-width: 860px) {
+@media (max-width: 760px) {
   .login { grid-template-columns: 1fr; grid-template-rows: 300px 1fr; }
   .login-escena { padding: 20px; }
   .login-escena .nombre { font-size: 3rem; }
@@ -267,3 +271,33 @@ button.fila { width: 100%; text-align: left; background: none; border: 0; border
   .solo-etiqueta > :not(.etiqueta) { display: none !important; }
   .etiqueta { border: 0; max-width: none; padding: 0; }
 }
+
+/* ---------- Escáner de QR ---------- */
+.escaner { position: relative; border-radius: var(--radio-m); overflow: hidden; background: #000; aspect-ratio: 4 / 3; max-height: 55dvh; width: 100%; }
+.escaner video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.escaner .mira { position: absolute; inset: 14%; border: 3px solid rgba(255, 255, 255, 0.85); border-radius: 18px; box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.35); transition: border-color 0.15s; }
+.escaner.leyo .mira { border-color: var(--senal); }
+.escaner .estado { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 14px; background: rgba(14, 26, 48, 0.85); color: #fff; font-weight: 600; text-align: center; }
+.escaner-error { padding: 24px; display: grid; gap: 12px; justify-items: start; background: var(--superficie); border: 1px solid var(--linea); border-radius: var(--radio-m); }
+.carrito .fila { grid-template-columns: auto 1fr auto; }
+
+/* Ticket y remito en el teléfono: la tabla se achica en lugar de correr la pantalla. */
+.ticket { min-width: 0; overflow-wrap: anywhere; }
+.ticket table { table-layout: auto; }
+@media (max-width: 520px) {
+  .ticket { padding: 16px; }
+  .ticket table { font-size: 0.8rem; }
+  .ticket .muestra { display: none; }
+  .ticket .numero { font-size: 1.5rem; }
+}
+html, body { overflow-x: hidden; }
+
+/* Remito */
+.remito .firma { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+.remito .firma div { border-top: 1px solid var(--tinta); padding-top: 6px; font-size: 0.85rem; color: var(--tinta-2); }
+
+.pestanas { display: inline-flex; background: var(--superficie); border: 1px solid var(--linea); border-radius: 999px; padding: 4px; gap: 4px; }
+.pestanas button { border: 0; background: none; padding: 8px 16px; border-radius: 999px; font-weight: 600; cursor: pointer; min-height: 40px; }
+.pestanas button[aria-pressed='true'] { background: var(--tinta); color: #fff; }
+.saldo-mas { color: var(--peligro); }
+.saldo-cero { color: var(--tinta-3); }

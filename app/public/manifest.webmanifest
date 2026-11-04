@@ -1,0 +1,12 @@
+{
+  "name": "Moldeados Córdoba",
+  "short_name": "Moldeados",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e8ebef",
+  "theme_color": "#0e1a30",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

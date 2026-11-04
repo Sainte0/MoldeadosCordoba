@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import QRCode from 'qrcode';
-import { ArrowLeft, Ban, CheckCircle2, Printer } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCircle2, Printer, Truck } from 'lucide-react';
 import { COLOR_CARTON, formatCantidad, LABEL_TAMANO, LABEL_TURNO, LABEL_VEHICULO, type Turno, type Unidad, type Vehiculo } from '@moldeados/shared';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useEmpresa } from '../datos';
@@ -14,6 +14,8 @@ interface Traza {
   armadoAt: string; armadoPor: string; anuladoAt: string | null; motivoAnulacion: string | null; anuladoPor: string | null;
   codigo: string; variante: string; colorHex: string | null; tamano: 'chico' | 'grande'; maplesPorPaquete: number;
   lotes: { id: string; numero: number; fecha: string; turno: Turno; maquina: string; paquetes: number; personal: string | null }[] | null;
+  venta: { id: string; numero: number; fecha: string; retira: string | null; vehiculo: Vehiculo | null; patente: string | null; cliente: string } | null;
+  puedeDespachar: boolean;
   origen: { id: string; nombre: string; unidad: Unidad; real: number; compras: { id: string; numero: number; fecha: string; tipo: string; proveedor: string; cantidad: number }[] }[] | null;
 }
 
@@ -80,9 +82,17 @@ export function PaletDetalle() {
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <button className="boton primario grande" onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir etiqueta</button>
-        {!p.anuladoAt && puede('produccion', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Desarmar (anular)</button>}
+        {!p.anuladoAt && !p.venta && p.puedeDespachar && <Link to={`/ventas/nueva?palet=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Despachar este palet</Link>}
+        {!p.anuladoAt && !p.venta && puede('produccion', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Desarmar (anular)</button>}
       </div>
 
+      {p.venta && (
+        <section className="hoja relleno" style={{ display: 'grid', gap: 8 }}>
+          <h3>Vendido</h3>
+          <p>A <b>{p.venta.cliente}</b> el {verFecha(p.venta.fecha)}. Lo retiró {p.venta.retira}{p.venta.vehiculo ? ` en ${LABEL_VEHICULO[p.venta.vehiculo].toLowerCase()}` : ''}{p.venta.patente ? ` (${p.venta.patente})` : ''}.</p>
+          {puede('ventas') && <Link to={`/ventas/${p.venta.id}`}>Ver remito {nroTicket(p.venta.numero)}</Link>}
+        </section>
+      )}
       <MapleVista color={p.colorHex} alto={180} />
       <dl className="resumen hoja relleno">
         <dt>Maple</dt><dd>{p.variante} ({LABEL_TAMANO[p.tamano].toLowerCase()})</dd>

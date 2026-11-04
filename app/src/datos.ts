@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { TipoMp, Unidad } from '@moldeados/shared';
+import type { TipoMp, Unidad, Vehiculo } from '@moldeados/shared';
 import { api } from './api';
 
 // Tipos de lo que devuelve la API y las consultas que usan varias pantallas.
@@ -26,10 +26,17 @@ export interface Variante {
 }
 export interface Empleado { id: string; nombre: string; turnoHabitual: 'manana' | 'tarde' | null; activo: boolean }
 export interface Empresa { razonSocial: string; direccion: string | null; telefono: string | null; email: string | null; cuit: string | null }
-export interface StockMaple { id: string; codigo: string; nombre: string; colorHex: string | null; maplesPorPaquete: number; activo: boolean; producido: number; enPalets: number }
+export interface StockMaple { id: string; codigo: string; nombre: string; colorHex: string | null; maplesPorPaquete: number; activo: boolean; producido: number; enPalets: number; vendido: number }
 
 export const useMaquinas = () => useQuery({ queryKey: ['maquinas'], queryFn: () => api<Maquina[]>('/maquinas') });
 export const useVariantes = () => useQuery({ queryKey: ['variantes'], queryFn: () => api<Variante[]>('/variantes') });
 export const useEmpleados = () => useQuery({ queryKey: ['empleados'], queryFn: () => api<Empleado[]>('/empleados') });
 export const useEmpresa = () => useQuery({ queryKey: ['empresa'], queryFn: () => api<Empresa>('/empresa'), staleTime: Infinity });
 export const useStockMaples = (enabled = true) => useQuery({ queryKey: ['stock-maples'], queryFn: () => api<StockMaple[]>('/stock-maples'), enabled });
+
+export interface Cliente { id: string; nombre: string; cuit: string | null; telefono: string | null; email: string | null; direccion: string | null; vehiculoHabitual: Vehiculo | null; notas: string | null; ultimaVenta?: string | null }
+export interface PaletDisponible { id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; destino: string | null; armadoAt: string; varianteId: string; codigo: string; variante: string; colorHex: string | null; maplesPorPaquete: number }
+export interface Banco { id: string; nombre: string; activo: boolean }
+
+export const useClientes = (q = '') => useQuery({ queryKey: ['clientes', q], queryFn: () => api<Cliente[]>(`/clientes?q=${encodeURIComponent(q)}`) });
+export const useBancos = () => useQuery({ queryKey: ['bancos'], queryFn: () => api<Banco[]>('/bancos') });

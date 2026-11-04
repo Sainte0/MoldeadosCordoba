@@ -102,9 +102,10 @@ export async function crearPalet(db: Knex, usuarioId: string, i: PaletInput): Pr
 
 export async function anularPalet(db: Knex, usuarioId: string, paletId: string, motivo: string): Promise<void> {
   await db.transaction(async (trx) => {
-    const p = await trx('palets').where({ id: paletId }).forUpdate().first('id', 'anulado_at');
+    const p = await trx('palets').where({ id: paletId }).forUpdate().first('id', 'anulado_at', 'venta_id');
     if (!p) throw new NotFoundError('No encontramos ese palet');
     if (p.anulado_at) throw new ConflictError('Este palet ya estaba anulado');
+    if (p.venta_id) throw new ConflictError('Este palet ya se vendió. Para desarmarlo, primero anulá la venta.');
     await trx('palets').where({ id: p.id }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: motivo, updated_at: trx.fn.now() });
     await auditar(trx, { usuarioId, accion: 'anular', entidad: 'palet', entidadId: p.id, motivo });
   });
@@ -118,6 +119,7 @@ export async function stockMaples(db: Knex) {
       'v.id', 'v.codigo', 'v.nombre', 'v.color_hex as colorHex', 'v.maples_por_paquete as maplesPorPaquete', 'v.activo',
       db.raw('coalesce((select sum(p.paquetes) from partes p where p.variante_id = v.id and p.anulado_at is null), 0)::int as producido'),
       db.raw('coalesce((select sum(l.paquetes) from palet_lotes l join palets pa on pa.id = l.palet_id where pa.variante_id = v.id and pa.anulado_at is null), 0)::int as "enPalets"'),
+      db.raw('coalesce((select sum(pa.paquetes) from palets pa join ventas ve on ve.id = pa.venta_id where pa.variante_id = v.id and pa.anulado_at is null), 0)::int as vendido'),
     )
     .orderBy('v.codigo');
 }
@@ -171,5 +173,7 @@ export async function trazabilidad(db: Knex, paletId: string) {
     }
     origen.push({ ...c, compras: usadas });
   }
-  return { ...palet, lotes, origen };
+  const venta = await db('palets as pa').join('ventas as v', 'v.id', 'pa.venta_id').join('clientes as c', 'c.id', 'v.cliente_id').where('pa.id', paletId)
+    .first('v.id', 'v.numero', 'v.fecha', 'v.retira', 'v.vehiculo', 'v.patente', 'c.nombre as cliente');
+  return { ...palet, lotes, origen, venta: venta ?? null };
 }

@@ -37,7 +37,10 @@ en el **mismo VPS que Centrolab y Hassuru**.
   (sin MUI/Bootstrap/shadcn). Usar el skill `frontend-design` al construir pantallas.
 - Animación 3D del maple (Three.js) solo donde suma: login, etiqueta/QR, confirmaciones de producción. Nunca bloquea la carga.
 - Sin emojis. Íconos lucide-react. Cero tecnicismos visibles (ni IDs, ni errores crudos).
-- Mobile-first, 320px → desktop. Botones grandes (planta, guantes).
+- **Se usa sobre todo en iPhone y iPad** (planta y playón). Probar en esos tamaños: iPhone sin scroll horizontal,
+  iPad vertical con menú lateral (corte a 760 px). Zonas seguras (`env(safe-area-inset-*)`), campos de 16 px o más
+  (si no, iOS hace zoom), botones grandes. Instalable en inicio (manifest + apple-touch-icon).
+- Escaneo de QR con la cámara: `app/src/Escaner.tsx` (jsQR, porque Safari no trae BarcodeDetector). Requiere HTTPS.
 
 ## Código y DB
 Mismas reglas de oro que Centrolab §2.5 y §3: Zod en el borde, `route → service → repository`, uuid PK,

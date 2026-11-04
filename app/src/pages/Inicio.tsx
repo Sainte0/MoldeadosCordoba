@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Factory, Layers, Package, Scale, ShoppingCart } from 'lucide-react';
+import { ChevronRight, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
 import { formatCantidad, formatPesos } from '@moldeados/shared';
 import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
@@ -27,6 +27,13 @@ export function Inicio() {
       </header>
 
       <div className="tareas">
+        {puede('ventas', 2) && (
+          <Link to="/ventas/nueva" className="tarea">
+            <span className="ico"><ScanLine size={24} aria-hidden /></span>
+            <span><b>Despachar palets</b><small>Se va un camión: escaneá y listo</small></span>
+            <ChevronRight aria-hidden />
+          </Link>
+        )}
         {puede('produccion', 2) && (
           <Link to="/produccion/nuevo" className="tarea">
             <span className="ico"><Factory size={24} aria-hidden /></span>
@@ -48,6 +55,13 @@ export function Inicio() {
             <ChevronRight aria-hidden />
           </Link>
         )}
+        {puede('cuentas', 2) && (
+          <Link to="/dinero/nuevo?tipo=cobro" className="tarea clara">
+            <span className="ico"><Wallet size={24} aria-hidden /></span>
+            <span><b>Registrar cobro</b><small>Efectivo, transferencia o cheque</small></span>
+            <ChevronRight aria-hidden />
+          </Link>
+        )}
         {puede('compras', 2) && (
           <Link to="/compras/nueva" className="tarea clara">
             <span className="ico"><ShoppingCart size={24} aria-hidden /></span>
@@ -57,13 +71,13 @@ export function Inicio() {
         )}
       </div>
 
-      {maples && maples.some((m) => m.producido > 0) && (
+      {maples && maples.some((m) => m.producido - m.vendido > 0) && (
         <section className="hoja">
           <div className="fila"><h3>Maples en stock</h3><Link to="/palets" className="chico">Ver palets</Link></div>
-          {maples.filter((m) => m.producido > 0).map((m) => (
+          {maples.filter((m) => m.producido - m.vendido > 0).map((m) => (
             <div className="fila" key={m.id}>
               <span className="con-muestra"><Muestra color={m.colorHex} /> <span className="principal">{m.codigo}</span></span>
-              <span><span className="cifra">{m.producido.toLocaleString('es-AR')}</span> <span className="chico tenue">paq. · {m.enPalets} en palets</span></span>
+              <span><span className="cifra">{(m.producido - m.vendido).toLocaleString('es-AR')}</span> <span className="chico tenue">paq. en planta · {m.enPalets - m.vendido} en palets listos</span></span>
             </div>
           ))}
         </section>

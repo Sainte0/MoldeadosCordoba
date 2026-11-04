@@ -12,6 +12,7 @@ import { materiasRoutes } from './features/materias.routes.js';
 import { comprasRoutes } from './features/compras.routes.js';
 import { auditoriaRoutes } from './features/auditoria.routes.js';
 import { produccionRoutes } from './features/produccion.routes.js';
+import { ventasRoutes } from './features/ventas.routes.js';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test', bodyLimit: 1_000_000 });
@@ -44,6 +45,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       await api.register(comprasRoutes);
       await api.register(auditoriaRoutes);
       await api.register(produccionRoutes);
+      await api.register(ventasRoutes);
     },
     { prefix: '/api' },
   );

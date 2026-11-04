@@ -218,7 +218,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
     if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese palet');
     const t = await trazabilidad(db, req.params.id);
     const p = (await matriz(db))[u.rol as Rol];
-    return { data: { ...t, lotes: p.produccion >= 1 ? t.lotes : null, origen: p.compras >= 1 ? t.origen : null } };
+    return { data: { ...t, lotes: p.produccion >= 1 ? t.lotes : null, origen: p.compras >= 1 ? t.origen : null, venta: p.ventas >= 1 || p.produccion >= 1 ? t.venta : null, puedeDespachar: p.ventas >= 2 } };
   });
 
   app.post('/palets', async (req, reply) => {
