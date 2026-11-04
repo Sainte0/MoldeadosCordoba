@@ -122,4 +122,4 @@ La web actual (`moldeadoscordoba.com.ar`) no es nuestra. Opciones, en orden:
 | 2 **(hecho)** | Variantes de maple + recetas · máquinas · **parte de producción por turno** · stock producto terminado · etiquetas QR | La planilla productiva |
 | 3 **(hecho)** | Clientes · ventas por palet · cobros · cuentas corrientes (clientes y proveedores) · pagos con cheques/e-cheq | La plata |
 | 4 **(hecho)** | Gastos/caja chica · **dashboards** (compras por proveedor, ventas por cliente, producción, consumo real vs teórico, gastos) | El tablero del dueño |
-| 5 | Instructivos editables · escaneo QR desde celular por rol | Pulido |
+| 5 **(hecho)** | Instructivos editables · escaneo QR desde celular por rol | Pulido |

@@ -195,5 +195,5 @@ export function Despacho() {
     }
   };
 
-  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar="Confirmar despacho" guardando={guardando} error={error} onCancelar={() => navegar('/ventas')} />;
+  return <Asistente proceso="despacho" pasos={pasos} onTerminar={guardar} textoTerminar="Confirmar despacho" guardando={guardando} error={error} onCancelar={() => navegar('/ventas')} />;
 }

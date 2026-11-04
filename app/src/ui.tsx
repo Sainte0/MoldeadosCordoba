@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
-import { ArrowLeft, Check, Info, Search } from 'lucide-react';
+import { ArrowLeft, Check, Info, Pencil, Search } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, useSesion } from './api';
 
 // Componentes propios. Sin librerías de UI: todo lo de acá se pensó para tocar con el dedo en planta.
 
@@ -82,7 +84,9 @@ export interface Paso {
 }
 
 /** Asistente: un paso por pantalla, con su instructivo y el avance en alvéolos. */
-export function Asistente({ pasos, onTerminar, textoTerminar, guardando, error, onCancelar }: {
+export function Asistente({ proceso, pasos, onTerminar, textoTerminar, guardando, error, onCancelar }: {
+  /** Identifica el proceso para guardar sus instructivos editados (ej. "pesaje"). */
+  proceso: string;
   pasos: Paso[];
   onTerminar: () => void;
   textoTerminar: string;
@@ -108,7 +112,7 @@ export function Asistente({ pasos, onTerminar, textoTerminar, guardando, error, 
       <Alveolos total={pasos.length} actual={i} />
       <div className="paso-cuerpo" key={i}>
         <h1 ref={titulo} tabIndex={-1}>{paso.titulo}</h1>
-        <div className="instructivo"><Info size={18} aria-hidden /><p>{paso.ayuda}</p></div>
+        <Instructivo clave={`${proceso}:${paso.titulo}`} original={paso.ayuda} />
         {paso.contenido}
         {typeof paso.listo === 'string' && <p className="chico tenue">{paso.listo}</p>}
         {ultimo && <Aviso>{error}</Aviso>}
@@ -151,5 +155,50 @@ export function Cabecera({ titulo, bajada, children }: { titulo: string; bajada?
       </div>
       {children}
     </header>
+  );
+}
+
+/**
+ * Cuadro de ayuda del paso. El dueño (o quien maneja el equipo) lo puede reescribir ahí mismo con el lápiz;
+ * el cambio vale para todos. "Volver al original" borra la versión editada.
+ */
+function Instructivo({ clave, original }: { clave: string; original: string }) {
+  const { puede } = useSesion();
+  const qc = useQueryClient();
+  const { data } = useQuery({ queryKey: ['instructivos'], queryFn: () => api<Record<string, string>>('/instructivos'), staleTime: Infinity });
+  const actual = data?.[clave] ?? original;
+  const [editando, setEditando] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const guardar = async (texto: string | null) => {
+    setError(null);
+    try {
+      await api('/instructivos', { method: 'PUT', body: { clave, texto } });
+      await qc.invalidateQueries({ queryKey: ['instructivos'] });
+      setEditando(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar');
+    }
+  };
+
+  if (editando !== null) {
+    return (
+      <div className="instructivo editando">
+        <textarea className="entrada" value={editando} onChange={(e) => setEditando(e.target.value)} autoFocus aria-label="Texto del instructivo" />
+        <Aviso>{error}</Aviso>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button type="button" className="boton primario" onClick={() => guardar(editando.trim())}>Guardar instructivo</button>
+          {data?.[clave] && <button type="button" className="boton secundario" onClick={() => guardar(null)}>Volver al original</button>}
+          <button type="button" className="boton fantasma" onClick={() => setEditando(null)}>Cancelar</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="instructivo">
+      <Info size={18} aria-hidden />
+      <p style={{ flex: 1, whiteSpace: 'pre-line' }}>{actual}</p>
+      {puede('usuarios', 3) && <button type="button" className="boton icono" aria-label="Editar instructivo" onClick={() => setEditando(actual)} style={{ minHeight: 32, width: 32 }}><Pencil size={16} /></button>}
+    </div>
   );
 }

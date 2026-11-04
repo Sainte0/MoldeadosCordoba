@@ -3,7 +3,7 @@ import type { Knex } from 'knex';
 export interface Evento {
   usuarioId: string;
   accion: 'crear' | 'editar' | 'anular' | 'borrar' | 'ajustar' | 'login';
-  entidad: 'compra' | 'proveedor' | 'materia_prima' | 'usuario' | 'permiso' | 'maquina' | 'variante' | 'empleado' | 'parte' | 'palet' | 'empresa' | 'cliente' | 'venta' | 'cobro' | 'pago' | 'precio' | 'banco' | 'gasto' | 'categoria_gasto' | 'caja';
+  entidad: 'compra' | 'proveedor' | 'materia_prima' | 'usuario' | 'permiso' | 'maquina' | 'variante' | 'empleado' | 'parte' | 'palet' | 'empresa' | 'cliente' | 'venta' | 'cobro' | 'pago' | 'precio' | 'banco' | 'gasto' | 'categoria_gasto' | 'caja' | 'instructivo';
   entidadId?: string | null;
   antes?: unknown;
   despues?: unknown;

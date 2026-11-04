@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, CheckCircle2, Paperclip, Plus, Wallet } from 'lucide-react';
+import { Ban, CheckCircle2, Paperclip, Plus } from 'lucide-react';
 import { formatPesos, LABEL_MEDIO_GASTO, type MedioGasto } from '@moldeados/shared';
 import { api, apiBlobUrl, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useCategoriasGasto } from '../datos';
@@ -26,7 +26,6 @@ export function Gastos() {
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       <Cabecera titulo="Gastos" bajada="Lo que se paga en el día a día: caja chica, impuestos, servicios, sueldos.">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {puede('gastos') && <Link to="/caja" className="boton secundario"><Wallet size={18} aria-hidden /> Caja chica</Link>}
           {puede('gastos', 2) && <Link to="/gastos/nuevo" className="boton primario"><Plus size={18} aria-hidden /> Cargar gasto</Link>}
         </div>
       </Cabecera>

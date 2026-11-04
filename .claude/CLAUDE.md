@@ -30,6 +30,15 @@ en el **mismo VPS que Centrolab y Hassuru**.
 - **Medios de pago:** efectivo, transferencia, Mercado Pago, e-cheq (banco), cheque físico (banco, nro., fecha de cobro).
 
 ## Diseño
+- **Ultra simple (pedido explícito del cliente).** El menú tiene 5 áreas fijas — Planta, Ventas, Compras, Plata,
+  Tablero — más Ajustes (configuración). Lo de adentro va en pestañas del área (`AREAS` en `app/src/App.tsx`).
+  **Una función nueva entra en un área existente; nunca se agrega un ítem al menú.** El inicio muestra solo las 4
+  tareas más frecuentes del rol.
+- **Sistema visual prolijo:** fondo `#F3F4F6`, superficies blancas con borde fino y sombra mínima, un solo color de
+  acción (azul del logo). Estado activo = fondo suave (pastilla), **nunca rayas de color a un costado**. Pestañas como
+  control segmentado. El navy queda para login y visor 3D.
+- **Instructivos:** cada paso de asistente tiene su ayuda; el dueño la edita ahí mismo con el lápiz (`instructivos`,
+  clave `proceso:título del paso`). Todo `<Asistente>` lleva `proceso`.
 - **Marca del cliente:** logo (`app/public/logo.png`) y azul `#004FBC` de moldeadoscordoba.com.ar, azul marino
   `#0E1A30`, kraft `#A87B45` para material/stock, amarillo `#F2C230` para "paso actual / atención". Tipografía Archivo.
 - El maple 3D (`app/src/Maple3D.tsx`) toma el `color_hex` de cada código de maple; sin color = cartón natural.

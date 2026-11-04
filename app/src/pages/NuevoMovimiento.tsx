@@ -116,5 +116,5 @@ export function NuevoMovimiento() {
     }
   };
 
-  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar={tipo === 'cobro' ? 'Guardar cobro' : 'Guardar pago'} guardando={guardando} error={error} onCancelar={() => navegar(-1)} />;
+  return <Asistente proceso={`dinero-${tipo}`} pasos={pasos} onTerminar={guardar} textoTerminar={tipo === 'cobro' ? 'Guardar cobro' : 'Guardar pago'} guardando={guardando} error={error} onCancelar={() => navegar(-1)} />;
 }

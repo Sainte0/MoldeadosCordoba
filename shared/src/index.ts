@@ -371,6 +371,12 @@ export const cajaSchema = z.object({
 
 export const categoriaGastoSchema = z.object({ nombre: texto(80).min(2, 'Ingresá el nombre'), activo: z.boolean().default(true) });
 
+export const instructivoSchema = z.object({
+  clave: texto(200).min(3),
+  /** null = volver al texto original */
+  texto: texto(1000).min(3, 'El instructivo no puede quedar vacío').nullable(),
+});
+
 export type GastoInput = z.infer<typeof gastoSchema>;
 export type VentaInput = z.infer<typeof ventaSchema>;
 export type MovimientoDineroInput = z.infer<typeof movimientoDineroSchema>;

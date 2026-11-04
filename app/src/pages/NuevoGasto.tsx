@@ -144,5 +144,5 @@ export function NuevoGasto() {
     }
   };
 
-  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar="Guardar gasto" guardando={guardando} error={error} onCancelar={() => navegar('/gastos')} />;
+  return <Asistente proceso="gasto" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar gasto" guardando={guardando} error={error} onCancelar={() => navegar('/gastos')} />;
 }

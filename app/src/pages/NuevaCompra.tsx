@@ -139,5 +139,5 @@ export function NuevaCompra() {
     }
   };
 
-  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar="Guardar compra" guardando={guardando} error={error} onCancelar={() => navegar('/compras')} />;
+  return <Asistente proceso="compra" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar compra" guardando={guardando} error={error} onCancelar={() => navegar('/compras')} />;
 }

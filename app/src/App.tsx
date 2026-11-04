@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { ChartColumn, ClipboardList, Contact, Coins, Egg, Factory, Home, Layers, LogOut, Menu, Package, Receipt, Scale, ShoppingCart, Tags, Truck, Users, Wallet, X } from 'lucide-react';
+import { ChartColumn, Factory, Home, LogOut, Menu, Receipt, Settings, ShoppingCart, Wallet, X } from 'lucide-react';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
@@ -33,24 +33,38 @@ import { Gastos } from './pages/Gastos';
 import { NuevoGasto } from './pages/NuevoGasto';
 import { Caja } from './pages/Caja';
 
-const NAV: { a: string; texto: string; icono: typeof Home; modulo?: Modulo; nivel?: 1 | 2 }[] = [
-  { a: '/', texto: 'Inicio', icono: Home },
-  { a: '/tablero', texto: 'Tablero', icono: ChartColumn, modulo: 'tablero' },
-  { a: '/ventas', texto: 'Ventas y despachos', icono: Receipt, modulo: 'ventas' },
-  { a: '/produccion', texto: 'Producción', icono: Factory, modulo: 'produccion' },
-  { a: '/palets', texto: 'Stock y palets', icono: Layers, modulo: 'produccion' },
-  { a: '/pesaje', texto: 'Pesaje de cartón', icono: Scale, modulo: 'compras', nivel: 2 },
-  { a: '/compras', texto: 'Compras', icono: ShoppingCart, modulo: 'compras' },
-  { a: '/materia-prima', texto: 'Materia prima', icono: Package, modulo: 'materias' },
-  { a: '/cuentas', texto: 'Cuentas corrientes', icono: Wallet, modulo: 'cuentas' },
-  { a: '/gastos', texto: 'Gastos y caja chica', icono: Coins, modulo: 'gastos' },
-  { a: '/clientes', texto: 'Clientes', icono: Contact, modulo: 'ventas' },
-  { a: '/precios', texto: 'Precios', icono: Tags, modulo: 'ventas' },
-  { a: '/proveedores', texto: 'Proveedores', icono: Truck, modulo: 'proveedores' },
-  { a: '/maples', texto: 'Maples y recetas', icono: Egg, modulo: 'productos' },
-  { a: '/equipo', texto: 'Equipo y permisos', icono: Users, modulo: 'usuarios' },
-  { a: '/registro', texto: 'Registro de cambios', icono: ClipboardList, modulo: 'auditoria' },
+// Pocas áreas, siempre las mismas: lo de adentro va en pestañas. Una función nueva entra en un área existente,
+// nunca como un ítem nuevo del menú (pedido del cliente: ultra simple).
+interface Pestana { a: string; texto: string; modulo: Modulo }
+interface Area { texto: string; icono: typeof Home; pestanas: Pestana[]; /** rutas que también pertenecen al área */ tambien?: string[] }
+const AREAS: Area[] = [
+  { texto: 'Planta', icono: Factory, pestanas: [
+    { a: '/produccion', texto: 'Producción', modulo: 'produccion' },
+    { a: '/palets', texto: 'Stock y palets', modulo: 'produccion' },
+    { a: '/materia-prima', texto: 'Materia prima', modulo: 'materias' },
+  ] },
+  { texto: 'Ventas', icono: Receipt, pestanas: [
+    { a: '/ventas', texto: 'Despachos', modulo: 'ventas' },
+    { a: '/clientes', texto: 'Clientes', modulo: 'ventas' },
+    { a: '/precios', texto: 'Precios', modulo: 'ventas' },
+  ] },
+  { texto: 'Compras', icono: ShoppingCart, tambien: ['/pesaje'], pestanas: [
+    { a: '/compras', texto: 'Compras y pesajes', modulo: 'compras' },
+    { a: '/proveedores', texto: 'Proveedores', modulo: 'proveedores' },
+  ] },
+  { texto: 'Plata', icono: Wallet, tambien: ['/dinero'], pestanas: [
+    { a: '/cuentas', texto: 'Cuentas corrientes', modulo: 'cuentas' },
+    { a: '/gastos', texto: 'Gastos', modulo: 'gastos' },
+    { a: '/caja', texto: 'Caja chica', modulo: 'gastos' },
+  ] },
+  { texto: 'Tablero', icono: ChartColumn, pestanas: [{ a: '/tablero', texto: 'Tablero', modulo: 'tablero' }] },
 ];
+const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
+  { a: '/maples', texto: 'Maples y recetas', modulo: 'productos' },
+  { a: '/equipo', texto: 'Equipo y permisos', modulo: 'usuarios' },
+  { a: '/registro', texto: 'Registro de cambios', modulo: 'auditoria' },
+] };
+const enArea = (area: Area, path: string) => [...area.pestanas.map((x) => x.a), ...(area.tambien ?? [])].some((r) => path === r || path.startsWith(r + '/'));
 
 function Marca() {
   return (
@@ -81,18 +95,24 @@ export function App() {
           <Marca />
           {abierto && <button className="boton icono" onClick={() => setAbierto(false)} aria-label="Cerrar menú"><X size={24} /></button>}
         </div>
-        {NAV.filter((n) => !n.modulo || p(n.modulo, n.nivel)).map((n) => (
-          <NavLink key={n.a} to={n.a} end={n.a === '/'} className={({ isActive }) => `nav-link${isActive ? ' activo' : ''}`}>
-            <n.icono size={20} aria-hidden /> {n.texto}
-          </NavLink>
-        ))}
+        <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' activo' : ''}`}><Home size={20} aria-hidden /> Inicio</NavLink>
+        {[...AREAS, AJUSTES].map((area) => {
+          const visibles = area.pestanas.filter((x) => p(x.modulo));
+          if (!visibles.length) return null;
+          return (
+            <NavLink key={area.texto} to={visibles[0]!.a} className={`nav-link${enArea(area, pathname) ? ' activo' : ''}${area === AJUSTES ? ' nav-ajustes' : ''}`}>
+              <area.icono size={20} aria-hidden /> {area.texto}
+            </NavLink>
+          );
+        })}
         <div className="nav-pie">
-          <div style={{ color: '#fff', fontWeight: 600 }}>{sesion.usuario.nombre}</div>
+          <div>{sesion.usuario.nombre}</div>
           <div>{LABEL_ROL[sesion.usuario.rol]}</div>
           <button onClick={salir}><LogOut size={16} aria-hidden /> Salir</button>
         </div>
       </nav>
       <main className="contenido">
+        <Pestanas path={pathname} puede={p} />
         <Routes>
           <Route path="/" element={<Inicio />} />
           {p('compras', 2) && <Route path="/pesaje" element={<Pesaje />} />}
@@ -127,5 +147,17 @@ export function App() {
         </Routes>
       </main>
     </div>
+  );
+}
+
+/** Pestañas del área, solo en las pantallas de listado (en los asistentes y detalles no distraen). */
+function Pestanas({ path, puede }: { path: string; puede: (m: Modulo) => boolean }) {
+  const area = [...AREAS, AJUSTES].find((x) => x.pestanas.some((t) => t.a === path));
+  const visibles = area?.pestanas.filter((t) => puede(t.modulo)) ?? [];
+  if (visibles.length < 2) return null;
+  return (
+    <nav className="pestanas subnav" aria-label={area!.texto}>
+      {visibles.map((t) => <NavLink key={t.a} to={t.a} className={({ isActive }) => (isActive ? 'activa' : '')}>{t.texto}</NavLink>)}
+    </nav>
   );
 }

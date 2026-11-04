@@ -1,10 +1,21 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
-import { formatCantidad, formatPesos } from '@moldeados/shared';
+import { formatCantidad, formatPesos, type Modulo } from '@moldeados/shared';
 import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
 import { Muestra } from '../MapleVista';
+
+// Las 4 primeras que el rol puede hacer, en orden de frecuencia en planta. El resto está en su área del menú.
+const TAREAS: { a: string; titulo: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
+  { a: '/ventas/nueva', titulo: 'Despachar palets', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
+  { a: '/produccion/nuevo', titulo: 'Parte de producción', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
+  { a: '/palets/nuevo', titulo: 'Armar palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
+  { a: '/pesaje', titulo: 'Pesaje de cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
+  { a: '/dinero/nuevo?tipo=cobro', titulo: 'Registrar cobro', detalle: 'Efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
+  { a: '/gastos/nuevo', titulo: 'Cargar gasto', detalle: 'Con foto del ticket', icono: Coins, modulo: 'gastos' },
+  { a: '/compras/nueva', titulo: 'Compra de insumos', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
+];
 
 function saludo(): string {
   const h = Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
@@ -27,55 +38,13 @@ export function Inicio() {
       </header>
 
       <div className="tareas">
-        {puede('ventas', 2) && (
-          <Link to="/ventas/nueva" className="tarea">
-            <span className="ico"><ScanLine size={24} aria-hidden /></span>
-            <span><b>Despachar palets</b><small>Se va un camión: escaneá y listo</small></span>
+        {TAREAS.filter((t) => puede(t.modulo, 2)).slice(0, 4).map((t, i) => (
+          <Link key={t.a} to={t.a} className={`tarea${i < 2 ? '' : ' clara'}`}>
+            <span className="ico"><t.icono size={24} aria-hidden /></span>
+            <span><b>{t.titulo}</b><small>{t.detalle}</small></span>
             <ChevronRight aria-hidden />
           </Link>
-        )}
-        {puede('produccion', 2) && (
-          <Link to="/produccion/nuevo" className="tarea">
-            <span className="ico"><Factory size={24} aria-hidden /></span>
-            <span><b>Parte de producción</b><small>Terminó un turno de máquina</small></span>
-            <ChevronRight aria-hidden />
-          </Link>
-        )}
-        {puede('produccion', 2) && (
-          <Link to="/palets/nuevo" className="tarea clara">
-            <span className="ico"><Layers size={24} aria-hidden /></span>
-            <span><b>Armar palet</b><small>Con su etiqueta y QR</small></span>
-            <ChevronRight aria-hidden />
-          </Link>
-        )}
-        {puede('compras', 2) && (
-          <Link to="/pesaje" className="tarea clara">
-            <span className="ico"><Scale size={24} aria-hidden /></span>
-            <span><b>Pesaje de cartón</b><small>Llegó un camión a la báscula</small></span>
-            <ChevronRight aria-hidden />
-          </Link>
-        )}
-        {puede('cuentas', 2) && (
-          <Link to="/dinero/nuevo?tipo=cobro" className="tarea clara">
-            <span className="ico"><Wallet size={24} aria-hidden /></span>
-            <span><b>Registrar cobro</b><small>Efectivo, transferencia o cheque</small></span>
-            <ChevronRight aria-hidden />
-          </Link>
-        )}
-        {puede('gastos', 2) && (
-          <Link to="/gastos/nuevo" className="tarea clara">
-            <span className="ico"><Coins size={24} aria-hidden /></span>
-            <span><b>Cargar gasto</b><small>Con foto del ticket</small></span>
-            <ChevronRight aria-hidden />
-          </Link>
-        )}
-        {puede('compras', 2) && (
-          <Link to="/compras/nueva" className="tarea clara">
-            <span className="ico"><ShoppingCart size={24} aria-hidden /></span>
-            <span><b>Compra de insumos</b><small>Tinta, aglutinante u otros</small></span>
-            <ChevronRight aria-hidden />
-          </Link>
-        )}
+        ))}
       </div>
 
       {maples && maples.some((m) => m.producido - m.vendido > 0) && (

@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Calculator, Plus } from 'lucide-react';
+import { Calculator, Plus } from 'lucide-react';
 import { aCentavos, formatPesos } from '@moldeados/shared';
 import { api, hoy, useSesion, verFecha } from '../api';
 import { useCaja } from '../datos';
@@ -18,7 +17,6 @@ export function Caja() {
 
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Link to="/gastos" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Gastos</Link>
       <Cabecera titulo="Caja chica" bajada="Los gastos pagados con caja chica se descuentan solos." />
       <div className="lectura"><span>Tiene que haber</span><span className="cifra">{formatPesos(data.saldo)}</span></div>
       {puede('gastos', 3) && (

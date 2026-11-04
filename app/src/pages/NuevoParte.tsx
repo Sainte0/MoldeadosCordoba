@@ -178,5 +178,5 @@ export function NuevoParte() {
     }
   };
 
-  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar="Guardar parte" guardando={guardando} error={error} onCancelar={() => navegar('/produccion')} />;
+  return <Asistente proceso="parte" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar parte" guardando={guardando} error={error} onCancelar={() => navegar('/produccion')} />;
 }

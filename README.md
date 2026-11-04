@@ -45,4 +45,8 @@ descuentan solos y arqueo (conteo con diferencia). Tablero del dueño por perío
 por cobrar/por pagar, caja, palets listos, alerta de materia prima bajo mínimo, gráfico de entradas y salidas
 (paleta validada para daltonismo), rankings por cliente/proveedor/categoría, producción y consumo contra receta.
 
-Próximo: Corte 5 (instructivos editables por proceso) y deploy al VPS.
+**Corte 5 (hecho):** instructivos editables en el mismo asistente (lápiz en el cuadro de ayuda, "volver al original").
+Rediseño a pedido del cliente: menú de 5 áreas + Ajustes con pestañas, menú fijo, sistema visual sobrio (sin rayas
+de color), revisado en iPhone, iPad mini, iPad 11 vertical/horizontal y notebook.
+
+Próximo: deploy al VPS (pendiente: dominio con HTTPS).

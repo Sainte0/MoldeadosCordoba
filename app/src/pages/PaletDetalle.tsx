@@ -55,6 +55,8 @@ export function PaletDetalle() {
 
   return (
     <div className="columna solo-etiqueta" style={{ display: 'grid', gap: 20 }}>
+      {/* Tamaño de hoja solo para esta página: el ticket y el remito imprimen en A4. */}
+      <style>{'@media print { @page { size: 100mm 150mm; margin: 4mm; } }'}</style>
       <Link to="/palets" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Stock y palets</Link>
       {params.get('nuevo') && !p.anuladoAt && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Palet armado. Imprimí la etiqueta y pegala en el film.</div>}
       {p.anuladoAt && <Aviso>Palet anulado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}

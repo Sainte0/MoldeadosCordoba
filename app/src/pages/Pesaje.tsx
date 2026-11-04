@@ -141,5 +141,5 @@ export function Pesaje() {
   if (materias && cartones.length === 0) {
     return <div className="columna"><h1>Falta el cartón</h1><p className="tenue" style={{ marginTop: 8 }}>No hay ningún cartón activo en Materia prima. Pedile al encargado que lo dé de alta.</p></div>;
   }
-  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar="Guardar ticket" guardando={guardando} error={error} onCancelar={() => navegar('/')} />;
+  return <Asistente proceso="pesaje" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar ticket" guardando={guardando} error={error} onCancelar={() => navegar('/')} />;
 }

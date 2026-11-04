@@ -35,9 +35,11 @@ export function Produccion() {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
         <label className="campo"><span>Desde</span><Entrada type="date" value={desde} max={hasta} onChange={(e) => setDesde(e.target.value)} /></label>
         <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} max={hoy()} onChange={(e) => setHasta(e.target.value)} /></label>
-        {[['Hoy', 0], ['7 días', 6], ['30 días', 29]].map(([t, n]) => (
-          <button key={t} className="boton secundario" onClick={() => { setDesde(haceDias(n as number)); setHasta(hoy()); }}>{t}</button>
-        ))}
+        <div className="pestanas" role="group" aria-label="Rango rápido" style={{ alignSelf: 'center' }}>
+          {([['Hoy', 0], ['7 días', 6], ['30 días', 29]] as const).map(([t, n]) => (
+            <button key={t} aria-pressed={desde === haceDias(n) && hasta === hoy()} onClick={() => { setDesde(haceDias(n)); setHasta(hoy()); }}>{t}</button>
+          ))}
+        </div>
       </div>
 
       <div className="cifras">

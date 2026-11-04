@@ -121,5 +121,5 @@ export function NuevoPalet() {
     }
   };
 
-  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar="Armar palet" guardando={guardando} error={error} onCancelar={() => navegar('/palets')} />;
+  return <Asistente proceso="palet" pasos={pasos} onTerminar={guardar} textoTerminar="Armar palet" guardando={guardando} error={error} onCancelar={() => navegar('/palets')} />;
 }

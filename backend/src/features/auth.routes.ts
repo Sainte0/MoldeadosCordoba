@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import type { FastifyInstance } from 'fastify';
-import { loginSchema, usuarioSchema, permisoSchema, type Rol } from '@moldeados/shared';
+import { instructivoSchema, loginSchema, usuarioSchema, permisoSchema, type Rol } from '@moldeados/shared';
 import { db } from '../db.js';
 import { firmar, matriz, requerir, sesion } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
@@ -66,6 +66,24 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'usuario', entidadId: antes.id, antes, despues, motivo: input.password ? 'Cambio de contraseña' : null });
       return { data: despues };
     });
+  });
+
+  // Instructivos: los lee cualquiera con sesión (salen en cada asistente); los cambia quien maneja el equipo.
+  app.get('/instructivos', async (req) => {
+    sesion(req);
+    const filas = await db('instructivos').select('clave', 'texto');
+    return { data: Object.fromEntries(filas.map((f) => [f.clave, f.texto])) };
+  });
+  app.put('/instructivos', async (req) => {
+    const s = await requerir(db, req, 'usuarios', 3);
+    const { clave, texto } = instructivoSchema.parse(req.body);
+    await db.transaction(async (trx) => {
+      const antes = await trx('instructivos').where({ clave }).first('texto');
+      if (texto === null) await trx('instructivos').where({ clave }).delete();
+      else await trx('instructivos').insert({ clave, texto, usuario_id: s.usuarioId, updated_at: trx.fn.now() }).onConflict('clave').merge();
+      await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'instructivo', antes: antes ?? null, despues: { clave, texto } });
+    });
+    return { data: { ok: true } };
   });
 
   app.get('/permisos', async (req) => {
