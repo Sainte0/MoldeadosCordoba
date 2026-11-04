@@ -123,8 +123,7 @@ export function App() {
           <Reloj />
           <BotonAtencion />
           <Campana alAbrir={() => setAsoma(null)} />
-          <button className="boton icono" onClick={() => setBuscando(true)} aria-label="Buscar"><Search size={22} /></button>
-          {pathname !== '/ayuda' && <NavLink className="boton icono" to={`/ayuda?desde=${encodeURIComponent(pathname)}`} aria-label="Ayuda"><CircleHelp size={24} /></NavLink>}
+          {/* En el teléfono, arriba solo lo que avisa; el buscador y la ayuda están en el menú. */}
           <button className="boton icono" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={26} /></button>
         </div>
       </div>

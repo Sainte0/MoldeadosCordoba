@@ -10,12 +10,10 @@ export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
     { ruta: '/', en: '.tareas', texto: 'Las tareas que más hacés. Tocá una y el sistema te lleva paso a paso, una pregunta por pantalla.' },
     { en: '[data-guia="atencion"]', texto: 'Atención: lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos). El número en rojo es lo urgente; adentro, cada cosa trae su botón para resolverla.' },
     { en: '.campana', texto: 'La campana: recordatorios de la agenda, lo que te agendaron y los pedidos nuevos. El número rojo es lo que no leíste.' },
-    { en: '.abrir-buscador, .barra-movil [aria-label="Buscar"]', texto: 'El buscador: escribí un cliente, un n.º de remito o "cómo cargo un egreso" y te lleva directo.' },
-    { en: '.lateral, .barra-movil [aria-label="Abrir menú"]', texto: 'El menú: Planta, Ventas, Compras, Plata y Tablero. Adentro de cada uno, pestañas. Ajustes está abajo.' },
-    { en: '.barra-movil [aria-label="Ayuda"], .lateral a[href^="/ayuda"]', texto: 'Ayuda: las guías de la pantalla donde estás. En cada una, "Mostrame cómo" te lleva de la mano como ahora.' },
+    { en: '.lateral, .barra-movil [aria-label="Abrir menú"]', texto: 'El menú: Planta, Ventas, Compras, Plata y Tablero (adentro de cada uno, pestañas). Arriba de todo, "Buscar": un cliente, un n.º de remito o "cómo cargo un egreso". Abajo, Ajustes y Ayuda, con las guías de la pantalla donde estás.' },
   ],
   buscar: [
-    { en: '.abrir-buscador, .barra-movil [aria-label="Buscar"]', texto: 'Tocá acá (o ⌘K en la computadora). Escribí lo que buscás: secciones, acciones, guías, clientes, remitos, palets. Sin acentos también funciona.' },
+    { en: '.abrir-buscador, .barra-movil [aria-label="Abrir menú"]', texto: 'Buscar está arriba de todo en el menú (en el celular, abrí el menú con las tres rayitas; en la computadora, también ⌘K). Escribí lo que buscás: secciones, acciones, guías, clientes, remitos, palets. Sin acentos también funciona.' },
   ],
   avisos: [
     { en: '.campana', texto: 'Tocá la campana para ver tus avisos. Adentro, "Activar avisos" hace que te lleguen al teléfono aunque la app esté cerrada.' },

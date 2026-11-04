@@ -48,7 +48,7 @@ export const GUIAS: Guia[] = [
     id: 'buscar', area: 'Primeros pasos', titulo: 'Buscar cualquier cosa', pantallas: ['/'],
     palabras: 'buscar buscador encontrar lupa atajo comando cliente remito numero',
     pasos: [
-      'Tocá la lupa (arriba en el celular, o "Buscar" en el menú). En la computadora también abre con ⌘K o Ctrl+K.',
+      'Tocá "Buscar" arriba de todo en el menú (en el celular, abrí el menú con las tres rayitas). En la computadora también abre con ⌘K o Ctrl+K.',
       'Escribí lo que necesitás: una sección ("caja chica"), algo que querés hacer ("cargar gasto"), un cliente, un proveedor o un número de remito, ticket, palet o parte.',
       'Elegí el resultado y te lleva directo. Con el teclado: flechas para moverte y Enter para abrir.',
       'Cada listado tiene además su propio buscador arriba: busca sin importar acentos y también por número.',

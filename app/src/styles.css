@@ -534,4 +534,4 @@ select.entrada { appearance: none; -webkit-appearance: none; font-size: 16px; ba
 .barra-arriba { display: flex; justify-content: flex-end; gap: 4px; margin: -20px -8px 4px 0; }
 @media (max-width: 760px) { .barra-arriba { display: none; } }
 .campana .globito.ambar { background: var(--atencion-c); }
-@media (max-width: 430px) { .barra-movil .marca > div { display: none; } .barra-movil .boton.icono { width: 42px; } }
+
