@@ -7,7 +7,7 @@ import { useDemorado, useFiltros } from '../filtros';
 import { BotonExportar } from './Exportar';
 import { Buscador, Cabecera, Cargando, Entrada } from '../ui';
 
-interface VentaFila { id: string; numero: number; fecha: string; total: number; conFactura: boolean; retira: string | null; anuladoAt: string | null; cliente: string; palets: number; maples: number; segunda: boolean; cobro: { cobrado: number; debe: number } | null }
+interface VentaFila { id: string; numero: number; fecha: string; total: number; conFactura: boolean; retira: string | null; anuladoAt: string | null; cliente: string; palets: number; maples: number; segunda: boolean; cobro: { cobrado: number; debe: number } | null; firmado: boolean }
 
 export function Ventas() {
   const { puede } = useSesion();
@@ -42,12 +42,13 @@ export function Ventas() {
                   <div className="principal">{v.cliente}</div>
                   <div className="chico tenue">{verFecha(v.fecha)} · Remito {nroTicket(v.numero)} {v.maples > 0 ? ` · ${v.palets ? `${plural(v.palets, 'palet', 'palets')}, ` : ''}${plural(v.maples, 'maple', 'maples')}` : ''}{v.segunda ? ' · segunda' : ''}{v.retira ? ` · retiró ${v.retira}` : ''} · {v.conFactura ? 'con factura' : 'sin factura'}</div>
                 </div>
-                <div className="derecha">
+                <div className="derecha" style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>
                   <div className="cifra">{formatPesos(v.total)}</div>
                   {v.anuladoAt ? <span className="marca-texto peligro">Anulada</span>
                     : !v.cobro || v.cobro.debe <= 0 ? <span className="marca-texto ok">Cobrado</span>
                     : v.cobro.cobrado > 0 ? <span className="marca-texto alerta">Debe {formatPesos(v.cobro.debe)}</span>
                     : <span className="marca-texto alerta">Pendiente</span>}
+                  {!v.anuladoAt && !v.firmado && <span className="marca-texto">Sin firmar</span>}
                 </div>
               </Link>
             ))}

@@ -180,7 +180,8 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
         .select('v.id', 'v.numero', 'v.fecha', 'v.total_centavos as total', 'v.con_factura as conFactura', 'v.retira', 'v.anulado_at as anuladoAt', 'c.nombre as cliente',
           db.raw('(select count(i.palet_id)::int from venta_items i where i.venta_id = v.id) as palets'),
           db.raw('(select coalesce(sum(i.maples), 0)::int from venta_items i where i.venta_id = v.id) as maples'),
-          db.raw("exists (select 1 from venta_items i where i.venta_id = v.id and i.calidad = 'segunda') as segunda"))
+          db.raw("exists (select 1 from venta_items i where i.venta_id = v.id and i.calidad = 'segunda') as segunda"),
+          db.raw('v.firma_id is not null as firmado'))
         .orderBy([{ column: 'v.fecha', order: 'desc' }, { column: 'v.numero', order: 'desc' }])
         // ponytail: "pendientes de cobro" filtra en memoria (el estado sale de aplicar cobros a lo más viejo); con miles de ventas abiertas, pasarlo a SQL.
         .modify((qb) => { if (pendientes) qb.whereNull('v.anulado_at'); else qb.limit(50).offset(pagina * 50); });

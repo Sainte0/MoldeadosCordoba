@@ -44,6 +44,7 @@ export function VentaDetalle() {
   if (isLoading) return <Cargando />;
   if (!v) return <Aviso>{error instanceof Error ? error.message : 'No encontramos esa venta'}</Aviso>;
   const maples = v.items.reduce((a, i) => a + i.maples, 0);
+  const sinPalets = v.items.every((i) => !i.paletId);
 
   const anular = async () => {
     setErr(null);
@@ -93,33 +94,34 @@ export function VentaDetalle() {
         <dl className="resumen">
           <dt>Cliente</dt><dd>{v.cliente}{v.clienteCuit && <span className="tenue"> · CUIT {v.clienteCuit}</span>}</dd>
           {v.clienteDireccion && <><dt>Dirección</dt><dd>{v.clienteDireccion}</dd></>}
-          <dt>Retira</dt><dd>{v.retira}</dd>
+          {v.retira && <><dt>Retira</dt><dd>{v.retira}</dd></>}
           {v.pedidoId && <><dt>Pedido</dt><dd><Link to={`/pedidos/${v.pedidoNumero}`}>{nroTicket(v.pedidoNumero ?? 0)}</Link></dd></>}
           {(v.vehiculo || v.patente) && <><dt>Vehículo</dt><dd>{[v.vehiculo && LABEL_VEHICULO[v.vehiculo], v.patente].filter(Boolean).join(' · ')}</dd></>}
           <dt>Factura</dt><dd>{v.conFactura ? `Sí${v.nroFactura ? ` · ${v.nroFactura}` : ''}` : 'No'}</dd>
         </dl>
+        {sinPalets && <p className="chico tenue no-imprimir">Venta anterior al sistema, cargada desde la planilla de finanzas: no tiene palets asignados. Las ventas nuevas muestran acá cada palet que se llevó.</p>}
         <table>
-          <thead><tr><th>Palet</th><th>Maple</th><th>Maples</th><th>Precio</th><th>Subtotal</th></tr></thead>
+          <thead><tr>{!sinPalets && <th>Palet</th>}<th>Maple</th><th>Maples</th><th>Precio</th><th>Subtotal</th></tr></thead>
           <tbody>
             {v.items.map((i) => (
               <tr key={i.id}>
-                <td>{!i.paletId ? '—' : i.suelto ? `${i.paquetes} sueltos` : <Link to={`/palets/${i.palet}`}>{nroTicket(i.palet)}</Link>}</td>
+                {!sinPalets && <td>{!i.paletId ? '—' : i.suelto ? `${i.paquetes} sueltos` : <Link to={`/palets/${i.palet}`}>{nroTicket(i.palet)}</Link>}</td>}
                 <td><span className="con-muestra" style={{ gap: 6 }}><Muestra color={i.colorHex} />{i.codigo}{i.calidad === 'segunda' && ' (2da)'}</span></td>
                 <td>{i.maples.toLocaleString('es-AR')}</td><td>{formatPesos(i.precioMaple)}</td><td>{formatPesos(i.subtotal)}</td>
               </tr>
             ))}
-            {v.iva > 0 && <tr><td colSpan={4}>IVA {formatIva(v.ivaBp)}</td><td>{formatPesos(v.iva)}</td></tr>}
-            <tr><th colSpan={2}>Total</th><th>{maples.toLocaleString('es-AR')}</th><th /><th className="cifra" style={{ fontSize: '1.4rem' }}>{formatPesos(v.total)}</th></tr>
+            {v.iva > 0 && <tr><td colSpan={sinPalets ? 3 : 4}>IVA {formatIva(v.ivaBp)}</td><td>{formatPesos(v.iva)}</td></tr>}
+            <tr><th colSpan={sinPalets ? 1 : 2}>Total</th><th>{maples.toLocaleString('es-AR')}</th><th /><th className="cifra" style={{ fontSize: '1.4rem' }}>{formatPesos(v.total)}</th></tr>
           </tbody>
         </table>
-        {v.notas && <p><b>Notas:</b> {v.notas}</p>}
+        {v.notas && <p><b>Observaciones:</b> {v.notas}</p>}
         {firma ? (
           <div style={{ display: 'grid', gap: 4, justifyItems: 'start' }}>
             <img src={firma} alt={`Firma de ${v.retira ?? 'quien retira'}`} style={{ maxHeight: 110, maxWidth: '100%' }} />
             <div className="chico tenue" style={{ borderTop: '1px solid var(--tinta)', paddingTop: 4, minWidth: 220 }}>{v.retira} · firmó en pantalla {v.firmadoAt && verMomento(v.firmadoAt)}</div>
           </div>
         ) : <div className="firma"><div>Firma de quien retira</div><div>Aclaración y DNI</div></div>}
-        <p className="chico tenue">Despachado por {v.cargadoPor}, {verMomento(v.cargadaAt)}</p>
+        <p className="chico tenue">{sinPalets ? 'Cargado desde la planilla' : 'Despachado'} por {v.cargadoPor}, {verMomento(v.cargadaAt)}</p>
       </article>
 
 
