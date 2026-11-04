@@ -1,0 +1,6 @@
+packages:
+  - backend
+  - app
+  - shared
+allowBuilds:
+  esbuild: true

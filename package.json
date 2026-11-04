@@ -1,0 +1,16 @@
+{
+  "name": "moldeados",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "packageManager": "pnpm@11.5.0",
+  "scripts": {
+    "dev": "concurrently -n api,app -c blue,green \"pnpm --filter @moldeados/backend dev\" \"pnpm --filter @moldeados/app dev\"",
+    "db:init": "pnpm --filter @moldeados/backend db:init",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @moldeados/backend test"
+  },
+  "devDependencies": { "concurrently": "^9.1.0" }
+}

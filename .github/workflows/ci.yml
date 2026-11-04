@@ -1,0 +1,56 @@
+name: CI
+
+# Una vez por cambio que importa: PR + push a main. Tocar docs no corre nada.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md', 'docs/**', '.vscode/**']
+  pull_request:
+    paths-ignore: ['**.md', 'docs/**', '.vscode/**']
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: typecheck + build + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Los tests corren contra una base real (moldeados_test) que test/global-setup.ts crea y migra desde cero.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm -r typecheck
+      - name: Build
+        run: pnpm -r build
+      - name: Test
+        run: pnpm -r test

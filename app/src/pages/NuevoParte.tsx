@@ -1,0 +1,182 @@
+import { Fragment, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { aMili, aMinutos, consumoTeorico, formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, TURNOS, type Turno } from '@moldeados/shared';
+import { api, hoy, verFecha } from '../api';
+import { useEmpleados, useMaquinas, useMaterias, useVariantes } from '../datos';
+import { Muestra } from '../MapleVista';
+import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
+
+const turnoActual = (): Turno => (Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())) < 14 ? 'manana' : 'tarde');
+
+/** Parte de producción: lo que hizo una máquina en un turno. Descuenta la materia prima según la receta. */
+export function NuevoParte() {
+  const navegar = useNavigate();
+  const qc = useQueryClient();
+  const { data: maquinas } = useMaquinas();
+  const { data: variantes } = useVariantes();
+  const { data: empleados } = useEmpleados();
+  const { data: materias } = useMaterias();
+
+  const [fecha, setFecha] = useState(hoy());
+  const [turno, setTurno] = useState<Turno>(turnoActual());
+  const [maquinaId, setMaquinaId] = useState<string | null>(null);
+  const [varianteId, setVarianteId] = useState<string | null>(null);
+  const [personal, setPersonal] = useState<string[]>([]);
+  const [horas, setHoras] = useState('');
+  const [pulpeadas, setPulpeadas] = useState('');
+  const [paquetes, setPaquetes] = useState('');
+  const [correcciones, setCorrecciones] = useState<Record<string, string>>({});
+  const [notas, setNotas] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const activas = (maquinas ?? []).filter((m) => m.activo);
+  const deLaMaquina = (variantes ?? []).filter((v) => v.activo && v.maquinaId === maquinaId);
+  const variante = variantes?.find((v) => v.id === varianteId);
+  const minutos = aMinutos(horas);
+  const nPaquetes = paquetes.trim() === '' ? null : Number(paquetes.replace(/\./g, ''));
+  const esperado = variante && minutos ? paquetesTeoricos(variante.maplesPorHora, minutos, variante.maplesPorPaquete) : null;
+
+  const consumos = useMemo(() => (variante && minutos ? variante.receta.map((r) => {
+    const teorico = consumoTeorico(r.cantidadPorHora, minutos);
+    const corregido = correcciones[r.materiaPrimaId];
+    const real = corregido !== undefined && corregido.trim() !== '' ? aMili(corregido) : teorico;
+    const stock = materias?.find((m) => m.id === r.materiaPrimaId)?.stock ?? 0;
+    return { ...r, teorico, real, stock };
+  }) : []), [variante, minutos, correcciones, materias]);
+
+  const pasos: Paso[] = [
+    {
+      titulo: '¿Qué turno es?',
+      ayuda: 'Un parte por máquina y por turno. Si cargás un turno de otro día, cambiá la fecha.',
+      contenido: (
+        <>
+          <Opciones columnas valor={turno} onChange={setTurno} opciones={TURNOS.map((t) => ({ valor: t, titulo: LABEL_TURNO[t] }))} />
+          <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}><Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} /></Campo>
+        </>
+      ),
+      listo: true,
+    },
+    {
+      titulo: '¿Qué máquina?',
+      ayuda: 'La papelera de la que es este parte.',
+      contenido: <Opciones valor={maquinaId} onChange={(id) => { setMaquinaId(id); setVarianteId(null); }} opciones={activas.map((m) => ({ valor: m.id, titulo: m.codigo, detalle: m.nombre }))} />,
+      listo: maquinaId ? true : 'Elegí la máquina',
+    },
+    {
+      titulo: '¿Qué maple se hizo?',
+      ayuda: 'Si en el turno se cambió de color, cargá un parte por cada código.',
+      contenido: deLaMaquina.length ? (
+        <div className="opciones">
+          {deLaMaquina.map((v) => (
+            <button type="button" key={v.id} className="opcion" aria-pressed={v.id === varianteId} onClick={() => setVarianteId(v.id)}>
+              <Muestra color={v.colorHex} grande />
+              <span><b>{v.codigo}</b><small>{v.nombre}{!v.receta.length && ' · sin receta: no descuenta materia prima'}</small></span>
+            </button>
+          ))}
+        </div>
+      ) : <p className="tenue">Esta máquina no tiene códigos de maple cargados. Se agregan en Maples y recetas.</p>,
+      listo: varianteId ? true : 'Elegí el maple',
+    },
+    {
+      titulo: '¿Quiénes trabajaron?',
+      ayuda: 'Tocá a cada persona que estuvo en la máquina este turno.',
+      contenido: (
+        <div className="opciones dos">
+          {(empleados ?? []).filter((e) => e.activo).sort((a, b) => Number(b.turnoHabitual === turno) - Number(a.turnoHabitual === turno)).map((e) => (
+            <button type="button" key={e.id} className="opcion" aria-pressed={personal.includes(e.id)} onClick={() => setPersonal(personal.includes(e.id) ? personal.filter((x) => x !== e.id) : [...personal, e.id])}>
+              <span className="marca-op" aria-hidden /><span><b>{e.nombre}</b>{e.turnoHabitual && <small>Turno {LABEL_TURNO[e.turnoHabitual].toLowerCase()}</small>}</span>
+            </button>
+          ))}
+          {!empleados?.length && <p className="tenue">No hay personal de planta cargado. Se agrega en Equipo.</p>}
+        </div>
+      ),
+      listo: personal.length ? true : 'Marcá al menos una persona',
+    },
+    {
+      titulo: '¿Cuánto trabajó la máquina?',
+      ayuda: 'Horas de máquina andando, sin contar paradas largas. Podés escribir 7,5 o 7:30.',
+      contenido: (
+        <>
+          <Campo etiqueta="Horas"><EntradaNumero enorme unidad="h" value={horas} onChange={(e) => setHoras(e.target.value)} autoFocus /></Campo>
+          {minutos !== null && minutos > 0 && <p className="tenue">{formatMinutos(minutos)}</p>}
+          <Campo etiqueta="Pulpeadas" ayuda="Cuántas cargas hizo el pulper"><EntradaNumero enorme value={pulpeadas} onChange={(e) => setPulpeadas(e.target.value.replace(/\D/g, ''))} /></Campo>
+        </>
+      ),
+      listo: minutos === null || minutos <= 0 ? 'Ingresá las horas' : minutos > 1440 ? 'Revisá las horas' : true,
+    },
+    {
+      titulo: '¿Cuántos paquetes salieron?',
+      ayuda: `Paquetes de ${variante?.maplesPorPaquete ?? 60} maples, contados al final del turno.`,
+      contenido: (
+        <>
+          <EntradaNumero enorme unidad="paq." value={paquetes} onChange={(e) => setPaquetes(e.target.value.replace(/[^\d.]/g, ''))} autoFocus aria-label="Paquetes" />
+          {nPaquetes !== null && variante && (
+            <div className="lectura"><span>Maples</span><span className="cifra">{(nPaquetes * variante.maplesPorPaquete).toLocaleString('es-AR')}</span></div>
+          )}
+          {esperado !== null && <p className="tenue">Según la máquina deberían salir unos <b>{esperado}</b> paquetes{nPaquetes !== null && esperado > 0 ? ` (rendimiento ${Math.round((nPaquetes / esperado) * 100)} %)` : ''}.</p>}
+        </>
+      ),
+      listo: nPaquetes === null || Number.isNaN(nPaquetes) ? 'Ingresá los paquetes (0 si no salió nada)' : true,
+    },
+    {
+      titulo: '¿Se usó lo de siempre?',
+      ayuda: 'Esto es lo que gasta la receta en ese tiempo. Si se usó distinto, corregí solo esa línea.',
+      contenido: consumos.length ? (
+        <div className="hoja filas">
+          {consumos.map((c) => (
+            <div className="fila" key={c.materiaPrimaId} style={{ gridTemplateColumns: '1fr 170px' }}>
+              <div>
+                <div className="principal">{c.nombre}</div>
+                <div className="chico tenue">Receta: {formatCantidad(c.teorico, c.unidad)} · en stock {formatCantidad(c.stock, c.unidad)}</div>
+                {c.real !== null && c.real > c.stock && <span className="marca-texto alerta">Queda stock negativo: revisá que esté cargada la compra</span>}
+              </div>
+              <EntradaNumero unidad={c.unidad === 'kg' ? 'kg' : 'L'} placeholder={formatCantidad(c.teorico, c.unidad).split(' ')[0]} aria-label={`${c.nombre} usado`}
+                value={correcciones[c.materiaPrimaId] ?? ''} onChange={(e) => setCorrecciones({ ...correcciones, [c.materiaPrimaId]: e.target.value })} />
+            </div>
+          ))}
+        </div>
+      ) : <p className="tenue">Este maple no tiene receta cargada, así que no se descuenta materia prima.</p>,
+      listo: consumos.some((c) => c.real === null || c.real < 0) ? 'Revisá las cantidades corregidas' : true,
+    },
+    {
+      titulo: 'Revisá y guardá',
+      ayuda: 'Al guardar se suman los paquetes al stock de maples y se descuenta la materia prima.',
+      contenido: (
+        <>
+          <dl className="resumen hoja relleno">
+            <dt>Turno</dt><dd>{LABEL_TURNO[turno]}, {verFecha(fecha)}</dd>
+            <dt>Máquina</dt><dd>{maquinas?.find((m) => m.id === maquinaId)?.codigo}</dd>
+            <dt>Maple</dt><dd className="con-muestra"><Muestra color={variante?.colorHex ?? null} /> {variante?.codigo}</dd>
+            <dt>Personal</dt><dd>{empleados?.filter((e) => personal.includes(e.id)).map((e) => e.nombre).join(', ')}</dd>
+            <dt>Tiempo</dt><dd>{minutos && formatMinutos(minutos)}{pulpeadas && ` · ${pulpeadas} pulpeadas`}</dd>
+            {consumos.map((c) => <Fragment key={c.materiaPrimaId}><dt>{c.nombre}</dt><dd>{c.real !== null && formatCantidad(c.real, c.unidad)}{c.real !== c.teorico && ' (corregido)'}</dd></Fragment>)}
+          </dl>
+          <div className="lectura"><span>Paquetes</span><span className="cifra">{nPaquetes}</span></div>
+          <Campo etiqueta="Notas" ayuda="Opcional: paradas, fallas, cambios de molde."><textarea className="entrada" value={notas} onChange={(e) => setNotas(e.target.value)} /></Campo>
+        </>
+      ),
+      listo: true,
+    },
+  ];
+
+  const guardar = async () => {
+    setGuardando(true);
+    setError(null);
+    try {
+      const consumoReal = consumos.filter((c) => c.real !== c.teorico).map((c) => ({ materiaPrimaId: c.materiaPrimaId, cantidad: c.real }));
+      const r = await api<{ id: string }>('/partes', {
+        method: 'POST',
+        body: { fecha, turno, maquinaId, varianteId, empleadoIds: personal, minutos, pulpeadas: Number(pulpeadas || 0), paquetes: nPaquetes, consumoReal, notas: notas || undefined },
+      });
+      await qc.invalidateQueries();
+      navegar(`/produccion/${r.id}?nuevo=1`, { replace: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar');
+      setGuardando(false);
+    }
+  };
+
+  return <Asistente pasos={pasos} onTerminar={guardar} textoTerminar="Guardar parte" guardando={guardando} error={error} onCancelar={() => navegar('/produccion')} />;
+}
