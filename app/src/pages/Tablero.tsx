@@ -1,0 +1,221 @@
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { AlertTriangle } from 'lucide-react';
+import { formatCantidad, formatMinutos, formatPesos, type Unidad } from '@moldeados/shared';
+import { api, hoy, verFecha } from '../api';
+import { Muestra } from '../MapleVista';
+import { Cabecera, Cargando } from '../ui';
+
+// Dos series, siempre en este orden y color (validados para daltonismo con el validador de paleta):
+// ingresos = azul de la marca, egresos = naranja cartón.
+const C_INGRESOS = '#004fbc';
+const C_EGRESOS = '#c2691f';
+
+interface Ranking { id: string; nombre: string; total: number }
+interface Datos {
+  desde: string; hasta: string; paso: 'day' | 'week';
+  ventas: { total: number; conFactura: number; cantidad: number; maples: number };
+  compras: { total: number; conFactura: number };
+  gastos: { total: number };
+  cobros: number; pagos: number; resultado: number;
+  porCliente: Ranking[]; porProveedor: Ranking[]; porCategoria: Ranking[];
+  produccion: { codigo: string; colorHex: string | null; paquetes: number; maples: number; minutos: number }[];
+  consumo: { nombre: string; unidad: Unidad; real: number; teorico: number }[];
+  serie: { inicio: string; ingresos: number; egresos: number }[];
+  porCobrar: number; porPagar: number; caja: number; materiasBajoMinimo: number; paletsListos: { cantidad: number; paquetes: number };
+}
+
+const fmtCompacto = (c: number) => {
+  const p = c / 100;
+  if (Math.abs(p) >= 1e6) return `$${(p / 1e6).toLocaleString('es-AR', { maximumFractionDigits: 1 })} M`;
+  if (Math.abs(p) >= 1e3) return `$${Math.round(p / 1e3).toLocaleString('es-AR')} mil`;
+  return `$${Math.round(p)}`;
+};
+
+function periodo(clave: string): [string, string] {
+  const h = hoy();
+  const [y, m] = h.split('-').map(Number) as [number, number];
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  if (clave === 'mes') return [`${h.slice(0, 8)}01`, h];
+  if (clave === 'mes-pasado') return [iso(new Date(Date.UTC(y, m - 2, 1))), iso(new Date(Date.UTC(y, m - 1, 0)))];
+  if (clave === '30') { const d = new Date(h + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 29); return [iso(d), h]; }
+  return [`${y}-01-01`, h];
+}
+const PERIODOS = [['mes', 'Este mes'], ['mes-pasado', 'Mes pasado'], ['30', 'Últimos 30 días'], ['anio', 'Este año']] as const;
+
+/** El tablero del dueño: cuánto entró, cuánto salió, qué se hizo, quién debe. */
+export function Tablero() {
+  const [clave, setClave] = useState<string>('mes');
+  const [desde, hasta] = periodo(clave);
+  const { data: t, isLoading } = useQuery({ queryKey: ['tablero', desde, hasta], queryFn: () => api<Datos>(`/tablero?desde=${desde}&hasta=${hasta}`) });
+  const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
+
+  return (
+    <div className="ancho" style={{ display: 'grid', gap: 24 }}>
+      <Cabecera titulo="Tablero" bajada={`Del ${verFecha(desde)} al ${verFecha(hasta)}`}>
+        <div className="pestanas" role="group" aria-label="Período">
+          {PERIODOS.map(([k, l]) => <button key={k} aria-pressed={clave === k} onClick={() => setClave(k)}>{l}</button>)}
+        </div>
+      </Cabecera>
+      {isLoading || !t ? <Cargando /> : (
+        <>
+          <div className="cifras">
+            <div><span className="cifra">{formatPesos(t.ventas.total)}</span><small>vendido · {t.ventas.maples.toLocaleString('es-AR')} maples en {t.ventas.cantidad} despachos · {pct(t.ventas.conFactura, t.ventas.total)} % con factura</small></div>
+            <div><span className="cifra">{formatPesos(t.compras.total)}</span><small>en compras de materia prima · {pct(t.compras.conFactura, t.compras.total)} % con factura</small></div>
+            <div><span className="cifra">{formatPesos(t.gastos.total)}</span><small>en gastos</small></div>
+            <div><span className={`cifra ${t.resultado < 0 ? 'saldo-mas' : ''}`}>{t.resultado < 0 ? '− ' : ''}{formatPesos(Math.abs(t.resultado))}</span><small>ventas menos compras y gastos</small></div>
+          </div>
+
+          <div className="cifras">
+            <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porCobrar)}</span><small>nos deben los clientes (hoy)</small></Link>
+            <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porPagar)}</span><small>les debemos a proveedores (hoy)</small></Link>
+            <Link to="/caja" className="tile-link"><span className="cifra">{formatPesos(t.caja)}</span><small>en caja chica</small></Link>
+            <Link to="/palets" className="tile-link"><span className="cifra">{t.paletsListos.cantidad}</span><small>palets listos para salir ({t.paletsListos.paquetes} paquetes)</small></Link>
+          </div>
+          {t.materiasBajoMinimo > 0 && (
+            <Link to="/materia-prima" className="aviso" style={{ display: 'flex', gap: 10, alignItems: 'center', textDecoration: 'none', background: '#fbefc4', color: '#6b5310' }}>
+              <AlertTriangle size={20} aria-hidden /> {t.materiasBajoMinimo === 1 ? 'Una materia prima está' : `${t.materiasBajoMinimo} materias primas están`} por debajo del stock mínimo.
+            </Link>
+          )}
+
+          <section className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+            <h3>Entradas y salidas {t.paso === 'week' ? 'por semana' : 'por día'}</h3>
+            <GraficoIngresosEgresos serie={t.serie} paso={t.paso} />
+            <p className="chico tenue">Cobrado en el período: {formatPesos(t.cobros)} · Pagado a proveedores: {formatPesos(t.pagos)}</p>
+          </section>
+
+          <div className="rejilla par">
+            <BarrasRanking titulo="Ventas por cliente" filas={t.porCliente} color={C_INGRESOS} vacio="Sin ventas en el período." enlace={(id) => `/cuentas/cliente/${id}`} />
+            <BarrasRanking titulo="Compras por proveedor" filas={t.porProveedor} color={C_EGRESOS} vacio="Sin compras en el período." enlace={(id) => `/cuentas/proveedor/${id}`} />
+          </div>
+          <div className="rejilla par">
+            <BarrasRanking titulo="Gastos por categoría" filas={t.porCategoria} color={C_EGRESOS} vacio="Sin gastos en el período." />
+            <section className="hoja">
+              <div className="fila"><h3>Producción</h3><Link to="/produccion" className="chico">Ver planilla</Link></div>
+              {!t.produccion.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>Sin partes en el período.</p>}
+              {t.produccion.map((p) => (
+                <div className="fila" key={p.codigo}>
+                  <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo}</span><br /><span className="chico tenue">{formatMinutos(p.minutos)} de máquina</span></span></span>
+                  <span className="derecha"><span className="cifra">{p.maples.toLocaleString('es-AR')}</span><br /><span className="chico tenue">maples · {p.paquetes} paq.</span></span>
+                </div>
+              ))}
+              {t.consumo.map((c) => {
+                const d = c.teorico ? Math.round(((c.real - c.teorico) / c.teorico) * 100) : 0;
+                return (
+                  <div className="fila" key={c.nombre}>
+                    <span>{c.nombre}</span>
+                    <span className="derecha"><span className="cifra">{formatCantidad(c.real, c.unidad)}</span>{d !== 0 && <><br /><span className={`chico ${d > 0 ? 'desvio-mas' : 'desvio-menos'}`}>{d > 0 ? '+' : ''}{d} % contra receta</span></>}</span>
+                  </div>
+                );
+              })}
+            </section>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Ranking de una sola serie: barras horizontales con el valor al final. Más de 6 → el resto se agrupa. */
+function BarrasRanking({ titulo, filas, color, vacio, enlace }: { titulo: string; filas: Ranking[]; color: string; vacio: string; enlace?: (id: string) => string }) {
+  const top = filas.slice(0, 6);
+  const resto = filas.slice(6).reduce((a, f) => a + f.total, 0);
+  const lista = resto ? [...top, { id: '', nombre: `Otros (${filas.length - 6})`, total: resto }] : top;
+  const max = Math.max(1, ...lista.map((f) => f.total));
+  return (
+    <section className="hoja">
+      <div className="fila"><h3>{titulo}</h3></div>
+      {!lista.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>{vacio}</p>}
+      <div style={{ display: 'grid', gap: 12, padding: lista.length ? '4px 18px 18px' : 0 }}>
+        {lista.map((f) => {
+          const cont = (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><span>{f.nombre}</span><span className="cifra">{formatPesos(f.total)}</span></div>
+              <div style={{ height: 10, marginTop: 4 }}><div style={{ width: `${(f.total / max) * 100}%`, minWidth: 4, height: '100%', background: color, borderRadius: '0 4px 4px 0' }} /></div>
+            </>
+          );
+          return f.id && enlace ? <Link key={f.nombre} to={enlace(f.id)} style={{ textDecoration: 'none' }}>{cont}</Link> : <div key={f.nombre}>{cont}</div>;
+        })}
+      </div>
+    </section>
+  );
+}
+
+/** Columnas agrupadas: ingresos y egresos por período, un solo eje en pesos, con tooltip y vista de tabla. */
+function GraficoIngresosEgresos({ serie, paso }: { serie: Datos['serie']; paso: 'day' | 'week' }) {
+  const caja = useRef<HTMLDivElement>(null);
+  const [ancho, setAncho] = useState(600);
+  const [hover, setHover] = useState<number | null>(null);
+  useEffect(() => {
+    const el = caja.current;
+    if (!el) return;
+    const o = new ResizeObserver(([e]) => setAncho(e!.contentRect.width));
+    o.observe(el);
+    return () => o.disconnect();
+  }, []);
+
+  const alto = 240, mL = 64, mR = 8, mT = 8, mB = 28;
+  const max = Math.max(1, ...serie.flatMap((s) => [s.ingresos, s.egresos]));
+  // Escala "linda": 1, 2 o 5 × 10^n por encima del máximo, en 4 marcas.
+  const crudo = max / 4, mag = 10 ** Math.floor(Math.log10(crudo)), paso4 = [1, 2, 5, 10].map((k) => k * mag).find((k) => k >= crudo)!;
+  const tope = paso4 * 4;
+  const plotW = Math.max(10, ancho - mL - mR), plotH = alto - mT - mB;
+  const banda = plotW / Math.max(1, serie.length);
+  const barra = Math.max(2, Math.min(24, (banda * 0.7 - 2) / 2));
+  const y = (v: number) => mT + plotH - (v / tope) * plotH;
+  const cada = Math.ceil(serie.length / Math.max(1, Math.floor(plotW / 56))); // etiquetas sin pisarse
+  const etiqueta = (iso: string) => { const [, m, d] = iso.split('-'); return paso === 'week' ? `sem ${Number(d)}/${Number(m)}` : `${Number(d)}/${Number(m)}`; };
+  const columna = (x: number, v: number) => {
+    const top = y(v), base = mT + plotH, r = Math.min(4, base - top);
+    if (v <= 0) return '';
+    return `M${x},${base} V${top + r} Q${x},${top} ${x + r},${top} H${x + barra - r} Q${x + barra},${top} ${x + barra},${top + r} V${base} Z`;
+  };
+  const h = hover !== null ? serie[hover] : null;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.875rem', marginBottom: 8 }}>
+        <span className="con-muestra" style={{ gap: 6 }}><i style={{ width: 12, height: 12, borderRadius: 3, background: C_INGRESOS, display: 'inline-block' }} /> Ingresos (ventas)</span>
+        <span className="con-muestra" style={{ gap: 6 }}><i style={{ width: 12, height: 12, borderRadius: 3, background: C_EGRESOS, display: 'inline-block' }} /> Egresos (compras y gastos)</span>
+      </div>
+      <div ref={caja} style={{ position: 'relative' }} onMouseLeave={() => setHover(null)}>
+        <svg width={ancho} height={alto} role="img" aria-label="Ingresos y egresos por período" style={{ display: 'block', overflow: 'visible' }}>
+          {[0, 1, 2, 3, 4].map((k) => (
+            <g key={k}>
+              <line x1={mL} x2={mL + plotW} y1={y(paso4 * k)} y2={y(paso4 * k)} stroke="var(--linea)" strokeWidth={1} />
+              <text x={mL - 8} y={y(paso4 * k)} textAnchor="end" dominantBaseline="middle" fontSize={11} fill="var(--tinta-2)">{fmtCompacto(paso4 * k)}</text>
+            </g>
+          ))}
+          {serie.map((s, i) => {
+            const x0 = mL + i * banda + (banda - (barra * 2 + 2)) / 2;
+            return (
+              <g key={s.inicio}>
+                {hover === i && <rect x={mL + i * banda} y={mT} width={banda} height={plotH} fill="var(--piso)" />}
+                <path d={columna(x0, s.ingresos)} fill={C_INGRESOS} />
+                <path d={columna(x0 + barra + 2, s.egresos)} fill={C_EGRESOS} />
+                {i % cada === 0 && <text x={mL + i * banda + banda / 2} y={alto - 8} textAnchor="middle" fontSize={11} fill="var(--tinta-2)">{etiqueta(s.inicio)}</text>}
+                {/* zona de toque más grande que la columna */}
+                <rect x={mL + i * banda} y={mT} width={banda} height={plotH + mB} fill="transparent" onMouseEnter={() => setHover(i)} onClick={() => setHover(i)} />
+              </g>
+            );
+          })}
+        </svg>
+        {h && hover !== null && (
+          <div role="tooltip" style={{ position: 'absolute', top: 0, left: Math.min(Math.max(0, mL + hover * banda + banda / 2 - 90), ancho - 180), width: 180, background: 'var(--tinta)', color: '#fff', borderRadius: 10, padding: '8px 12px', fontSize: '0.85rem', pointerEvents: 'none' }}>
+            <b>{paso === 'week' ? `Semana del ${verFecha(h.inicio)}` : verFecha(h.inicio)}</b>
+            <div>Ingresos: {formatPesos(h.ingresos)}</div>
+            <div>Egresos: {formatPesos(h.egresos)}</div>
+          </div>
+        )}
+      </div>
+      <details style={{ marginTop: 8 }}>
+        <summary className="chico" style={{ cursor: 'pointer' }}>Ver como tabla</summary>
+        <table className="permisos" style={{ marginTop: 8 }}>
+          <thead><tr><th>{paso === 'week' ? 'Semana del' : 'Día'}</th><th>Ingresos</th><th>Egresos</th></tr></thead>
+          <tbody>{serie.filter((s) => s.ingresos || s.egresos).map((s) => <tr key={s.inicio}><td>{verFecha(s.inicio)}</td><td>{formatPesos(s.ingresos)}</td><td>{formatPesos(s.egresos)}</td></tr>)}</tbody>
+        </table>
+      </details>
+    </div>
+  );
+}

@@ -104,3 +104,26 @@ export const verFecha = (d: string) => fmtFecha.format(new Date(d + 'T00:00:00Z'
 /** timestamp → "3 nov, 14:05" en hora Argentina. */
 export const verMomento = (iso: string) => fmtHora.format(new Date(iso));
 export const nroTicket = (n: number) => String(n).padStart(6, '0');
+
+/** Archivo protegido (comprobante) como URL local para un <img>: el navegador no manda el token en un src. */
+export async function apiBlobUrl(ruta: string): Promise<string> {
+  const res = await fetch(BASE + ruta, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (res.status === 401 && token) alExpirar();
+  if (!res.ok) throw new ErrorApi('No pudimos abrir el comprobante.');
+  return URL.createObjectURL(await res.blob());
+}
+
+/**
+ * Foto del celular → JPEG de hasta 1600 px, en base64. Las fotos del iPhone pesan 3–5 MB; así quedan en ~300 KB
+ * y suben rápido con el 4G de la planta.
+ */
+export async function comprimirFoto(archivo: File): Promise<{ mime: 'image/jpeg'; base64: string; vista: string }> {
+  const img = await createImageBitmap(archivo);
+  const escala = Math.min(1, 1600 / Math.max(img.width, img.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(img.width * escala);
+  canvas.height = Math.round(img.height * escala);
+  canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const vista = canvas.toDataURL('image/jpeg', 0.8);
+  return { mime: 'image/jpeg', base64: vista.split(',')[1]!, vista };
+}

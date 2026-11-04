@@ -39,4 +39,10 @@ clientes y proveedores con saldo acumulado. La app se instala en la pantalla de 
 
 > La cámara del navegador solo funciona con HTTPS: en producción el dominio tiene que tener certificado.
 
-Próximo: Corte 4 (gastos y caja chica, tablero del dueño).
+**Corte 4 (hecho):** gastos por categoría (editables) con foto del comprobante sacada desde el iPhone (se achica a
+~1600 px antes de subir), sueldos y adelantos por persona, con/sin factura. Caja chica: reposición, gastos que la
+descuentan solos y arqueo (conteo con diferencia). Tablero del dueño por período: vendido, compras, gastos, resultado,
+por cobrar/por pagar, caja, palets listos, alerta de materia prima bajo mínimo, gráfico de entradas y salidas
+(paleta validada para daltonismo), rankings por cliente/proveedor/categoría, producción y consumo contra receta.
+
+Próximo: Corte 5 (instructivos editables por proceso) y deploy al VPS.

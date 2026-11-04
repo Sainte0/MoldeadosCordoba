@@ -40,3 +40,7 @@ export interface Banco { id: string; nombre: string; activo: boolean }
 
 export const useClientes = (q = '') => useQuery({ queryKey: ['clientes', q], queryFn: () => api<Cliente[]>(`/clientes?q=${encodeURIComponent(q)}`) });
 export const useBancos = () => useQuery({ queryKey: ['bancos'], queryFn: () => api<Banco[]>('/bancos') });
+
+export interface CategoriaGasto { id: string; nombre: string; activo: boolean }
+export const useCategoriasGasto = () => useQuery({ queryKey: ['categorias-gasto'], queryFn: () => api<CategoriaGasto[]>('/categorias-gasto') });
+export const useCaja = () => useQuery({ queryKey: ['caja'], queryFn: () => api<{ saldo: number; movimientos: { id: string; fecha: string; monto: number; motivo: string; concepto: string; gastoId: string | null; cargadoAt: string; usuario: string }[] }>('/caja') });

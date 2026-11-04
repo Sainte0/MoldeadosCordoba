@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { ClipboardList, Contact, Egg, Factory, Home, Layers, LogOut, Menu, Package, Receipt, Scale, ShoppingCart, Tags, Truck, Users, Wallet, X } from 'lucide-react';
+import { ChartColumn, ClipboardList, Contact, Coins, Egg, Factory, Home, Layers, LogOut, Menu, Package, Receipt, Scale, ShoppingCart, Tags, Truck, Users, Wallet, X } from 'lucide-react';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
@@ -28,9 +28,14 @@ import { Precios } from './pages/Precios';
 import { Cuentas } from './pages/Cuentas';
 import { CuentaDetalle } from './pages/CuentaDetalle';
 import { NuevoMovimiento } from './pages/NuevoMovimiento';
+import { Tablero } from './pages/Tablero';
+import { Gastos } from './pages/Gastos';
+import { NuevoGasto } from './pages/NuevoGasto';
+import { Caja } from './pages/Caja';
 
 const NAV: { a: string; texto: string; icono: typeof Home; modulo?: Modulo; nivel?: 1 | 2 }[] = [
   { a: '/', texto: 'Inicio', icono: Home },
+  { a: '/tablero', texto: 'Tablero', icono: ChartColumn, modulo: 'tablero' },
   { a: '/ventas', texto: 'Ventas y despachos', icono: Receipt, modulo: 'ventas' },
   { a: '/produccion', texto: 'Producción', icono: Factory, modulo: 'produccion' },
   { a: '/palets', texto: 'Stock y palets', icono: Layers, modulo: 'produccion' },
@@ -38,6 +43,7 @@ const NAV: { a: string; texto: string; icono: typeof Home; modulo?: Modulo; nive
   { a: '/compras', texto: 'Compras', icono: ShoppingCart, modulo: 'compras' },
   { a: '/materia-prima', texto: 'Materia prima', icono: Package, modulo: 'materias' },
   { a: '/cuentas', texto: 'Cuentas corrientes', icono: Wallet, modulo: 'cuentas' },
+  { a: '/gastos', texto: 'Gastos y caja chica', icono: Coins, modulo: 'gastos' },
   { a: '/clientes', texto: 'Clientes', icono: Contact, modulo: 'ventas' },
   { a: '/precios', texto: 'Precios', icono: Tags, modulo: 'ventas' },
   { a: '/proveedores', texto: 'Proveedores', icono: Truck, modulo: 'proveedores' },
@@ -93,6 +99,10 @@ export function App() {
           {p('compras', 2) && <Route path="/compras/nueva" element={<NuevaCompra />} />}
           {p('compras') && <Route path="/compras" element={<Compras />} />}
           {p('compras') && <Route path="/compras/:id" element={<CompraDetalle />} />}
+          {p('tablero') && <Route path="/tablero" element={<Tablero />} />}
+          {p('gastos') && <Route path="/gastos" element={<Gastos />} />}
+          {p('gastos', 2) && <Route path="/gastos/nuevo" element={<NuevoGasto />} />}
+          {p('gastos') && <Route path="/caja" element={<Caja />} />}
           {p('ventas', 2) && <Route path="/ventas/nueva" element={<Despacho />} />}
           {p('ventas') && <Route path="/ventas" element={<Ventas />} />}
           {p('ventas') && <Route path="/ventas/:id" element={<VentaDetalle />} />}

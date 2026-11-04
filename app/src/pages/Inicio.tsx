@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
+import { ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
 import { formatCantidad, formatPesos } from '@moldeados/shared';
 import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
@@ -23,7 +23,7 @@ export function Inicio() {
     <div className="ancho" style={{ display: 'grid', gap: 32 }}>
       <header>
         <h1>{saludo()}, {sesion?.usuario.nombre.split(' ')[0]}</h1>
-        <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar?</p>
+        <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar?{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Ver el tablero</Link></>}</p>
       </header>
 
       <div className="tareas">
@@ -59,6 +59,13 @@ export function Inicio() {
           <Link to="/dinero/nuevo?tipo=cobro" className="tarea clara">
             <span className="ico"><Wallet size={24} aria-hidden /></span>
             <span><b>Registrar cobro</b><small>Efectivo, transferencia o cheque</small></span>
+            <ChevronRight aria-hidden />
+          </Link>
+        )}
+        {puede('gastos', 2) && (
+          <Link to="/gastos/nuevo" className="tarea clara">
+            <span className="ico"><Coins size={24} aria-hidden /></span>
+            <span><b>Cargar gasto</b><small>Con foto del ticket</small></span>
             <ChevronRight aria-hidden />
           </Link>
         )}

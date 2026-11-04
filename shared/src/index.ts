@@ -56,6 +56,8 @@ export const LABEL_ROL: Record<Rol, string> = {
 export const MODULOS = [
   { id: 'produccion', label: 'Producción y palets', detalle: 'Partes de producción por turno, stock de maples, armado de palets y etiquetas.' },
   { id: 'productos', label: 'Maples, recetas y máquinas', detalle: 'Códigos de maple, cuánto consume cada uno por hora y las máquinas.' },
+  { id: 'tablero', label: 'Tablero del dueño', detalle: 'Ventas, compras, gastos, producción y resultado del período.' },
+  { id: 'gastos', label: 'Gastos y caja chica', detalle: 'Cargar gastos con su comprobante y manejar la caja chica.' },
   { id: 'ventas', label: 'Ventas, clientes y precios', detalle: 'Vender palets, datos de clientes y lista de precios.' },
   { id: 'cuentas', label: 'Cobros, pagos y cuentas corrientes', detalle: 'Cobrar a clientes, pagar a proveedores, cheques y saldos.' },
   { id: 'compras', label: 'Pesajes y compras', detalle: 'Ingreso de cartón con ticket de pesaje y compras de tinta, aglutinante y otros.' },
@@ -73,10 +75,10 @@ export type MatrizPermisos = Record<Rol, Record<Modulo, Nivel>>;
 
 /** Default de fábrica. La tabla rol_permisos guarda solo lo que el dueño cambió. El dueño ve todo siempre. */
 export const PERMISOS_DEFAULT: MatrizPermisos = {
-  dueno: { ventas: 3, cuentas: 3, produccion: 3, productos: 3, compras: 3, proveedores: 3, materias: 3, usuarios: 3, auditoria: 1 },
-  administracion: { ventas: 3, cuentas: 3, produccion: 1, productos: 1, compras: 3, proveedores: 3, materias: 1, usuarios: 0, auditoria: 1 },
-  encargado: { ventas: 2, cuentas: 0, produccion: 3, productos: 3, compras: 2, proveedores: 2, materias: 3, usuarios: 0, auditoria: 0 },
-  operario: { ventas: 0, cuentas: 0, produccion: 2, productos: 1, compras: 2, proveedores: 1, materias: 1, usuarios: 0, auditoria: 0 },
+  dueno: { tablero: 1, gastos: 3, ventas: 3, cuentas: 3, produccion: 3, productos: 3, compras: 3, proveedores: 3, materias: 3, usuarios: 3, auditoria: 1 },
+  administracion: { tablero: 1, gastos: 3, ventas: 3, cuentas: 3, produccion: 1, productos: 1, compras: 3, proveedores: 3, materias: 1, usuarios: 0, auditoria: 1 },
+  encargado: { tablero: 0, gastos: 2, ventas: 2, cuentas: 0, produccion: 3, productos: 3, compras: 2, proveedores: 2, materias: 3, usuarios: 0, auditoria: 0 },
+  operario: { tablero: 0, gastos: 0, ventas: 0, cuentas: 0, produccion: 2, productos: 1, compras: 2, proveedores: 1, materias: 1, usuarios: 0, auditoria: 0 },
 };
 
 export function armarMatriz(overrides: { rol: string; modulo: string; nivel: number }[]): MatrizPermisos {
@@ -341,6 +343,35 @@ export const movimientoDineroSchema = z
 
 export const bancoSchema = z.object({ nombre: texto(80).min(2, 'Ingresá el nombre del banco'), activo: z.boolean().default(true) });
 
+export const MEDIOS_GASTO = ['caja_chica', ...MEDIOS] as const;
+export type MedioGasto = (typeof MEDIOS_GASTO)[number];
+export const LABEL_MEDIO_GASTO: Record<MedioGasto, string> = { caja_chica: 'Caja chica', ...LABEL_MEDIO };
+
+export const gastoSchema = z.object({
+  fecha,
+  categoriaId: uuid('Elegí de qué es el gasto'),
+  descripcion: texto(200).min(2, 'Contá en pocas palabras qué se pagó'),
+  monto: z.number().int().positive('Ingresá el monto'),
+  medio: z.enum(MEDIOS_GASTO),
+  bancoId: z.string().uuid().nullable().default(null),
+  conFactura: z.boolean().default(false),
+  nroFactura: opcional(40),
+  empleadoId: z.string().uuid().nullable().default(null),
+  comprobanteId: z.string().uuid().nullable().default(null),
+  notas: opcional(1000),
+});
+
+export const cajaSchema = z.object({
+  fecha,
+  motivo: z.enum(['reposicion', 'arqueo']),
+  /** Reposición: siempre positivo. Arqueo: la diferencia contada (+ sobra, − falta). */
+  monto: z.number().int().refine((v) => v !== 0, 'Ingresá el monto'),
+  concepto: texto(200).min(2, 'Anotá un concepto'),
+}).refine((v) => v.motivo !== 'reposicion' || v.monto > 0, { message: 'La reposición tiene que ser un monto positivo', path: ['monto'] });
+
+export const categoriaGastoSchema = z.object({ nombre: texto(80).min(2, 'Ingresá el nombre'), activo: z.boolean().default(true) });
+
+export type GastoInput = z.infer<typeof gastoSchema>;
 export type VentaInput = z.infer<typeof ventaSchema>;
 export type MovimientoDineroInput = z.infer<typeof movimientoDineroSchema>;
 
