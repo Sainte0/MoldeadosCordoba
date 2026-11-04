@@ -65,10 +65,11 @@ export function App() {
   // Al entrar (y al recuperar la señal): dejar guardado lo necesario para cargar sin conexión.
   useEffect(() => {
     if (!sesion) return;
+    // Un poco después de entrar: que primero cargue lo que se ve en pantalla.
     const ya = () => precargar(qc, puede);
-    ya();
+    const t = setTimeout(ya, 1500);
     window.addEventListener('online', ya);
-    return () => window.removeEventListener('online', ya);
+    return () => { clearTimeout(t); window.removeEventListener('online', ya); };
   }, [sesion?.usuario.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // ⌘K / Ctrl+K abren el buscador desde cualquier pantalla (y "/" si no se está escribiendo en un campo).
   useEffect(() => {

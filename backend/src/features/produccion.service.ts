@@ -174,15 +174,24 @@ export async function trazabilidad(db: Knex, paletId: string) {
   // con la suma acumulada; se queda con las necesarias para cubrir lo consumido.
   const compras: { materia_prima_id: string; id: string; numero: number; fecha: string; tipo: string; proveedor: string; cantidad: number }[] = consumos.length
     ? (await db.raw(
-      `select x.materia_prima_id, x.id, x.numero, x.fecha, x.tipo, x.proveedor, x.cantidad from (
-         select i.materia_prima_id, co.id, co.numero, to_char(co.fecha, 'YYYY-MM-DD') as fecha, co.tipo, pr.nombre as proveedor, i.cantidad,
-           sum(i.cantidad) over (partition by i.materia_prima_id order by co.fecha desc, co.numero desc) as acumulado
-         from compra_items i join compras co on co.id = i.compra_id join proveedores pr on pr.id = co.proveedor_id
-         where i.materia_prima_id = any(?) and co.anulada_at is null and co.fecha <= ?
-       ) x join unnest(?::uuid[], ?::bigint[]) as u(mp, usado) on u.mp = x.materia_prima_id
+      // Por materia (lateral), solo sus últimas 20 compras hasta la fecha, con la suma acumulada sobre esas.
+      `select u.mp as materia_prima_id, x.id, x.numero, x.fecha, x.tipo, x.proveedor, x.cantidad
+       from unnest(?::uuid[], ?::bigint[]) as u(mp, usado)
+       cross join lateral (
+         select y.*, sum(y.cantidad) over (order by y.fecha_d desc, y.numero desc) as acumulado
+         from (
+           select co.id, co.numero, co.fecha as fecha_d, to_char(co.fecha, 'YYYY-MM-DD') as fecha, co.tipo, pr.nombre as proveedor, i.cantidad
+           -- "offset 0": primero los ítems de ESA materia por su índice y después las compras. Si no, Postgres recorre
+           -- todas las compras por fecha buscándola, y con una materia que casi no se compra lee el historial entero.
+           from (select ci.compra_id, ci.cantidad from compra_items ci where ci.materia_prima_id = u.mp offset 0) i
+           join compras co on co.id = i.compra_id join proveedores pr on pr.id = co.proveedor_id
+           where co.anulada_at is null and co.fecha <= ?
+           order by co.fecha desc, co.numero desc limit 20
+         ) y
+       ) x
        where x.acumulado - x.cantidad < u.usado
        order by x.fecha desc, x.numero desc`,
-      [consumos.map((c) => c.id), hasta, consumos.map((c) => c.id), consumos.map((c) => Number(c.real))],
+      [consumos.map((c) => c.id), consumos.map((c) => Number(c.real)), hasta],
     )).rows
     : [];
   const origen = consumos.map((c) => ({ ...c, compras: compras.filter((co) => co.materia_prima_id === c.id).map(({ materia_prima_id: _, ...co }) => co) }));

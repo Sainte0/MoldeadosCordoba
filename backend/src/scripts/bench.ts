@@ -4,11 +4,13 @@ import { tablero } from '../features/gastos.service.js';
 import { costosYMargen, materiasPorAcabarse, recompra } from '../features/avisos.service.js';
 import { stockMaples, trazabilidad } from '../features/produccion.service.js';
 import { saldos } from '../features/ventas.service.js';
+import { horasPorPersona, maquinasConService } from '../features/produccion.service.js';
+import { armarResumen } from '../features/resumen.js';
 
 if (!/moldeados_test/.test(process.env.DATABASE_URL ?? '')) throw new Error('El benchmark solo corre contra moldeados_test');
 
 async function sembrar(): Promise<void> {
-  await db.raw('truncate caja_movimientos, gastos, archivos, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
+  await db.raw('truncate solicitudes_idempotentes, servicios_maquina, saldos_iniciales, pedido_items, pedidos, caja_movimientos, gastos, archivos, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, parte_consumos, parte_empleados, partes, receta_items, variantes, maquinas, empleados, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
   await db.raw(`
     insert into usuarios (nombre, usuario, password_hash, rol) values ('Bench', 'bench', 'x', 'dueno');
     insert into proveedores (nombre) select 'Proveedor ' || g from generate_series(1, 40) g;
@@ -36,6 +38,11 @@ async function sembrar(): Promise<void> {
     `insert into palet_lotes (palet_id, parte_id, paquetes) select pa.id, pt.id, 36 from (select id, row_number() over () as n from palets) pa join (select id, row_number() over () as n from partes) pt on pt.n = pa.n`,
     `insert into movimientos_dinero (tipo, cliente_id, fecha, monto_centavos, medio, usuario_id)
       select 'cobro', v.cliente_id, v.fecha, 1000000, 'efectivo', ? from ventas v`,
+    `insert into pedidos (cliente_id, fecha_entrega, estado, usuario_id) select (select id from clientes offset (g % 300) limit 1), current_date + (g % 30) - 15, case when g % 3 = 0 then 'abierto' else 'entregado' end, ? from generate_series(1, 3000) g`,
+    `insert into pedido_items (pedido_id, variante_id, paquetes) select p.id, (select id from variantes limit 1), 72 from pedidos p`,
+    `update ventas set pedido_id = (select id from pedidos order by id offset (abs(hashtext(ventas.id::text)) % 3000) limit 1) where random() < 0.5`,
+    `insert into saldos_iniciales (cliente_id, fecha, monto_centavos, usuario_id) select id, current_date - 900, 1000000, ? from clientes`,
+    `insert into parte_empleados (parte_id, empleado_id) select p.id, e.id from partes p cross join lateral (select id from empleados offset 1 limit 2) e`,
     `analyze`,
   ]) await db.raw(s, Array((s.match(/\?/g) ?? []).length).fill(u));
 }
@@ -58,4 +65,9 @@ await medir('materias por acabarse', () => materiasPorAcabarse(db));
 await medir('stock de maples', () => stockMaples(db));
 await medir('saldos clientes', () => saldos(db, 'cliente'));
 await medir('trazabilidad de un palet', () => trazabilidad(db, palet));
+await medir('pedidos abiertos (listado)', () => db.raw(`select p.id, coalesce((select sum(pa.paquetes) from palets pa join ventas ve on ve.id = pa.venta_id where ve.pedido_id = p.id and ve.anulado_at is null), 0)
+  from pedidos p where p.estado = 'abierto'`));
+await medir('máquinas con service', () => maquinasConService(db));
+await medir('horas por persona (mes)', () => horasPorPersona(db, hoy.slice(0, 8) + '01', hoy));
+await medir('resumen del día', () => armarResumen(db, hoy));
 await db.destroy();
