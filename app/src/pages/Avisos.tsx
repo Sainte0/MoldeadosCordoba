@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, MessageCircle, OctagonAlert, TriangleAlert } from 'lucide-react';
+import { Check, MessageCircle, OctagonAlert, TriangleAlert, X } from 'lucide-react';
 import { formatPesos, telefonoWhatsapp, type EstadoRecompra, type Nivel3 } from '@moldeados/shared/base';
 import { Estado } from '../Estado';
 import { api, useSesion, verFecha } from '../api';
 import { useEmpresa } from '../datos';
+import { Dialogo } from '../ui';
 
 interface ClienteAviso { id: string; nombre: string; telefono: string | null; ultimoTotal: number; ultimoMaples: number; ultimaCompra: string; compras: number; cadaDias: number | null; diasDesdeUltima: number; estado: EstadoRecompra }
 interface AvisoAtencion { nivel: Nivel3; tipo: string; titulo: string; detalle: string; accion: { texto: string; ruta: string } }
@@ -65,26 +67,48 @@ export function ParaVender({ limite }: { limite?: number }) {
 }
 
 /** Lo que hay que atender, de lo más urgente (rojo) a lo que puede esperar un poco (ámbar), con su acción. */
-export function Atencion() {
-  const { data } = useAvisos();
-  if (!data?.atencion.length) return null;
-  const rojos = data.atencion.filter((a) => a.nivel === 'critico').length;
+export function ListaAtencion({ onIr }: { onIr?: () => void }) {
+  const { data, isLoading } = useAvisos();
+  if (isLoading) return <p className="tenue">Cargando…</p>;
+  if (!data?.atencion.length) return <p className="tenue">Todo en orden: no hay nada urgente.</p>;
   return (
-    <section aria-labelledby="titulo-atencion" style={{ display: 'grid', gap: 10 }}>
-      <h3 id="titulo-atencion">Atención {rojos > 0 && <Estado nivel="critico">{rojos} {rojos === 1 ? 'urgente' : 'urgentes'}</Estado>}</h3>
-      <div className="atencion-lista">
-        {data.atencion.map((a, i) => {
-          const I = a.nivel === 'critico' ? OctagonAlert : TriangleAlert;
-          return (
-            <div key={i} className={`atencion-item ${a.nivel}`}>
-              <I size={22} aria-hidden />
-              <div><b>{a.titulo}</b><small>{a.detalle}</small></div>
-              <Link to={a.accion.ruta} className="boton secundario">{a.accion.texto}</Link>
-            </div>
-          );
-        })}
-      </div>
-    </section>
+    <div className="atencion-lista">
+      {data.atencion.map((a, i) => {
+        const I = a.nivel === 'critico' ? OctagonAlert : TriangleAlert;
+        return (
+          <div key={i} className={`atencion-item ${a.nivel}`}>
+            <I size={22} aria-hidden />
+            <div><b>{a.titulo}</b><small>{a.detalle}</small></div>
+            <Link to={a.accion.ruta} className="boton secundario" onClick={onIr}>{a.accion.texto}</Link>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Ícono de Atención para la barra de arriba (al lado de la campana): cuántas cosas urgentes hay, en rojo o ámbar. */
+export function BotonAtencion() {
+  const { data, isError } = useAvisos();
+  const [abierto, setAbierto] = useState(false);
+  if (isError) return null; // sin permiso para ver avisos
+  const lista = data?.atencion ?? [];
+  const rojos = lista.filter((a) => a.nivel === 'critico').length;
+  const etiqueta = lista.length ? `Atención: ${lista.length} ${lista.length === 1 ? 'cosa' : 'cosas'}${rojos ? `, ${rojos} urgentes` : ''}` : 'Atención: todo en orden';
+  return (
+    <>
+      <button className="boton icono campana" data-guia="atencion" onClick={() => setAbierto(true)} aria-label={etiqueta} title={etiqueta}>
+        <TriangleAlert size={22} aria-hidden />
+        {lista.length > 0 && <span className={`globito${rojos ? '' : ' ambar'}`} aria-hidden>{lista.length > 9 ? '9+' : lista.length}</span>}
+      </button>
+      {abierto && (
+        <Dialogo titulo="Atención" onCerrar={() => setAbierto(false)}>
+          <button className="boton icono cerrar-dialogo" onClick={() => setAbierto(false)} aria-label="Cerrar"><X size={22} /></button>
+          {rojos > 0 && <Estado nivel="critico">{rojos} {rojos === 1 ? 'urgente' : 'urgentes'}</Estado>}
+          <ListaAtencion onIr={() => setAbierto(false)} />
+        </Dialogo>
+      )}
+    </>
   );
 }
 

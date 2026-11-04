@@ -7,8 +7,8 @@ const SIGUIENTE = '.paso-acciones button[type=submit]';
 
 export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
   inicio: [
-    { ruta: '/', en: '.atencion-lista, .tareas', texto: 'Atención: lo urgente primero. En rojo lo que no puede esperar, en ámbar lo que conviene mirar. Cada aviso trae el botón para resolverlo.' },
     { ruta: '/', en: '.tareas', texto: 'Las tareas que más hacés. Tocá una y el sistema te lleva paso a paso, una pregunta por pantalla.' },
+    { en: '[data-guia="atencion"]', texto: 'Atención: lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos). El número en rojo es lo urgente; adentro, cada cosa trae su botón para resolverla.' },
     { en: '.campana', texto: 'La campana: recordatorios de la agenda, lo que te agendaron y los pedidos nuevos. El número rojo es lo que no leíste.' },
     { en: '.abrir-buscador, .barra-movil [aria-label="Buscar"]', texto: 'El buscador: escribí un cliente, un n.º de remito o "cómo cargo un egreso" y te lleva directo.' },
     { en: '.lateral, .barra-movil [aria-label="Abrir menú"]', texto: 'El menú: Planta, Ventas, Compras, Plata y Tablero. Adentro de cada uno, pestañas. Ajustes está abajo.' },

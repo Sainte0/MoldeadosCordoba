@@ -6,7 +6,8 @@ import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
 import { Muestra } from '../MapleVista';
 import { TAREAS } from '../navegacion';
-import { Atencion, ParaVender, PedidosProximos } from './Avisos';
+import { ParaVender, PedidosProximos } from './Avisos';
+import { Dialogo } from '../ui';
 import { Estado } from '../Estado';
 import { AgendaHoy } from './AgendaHoy';
 import { iniciarRecorrido } from '../Recorrido';
@@ -36,8 +37,8 @@ export function Inicio() {
       </header>
 
       <Bienvenida />
-      {/* Orden por prioridad: lo urgente, lo que hay que cargar, lo que viene, y después cómo estamos. */}
-      <Atencion />
+      {/* Orden: lo que hay que cargar primero (lo urgente está en el ícono de Atención, arriba a la derecha), lo que viene
+          y después cómo estamos. */}
       <AgendaHoy />
 
       <div className="tareas">
@@ -103,19 +104,20 @@ export function Inicio() {
   );
 }
 
-/** La primera vez que alguien entra (en este teléfono): ofrece el recorrido por el sistema. */
+/** La primera vez que alguien entra (en este teléfono): un modal que ofrece el recorrido por el sistema. */
 function Bienvenida() {
   const clave = 'moldeados:recorrido-visto';
   const [visto, setVisto] = useState(() => { try { return localStorage.getItem(clave) === '1'; } catch { return true; } });
   if (visto) return null;
   const cerrar = () => { try { localStorage.setItem(clave, '1'); } catch { /* sin almacenamiento: se vuelve a ofrecer */ } setVisto(true); };
   return (
-    <div className="atencion-item" style={{ gridTemplateColumns: '1fr', gap: 10 }}>
-      <span><b>¿Primera vez en el sistema?</b><br /><span className="chico tenue">Un recorrido de un minuto por lo principal. Cada guía de Ayuda tiene el suyo.</span></span>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <Dialogo titulo="¿Primera vez en el sistema?" onCerrar={cerrar}>
+      <p>Te mostramos lo principal en un minuto: dónde están las tareas, los avisos, el buscador y la ayuda. Podés tocar las cosas mientras tanto.</p>
+      <p className="chico tenue">Cada guía de Ayuda también tiene su "Mostrame cómo".</p>
+      <div className="acciones">
+        <button className="boton secundario" onClick={cerrar}>Ahora no</button>
         <button className="boton primario" onClick={() => { cerrar(); iniciarRecorrido('inicio', 'Conocé el sistema'); }}>Mostrame</button>
-        <button className="boton fantasma" onClick={cerrar}>Ahora no</button>
       </div>
-    </div>
+    </Dialogo>
   );
 }

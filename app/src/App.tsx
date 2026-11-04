@@ -12,6 +12,7 @@ import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
 import { Campana } from './Campana';
+import { BotonAtencion } from './pages/Avisos';
 import { Recorrido } from './Recorrido';
 import { useAvisosEnVivo, type AvisoVivo } from './vivo';
 import { desactivarPush, reafirmarPush } from './push';
@@ -120,6 +121,7 @@ export function App() {
         <Marca />
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <Reloj />
+          <BotonAtencion />
           <Campana alAbrir={() => setAsoma(null)} />
           <button className="boton icono" onClick={() => setBuscando(true)} aria-label="Buscar"><Search size={22} /></button>
           {pathname !== '/ayuda' && <NavLink className="boton icono" to={`/ayuda?desde=${encodeURIComponent(pathname)}`} aria-label="Ayuda"><CircleHelp size={24} /></NavLink>}
@@ -135,7 +137,6 @@ export function App() {
           <button className="abrir-buscador" onClick={() => { setAbierto(false); setBuscando(true); }}>
             <Search size={18} aria-hidden /> <span>Buscar</span> <kbd>{/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd>
           </button>
-          {!abierto && <span className="solo-escritorio"><Campana alAbrir={() => setAsoma(null)} /></span>}
         </div>
         <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' activo' : ''}`}><Home size={20} aria-hidden /> Inicio</NavLink>
         {[...AREAS, AJUSTES].map((area) => {
@@ -174,6 +175,10 @@ export function App() {
         </button>
       )}
       <main className="contenido">
+        <div className="barra-arriba" aria-label="Avisos">
+          <BotonAtencion />
+          <Campana alAbrir={() => setAsoma(null)} />
+        </div>
         <ColaPendiente />
         <Pestanas path={pathname} puede={p} />
         <Suspense fallback={<p className="tenue" role="status">Cargando…</p>}>
