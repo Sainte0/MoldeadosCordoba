@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
-import { aCentavos, aMili, calcularCompra, formatCantidad, formatIva, formatPesos, subtotalItem } from '@moldeados/shared';
+import { aCentavos, aMili, calcularCompra, formatCantidad, formatIva, formatPesos, subtotalItem } from '@moldeados/shared/base';
 import { api, hoy, verFecha } from '../api';
 import { useMaterias, type Proveedor } from '../datos';
 import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';

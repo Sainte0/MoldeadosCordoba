@@ -1,22 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
-import { formatCantidad, formatPesos, type Modulo } from '@moldeados/shared';
+import { formatCantidad, formatPesos, type Modulo } from '@moldeados/shared/base';
 import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
 import { Muestra } from '../MapleVista';
+import { TAREAS } from '../navegacion';
 import { ParaVender, PorAcabarse } from './Avisos';
-
-// Las 4 primeras que el rol puede hacer, en orden de frecuencia en planta. El resto está en su área del menú.
-const TAREAS: { a: string; titulo: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
-  { a: '/ventas/nueva', titulo: 'Despachar palets', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
-  { a: '/produccion/nuevo', titulo: 'Parte de producción', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
-  { a: '/palets/nuevo', titulo: 'Armar palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
-  { a: '/pesaje', titulo: 'Pesaje de cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
-  { a: '/dinero/nuevo?tipo=cobro', titulo: 'Registrar cobro', detalle: 'Efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
-  { a: '/gastos/nuevo', titulo: 'Cargar gasto', detalle: 'Con foto del ticket', icono: Coins, modulo: 'gastos' },
-  { a: '/compras/nueva', titulo: 'Compra de insumos', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
-];
 
 function saludo(): string {
   const h = Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));

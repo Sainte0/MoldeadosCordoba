@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
-import { aCentavos, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared';
+import { aCentavos, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import { useClientes, useVariantes, type Cliente } from '../datos';
 import { Muestra } from '../MapleVista';
 import { ParaVender } from './Avisos';
@@ -13,8 +14,8 @@ const VACIO: Omit<Cliente, 'id'> = { nombre: '', cuit: '', telefono: '', email: 
 
 export function Clientes() {
   const { puede } = useSesion();
-  const [q, setQ] = useState('');
-  const { data, isLoading } = useClientes(q);
+  const [f, setF] = useFiltros({ q: '' });
+  const { data, isLoading } = useClientes(useDemorado(f.q));
   const [editando, setEditando] = useState<Partial<Cliente> | null>(null);
   return (
     <div className="ancho">
@@ -22,8 +23,8 @@ export function Clientes() {
         {puede('ventas', 2) && <button className="boton primario" onClick={() => setEditando({ ...VACIO })}><Plus size={18} aria-hidden /> Nuevo cliente</button>}
       </Cabecera>
       <div style={{ marginBottom: 20 }}><ParaVender /></div>
-      <div style={{ marginBottom: 16 }}><Buscador placeholder="Buscar por nombre" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar cliente" /></div>
-      {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{q ? 'Nadie con ese nombre.' : 'Todavía no hay clientes. Se agregan acá o al despachar.'}</p></div> : (
+      <div style={{ marginBottom: 16 }}><Buscador placeholder="Buscar por nombre" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar cliente" /></div>
+      {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay clientes. Se agregan acá o al despachar.'}</p></div> : (
         <div className="hoja filas">
           {data.map((c) => (
             <button key={c.id} className="fila" onClick={() => setEditando(c)}>

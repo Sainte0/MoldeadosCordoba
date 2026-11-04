@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { proveedorSchema, TIPOS_MP } from '@moldeados/shared';
 import { db } from '../db.js';
+import { buscar } from '../lib/buscar.js';
 import { requerir } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { NotFoundError } from '../lib/errors.js';
@@ -18,9 +19,9 @@ export async function proveedoresRoutes(app: FastifyInstance): Promise<void> {
     const filas = await db('proveedores as p')
       .whereNull('p.deleted_at')
       .modify((qb) => {
-        if (q) qb.whereILike('p.nombre', `%${q.replace(/[%_\\]/g, '\\$&')}%`);
         if (tipo && (TIPOS_MP as readonly string[]).includes(tipo)) qb.whereRaw('? = any(p.tipos)', [tipo]);
       })
+      .modify(buscar(q, ['p.nombre', 'p.cuit', 'p.telefono']))
       .select(COLS.map((c) => `p.${c}`))
       .select(
         db.raw(`(select max(c.fecha) from compras c where c.proveedor_id = p.id and c.anulada_at is null) as "ultimaCompra"`),

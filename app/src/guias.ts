@@ -30,7 +30,26 @@ export const GUIAS: Guia[] = [
       'Entrá con el usuario y la contraseña que te dio el encargado.',
       'Para salir, abrí el menú y tocá "Salir" abajo de todo.',
       'Si te olvidaste la contraseña, pedile al dueño que te ponga una nueva desde Ajustes › Equipo y permisos.',
-      'La sesión dura un turno largo (12 horas); después te pide entrar de nuevo.',
+      'La sesión dura una semana y se renueva sola cada vez que abrís el sistema: si lo usás seguido, no te vuelve a pedir la contraseña.',
+    ],
+  },
+  {
+    id: 'buscar', area: 'Primeros pasos', titulo: 'Buscar cualquier cosa', pantallas: ['/'],
+    palabras: 'buscar buscador encontrar lupa atajo comando cliente remito numero',
+    pasos: [
+      'Tocá la lupa (arriba en el celular, o "Buscar" en el menú). En la computadora también abre con ⌘K o Ctrl+K.',
+      'Escribí lo que necesitás: una sección ("caja chica"), algo que querés hacer ("cargar gasto"), un cliente, un proveedor o un número de remito, ticket, palet o parte.',
+      'Elegí el resultado y te lleva directo. Con el teclado: flechas para moverte y Enter para abrir.',
+      'Cada listado tiene además su propio buscador arriba: busca sin importar acentos y también por número.',
+    ],
+  },
+  {
+    id: 'compartir', area: 'Primeros pasos', titulo: 'Guardar o compartir una pantalla con sus filtros', pantallas: ['/'],
+    palabras: 'compartir link enlace url filtros guardar favorito whatsapp',
+    pasos: [
+      'Los filtros y la búsqueda de cada pantalla quedan en la dirección (por ejemplo, ventas de un cliente en un mes).',
+      'Copiá el link o compartilo por WhatsApp: quien lo abra ve exactamente lo mismo, según sus permisos.',
+      'También podés recargar la página o guardarla en favoritos y vuelve con los mismos filtros.',
     ],
   },
   {

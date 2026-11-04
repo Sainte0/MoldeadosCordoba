@@ -10,8 +10,9 @@ export interface Sesion {
   rol: Rol;
 }
 
-// ponytail: sesión de 12 h (un turno largo) sin refresh token; agregar refresh si piden sesiones de días.
-export const firmar = (s: Sesion) => jwt.sign(s, env.JWT_SECRET, { expiresIn: '12h' });
+// Sesión de 7 días que se renueva sola: /auth/yo devuelve un token nuevo cada vez que se abre la app (y cada
+// 6 h con la app abierta). Quien usa el sistema seguido no vuelve a ver el login; quien no entra en una semana, sí.
+export const firmar = (s: Sesion) => jwt.sign(s, env.JWT_SECRET, { expiresIn: '7d' });
 
 /** Usuario y rol salen SIEMPRE del token, nunca del body. */
 export function sesion(req: FastifyRequest): Sesion {
@@ -25,8 +26,15 @@ export function sesion(req: FastifyRequest): Sesion {
   }
 }
 
+// La matriz se lee en cada request y casi nunca cambia: queda en memoria y se recarga al editar permisos.
+// ponytail: cache por proceso; con más de una instancia de la API, invalidar por Redis/NOTIFY o bajar el TTL.
+let cache: { m: MatrizPermisos; hasta: number } | null = null;
+export const invalidarPermisos = () => { cache = null; };
 export async function matriz(db: Knex): Promise<MatrizPermisos> {
-  return armarMatriz(await db('rol_permisos').select('rol', 'modulo', 'nivel'));
+  if (cache && cache.hasta > Date.now()) return cache.m;
+  const m = armarMatriz(await db('rol_permisos').select('rol', 'modulo', 'nivel'));
+  cache = { m, hasta: Date.now() + 5 * 60_000 };
+  return m;
 }
 
 /** Verifica token + usuario activo + nivel mínimo en el módulo. Devuelve la sesión. */

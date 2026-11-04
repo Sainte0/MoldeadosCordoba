@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { aCentavos, formatPesos } from '@moldeados/shared';
+import { aCentavos, formatPesos } from '@moldeados/shared/base';
 import { api, useSesion } from '../api';
 import { Muestra } from '../MapleVista';
 import { Aviso, Cabecera, Cargando, EntradaNumero } from '../ui';

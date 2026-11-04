@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { anularSchema, bancoSchema, clienteSchema, movimientoDineroSchema, precioSchema, ventaSchema } from '@moldeados/shared';
 import { db } from '../db.js';
+import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { NotFoundError } from '../lib/errors.js';
@@ -43,7 +44,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
     const q = req.query.q?.trim();
     return {
       data: await db('clientes as c').whereNull('c.deleted_at')
-        .modify((qb) => { if (q) qb.whereILike('c.nombre', `%${q.replace(/[%_\\]/g, '\\$&')}%`); })
+        .modify(buscar(q, ['c.nombre', 'c.cuit', 'c.telefono']))
         .select(COLS_CLIENTE.map((c) => `c.${c}`))
         .select(db.raw('(select max(v.fecha) from ventas v where v.cliente_id = c.id and v.anulado_at is null) as "ultimaVenta"'))
         .orderBy('c.nombre').limit(200),
@@ -150,7 +151,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
-  app.get<{ Querystring: { desde?: string; hasta?: string; clienteId?: string; pagina?: string } }>('/ventas', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; clienteId?: string; pagina?: string; q?: string } }>('/ventas', async (req) => {
     await requerir(db, req, 'ventas', 1);
     const q = req.query;
     return {
@@ -160,6 +161,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
           if (fechaOk(q.hasta)) qb.where('v.fecha', '<=', q.hasta!);
           if (uuidOk(q.clienteId)) qb.where('v.cliente_id', q.clienteId!);
         })
+        .modify(buscar(q.q, ['c.nombre', 'v.retira', 'v.patente', 'v.nro_factura'], 'v.numero'))
         .select('v.id', 'v.numero', 'v.fecha', 'v.total_centavos as total', 'v.con_factura as conFactura', 'v.retira', 'v.anulado_at as anuladoAt', 'c.nombre as cliente',
           db.raw('(select count(*)::int from venta_items i where i.venta_id = v.id) as palets'),
           db.raw('(select coalesce(sum(i.maples), 0)::int from venta_items i where i.venta_id = v.id) as maples'))

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { LABEL_ROL, LABEL_TURNO, MODULOS, NIVELES, ROLES, TURNOS, type MatrizPermisos, type Rol, type Turno } from '@moldeados/shared';
+import { LABEL_ROL, LABEL_TURNO, MODULOS, NIVELES, ROLES, TURNOS, type MatrizPermisos, type Rol, type Turno } from '@moldeados/shared/base';
 import { useEmpleados, useEmpresa, type Empleado } from '../datos';
 import { api, useSesion, type Usuario } from '../api';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';

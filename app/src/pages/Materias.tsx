@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { aMili, formatCantidad, LABEL_TIPO_MP, TIPOS_MP, type TipoMp, type Unidad } from '@moldeados/shared';
+import { aMili, formatCantidad, LABEL_TIPO_MP, TIPOS_MP, type TipoMp, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verMomento } from '../api';
 import { useMaterias, type MateriaPrima } from '../datos';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';

@@ -1,78 +1,49 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { ChartColumn, CircleHelp, Factory, Home, LogOut, Menu, Receipt, Settings, ShoppingCart, Wallet, X } from 'lucide-react';
-import { LABEL_ROL, type Modulo } from '@moldeados/shared';
+import { CircleHelp, Home, LogOut, Menu, Search, X } from 'lucide-react';
+import { AJUSTES, AREAS, enArea, type Area } from './navegacion';
+import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
 import { Inicio } from './pages/Inicio';
-import { Pesaje } from './pages/Pesaje';
-import { NuevaCompra } from './pages/NuevaCompra';
-import { Compras } from './pages/Compras';
-import { CompraDetalle } from './pages/CompraDetalle';
-import { Proveedores } from './pages/Proveedores';
-import { Materias } from './pages/Materias';
-import { Equipo } from './pages/Equipo';
-import { Registro } from './pages/Registro';
-import { Produccion } from './pages/Produccion';
-import { NuevoParte } from './pages/NuevoParte';
-import { ParteDetalle } from './pages/ParteDetalle';
-import { Palets } from './pages/Palets';
-import { NuevoPalet } from './pages/NuevoPalet';
-import { PaletDetalle } from './pages/PaletDetalle';
-import { Maples } from './pages/Maples';
-import { Despacho } from './pages/Despacho';
-import { Ventas } from './pages/Ventas';
-import { VentaDetalle } from './pages/VentaDetalle';
-import { Clientes } from './pages/Clientes';
-import { Precios } from './pages/Precios';
-import { Cuentas } from './pages/Cuentas';
-import { CuentaDetalle } from './pages/CuentaDetalle';
-import { NuevoMovimiento } from './pages/NuevoMovimiento';
-import { Tablero } from './pages/Tablero';
-import { Gastos } from './pages/Gastos';
-import { NuevoGasto } from './pages/NuevoGasto';
-import { Caja } from './pages/Caja';
-import { Ayuda } from './pages/Ayuda';
-import { Exportar } from './pages/Exportar';
 
-// Pocas áreas, siempre las mismas: lo de adentro va en pestañas. Una función nueva entra en un área existente,
-// nunca como un ítem nuevo del menú (pedido del cliente: ultra simple).
-interface Pestana { a: string; texto: string; modulo: Modulo }
-interface Area { texto: string; icono: typeof Home; pestanas: Pestana[]; /** rutas que también pertenecen al área */ tambien?: string[] }
-const AREAS: Area[] = [
-  { texto: 'Planta', icono: Factory, pestanas: [
-    { a: '/produccion', texto: 'Producción', modulo: 'produccion' },
-    { a: '/palets', texto: 'Stock y palets', modulo: 'produccion' },
-    { a: '/materia-prima', texto: 'Materia prima', modulo: 'materias' },
-  ] },
-  { texto: 'Ventas', icono: Receipt, pestanas: [
-    { a: '/ventas', texto: 'Despachos', modulo: 'ventas' },
-    { a: '/clientes', texto: 'Clientes', modulo: 'ventas' },
-    { a: '/precios', texto: 'Precios', modulo: 'ventas' },
-  ] },
-  { texto: 'Compras', icono: ShoppingCart, tambien: ['/pesaje'], pestanas: [
-    { a: '/compras', texto: 'Compras y pesajes', modulo: 'compras' },
-    { a: '/proveedores', texto: 'Proveedores', modulo: 'proveedores' },
-  ] },
-  { texto: 'Plata', icono: Wallet, tambien: ['/dinero'], pestanas: [
-    { a: '/cuentas', texto: 'Cuentas corrientes', modulo: 'cuentas' },
-    { a: '/gastos', texto: 'Gastos', modulo: 'gastos' },
-    { a: '/caja', texto: 'Caja chica', modulo: 'gastos' },
-  ] },
-  { texto: 'Tablero', icono: ChartColumn, pestanas: [{ a: '/tablero', texto: 'Tablero', modulo: 'tablero' }] },
-];
-const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
-  { a: '/maples', texto: 'Maples y recetas', modulo: 'productos' },
-  { a: '/equipo', texto: 'Equipo y permisos', modulo: 'usuarios' },
-  { a: '/registro', texto: 'Registro de cambios', modulo: 'auditoria' },
-  { a: '/exportar', texto: 'Exportar datos', modulo: 'tablero' },
-] };
-const enArea = (area: Area, path: string) => [...area.pestanas.map((x) => x.a), ...(area.tambien ?? [])].some((r) => path === r || path.startsWith(r + '/'));
+// El buscador (con el texto de todas las guías) se baja recién la primera vez que se abre.
+const BuscadorGlobal = lazy(() => import('./BuscadorGlobal').then((m) => ({ default: m.BuscadorGlobal })));
+// Cada pantalla baja su código recién cuando se abre: el primer ingreso (login + inicio) queda liviano.
+const Pesaje = lazy(() => import('./pages/Pesaje').then((m) => ({ default: m.Pesaje })));
+const NuevaCompra = lazy(() => import('./pages/NuevaCompra').then((m) => ({ default: m.NuevaCompra })));
+const Compras = lazy(() => import('./pages/Compras').then((m) => ({ default: m.Compras })));
+const CompraDetalle = lazy(() => import('./pages/CompraDetalle').then((m) => ({ default: m.CompraDetalle })));
+const Proveedores = lazy(() => import('./pages/Proveedores').then((m) => ({ default: m.Proveedores })));
+const Materias = lazy(() => import('./pages/Materias').then((m) => ({ default: m.Materias })));
+const Equipo = lazy(() => import('./pages/Equipo').then((m) => ({ default: m.Equipo })));
+const Registro = lazy(() => import('./pages/Registro').then((m) => ({ default: m.Registro })));
+const Produccion = lazy(() => import('./pages/Produccion').then((m) => ({ default: m.Produccion })));
+const NuevoParte = lazy(() => import('./pages/NuevoParte').then((m) => ({ default: m.NuevoParte })));
+const ParteDetalle = lazy(() => import('./pages/ParteDetalle').then((m) => ({ default: m.ParteDetalle })));
+const Palets = lazy(() => import('./pages/Palets').then((m) => ({ default: m.Palets })));
+const NuevoPalet = lazy(() => import('./pages/NuevoPalet').then((m) => ({ default: m.NuevoPalet })));
+const PaletDetalle = lazy(() => import('./pages/PaletDetalle').then((m) => ({ default: m.PaletDetalle })));
+const Maples = lazy(() => import('./pages/Maples').then((m) => ({ default: m.Maples })));
+const Despacho = lazy(() => import('./pages/Despacho').then((m) => ({ default: m.Despacho })));
+const Ventas = lazy(() => import('./pages/Ventas').then((m) => ({ default: m.Ventas })));
+const VentaDetalle = lazy(() => import('./pages/VentaDetalle').then((m) => ({ default: m.VentaDetalle })));
+const Clientes = lazy(() => import('./pages/Clientes').then((m) => ({ default: m.Clientes })));
+const Precios = lazy(() => import('./pages/Precios').then((m) => ({ default: m.Precios })));
+const Cuentas = lazy(() => import('./pages/Cuentas').then((m) => ({ default: m.Cuentas })));
+const CuentaDetalle = lazy(() => import('./pages/CuentaDetalle').then((m) => ({ default: m.CuentaDetalle })));
+const NuevoMovimiento = lazy(() => import('./pages/NuevoMovimiento').then((m) => ({ default: m.NuevoMovimiento })));
+const Tablero = lazy(() => import('./pages/Tablero').then((m) => ({ default: m.Tablero })));
+const Gastos = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.Gastos })));
+const NuevoGasto = lazy(() => import('./pages/NuevoGasto').then((m) => ({ default: m.NuevoGasto })));
+const Caja = lazy(() => import('./pages/Caja').then((m) => ({ default: m.Caja })));
+const Ayuda = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.Ayuda })));
+const Exportar = lazy(() => import('./pages/Exportar').then((m) => ({ default: m.Exportar })));
 
 function Marca() {
   return (
     <div className="marca">
-      <img src="/logo.png" width={34} height={33} alt="" style={{ borderRadius: 7 }} />
+      <img src="/logo.webp" width={34} height={33} alt="" style={{ borderRadius: 7 }} />
       <div><b>Moldeados Córdoba</b><small>Planta y administración</small></div>
     </div>
   );
@@ -81,6 +52,16 @@ function Marca() {
 export function App() {
   const { sesion, salir, puede } = useSesion();
   const [abierto, setAbierto] = useState(false);
+  const [buscando, setBuscando] = useState(false);
+  // ⌘K / Ctrl+K abren el buscador desde cualquier pantalla (y "/" si no se está escribiendo en un campo).
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      const escribiendo = e.target instanceof HTMLElement && /^(INPUT|TEXTAREA)$/.test(e.target.tagName);
+      if (((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') || (e.key === '/' && !escribiendo)) { e.preventDefault(); setBuscando(true); }
+    };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, []);
   const { pathname } = useLocation();
   useEffect(() => setAbierto(false), [pathname]);
 
@@ -92,6 +73,7 @@ export function App() {
       <div className="barra-movil">
         <Marca />
         <div style={{ display: 'flex', gap: 4 }}>
+          <button className="boton icono" onClick={() => setBuscando(true)} aria-label="Buscar"><Search size={22} /></button>
           {pathname !== '/ayuda' && <NavLink className="boton icono" to={`/ayuda?desde=${encodeURIComponent(pathname)}`} aria-label="Ayuda"><CircleHelp size={24} /></NavLink>}
           <button className="boton icono" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={26} /></button>
         </div>
@@ -101,6 +83,9 @@ export function App() {
           <Marca />
           {abierto && <button className="boton icono" onClick={() => setAbierto(false)} aria-label="Cerrar menú"><X size={24} /></button>}
         </div>
+        <button className="abrir-buscador" onClick={() => { setAbierto(false); setBuscando(true); }}>
+          <Search size={18} aria-hidden /> <span>Buscar</span> <kbd>{/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd>
+        </button>
         <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' activo' : ''}`}><Home size={20} aria-hidden /> Inicio</NavLink>
         {[...AREAS, AJUSTES].map((area) => {
           const visibles = area.pestanas.filter((x) => p(x.modulo));
@@ -118,8 +103,10 @@ export function App() {
           <button onClick={salir}><LogOut size={16} aria-hidden /> Salir</button>
         </div>
       </nav>
+      {buscando && <Suspense fallback={null}><BuscadorGlobal abierto onCerrar={() => setBuscando(false)} /></Suspense>}
       <main className="contenido">
         <Pestanas path={pathname} puede={p} />
+        <Suspense fallback={<p className="tenue" role="status">Cargando…</p>}>
         <Routes>
           <Route path="/" element={<Inicio />} />
           {p('compras', 2) && <Route path="/pesaje" element={<Pesaje />} />}
@@ -154,6 +141,7 @@ export function App() {
           {p('tablero') && <Route path="/exportar" element={<Exportar />} />}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
     </div>
   );

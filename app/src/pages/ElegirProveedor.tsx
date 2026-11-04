@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import type { TipoMp } from '@moldeados/shared';
+import type { TipoMp } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
 import { useProveedores, type Proveedor } from '../datos';
 import { Aviso, Buscador, Cargando, Entrada, Opciones } from '../ui';

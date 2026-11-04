@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { anularSchema, compraSchema, pesajeSchema } from '@moldeados/shared';
 import { db } from '../db.js';
+import { buscar } from '../lib/buscar.js';
 import { requerir } from '../lib/auth.js';
 import { NotFoundError } from '../lib/errors.js';
 import { anularCompra, crearCompra, crearPesaje } from './compras.service.js';
@@ -9,7 +10,7 @@ const fechaOk = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefi
 const uuidOk = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
 
 export async function comprasRoutes(app: FastifyInstance): Promise<void> {
-  app.get<{ Querystring: { desde?: string; hasta?: string; proveedorId?: string; tipo?: string; pagina?: string } }>('/compras', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; proveedorId?: string; tipo?: string; pagina?: string; q?: string } }>('/compras', async (req) => {
     await requerir(db, req, 'compras', 1);
     const q = req.query;
     const pagina = Math.max(0, Number(q.pagina) || 0);
@@ -22,6 +23,7 @@ export async function comprasRoutes(app: FastifyInstance): Promise<void> {
         if (uuidOk(q.proveedorId)) qb.where('c.proveedor_id', q.proveedorId!);
         if (q.tipo === 'pesaje' || q.tipo === 'compra') qb.where('c.tipo', q.tipo);
       })
+      .modify(buscar(q.q, ['p.nombre', 'c.nro_factura', 'c.patente', 'c.notas'], 'c.numero'))
       .select(
         'c.id', 'c.numero', 'c.tipo', 'c.fecha', 'c.con_factura as conFactura', 'c.total_centavos as total', 'c.anulada_at as anuladaAt',
         'p.nombre as proveedor', 'u.nombre as cargadoPor',

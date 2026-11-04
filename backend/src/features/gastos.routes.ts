@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { anularSchema, cajaSchema, categoriaGastoSchema, gastoSchema } from '@moldeados/shared';
 import { db } from '../db.js';
+import { buscar } from '../lib/buscar.js';
 import { requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
@@ -52,7 +53,7 @@ export async function gastosRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // ---------- Gastos ----------
-  app.get<{ Querystring: { desde?: string; hasta?: string; categoriaId?: string; pagina?: string } }>('/gastos', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; categoriaId?: string; pagina?: string; q?: string } }>('/gastos', async (req) => {
     await requerir(db, req, 'gastos', 1);
     const q = req.query;
     return {
@@ -62,6 +63,7 @@ export async function gastosRoutes(app: FastifyInstance): Promise<void> {
           if (fechaOk(q.hasta)) qb.where('g.fecha', '<=', q.hasta!);
           if (uuidOk(q.categoriaId)) qb.where('g.categoria_id', q.categoriaId!);
         })
+        .modify(buscar(q.q, ['g.descripcion', 'k.nombre', 'e.nombre', 'g.nro_factura'], 'g.numero'))
         .select('g.id', 'g.numero', 'g.fecha', 'g.descripcion', 'g.monto_centavos as monto', 'g.medio', 'g.con_factura as conFactura', 'g.comprobante_id as comprobanteId',
           'g.anulado_at as anuladoAt', 'k.nombre as categoria', 'e.nombre as empleado', 'u.nombre as cargadoPor')
         .orderBy([{ column: 'g.fecha', order: 'desc' }, { column: 'g.numero', order: 'desc' }])

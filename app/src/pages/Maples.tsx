@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
-import { aMili, formatCantidad, LABEL_TAMANO } from '@moldeados/shared';
+import { aMili, formatCantidad, LABEL_TAMANO } from '@moldeados/shared/base';
 import { api, useSesion } from '../api';
 import { useMaquinas, useMaterias, useVariantes, type Maquina, type Variante } from '../datos';
 import { MapleVista, Muestra } from '../MapleVista';

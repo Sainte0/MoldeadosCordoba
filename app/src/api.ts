@@ -1,5 +1,5 @@
 import { createContext, createElement, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Modulo, Nivel, Rol } from '@moldeados/shared';
+import type { Modulo, Nivel, Rol } from '@moldeados/shared/base';
 
 const BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:4800') + '/api';
 const CLAVE = 'moldeados_sesion';
@@ -68,12 +68,13 @@ export function SesionProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     alExpirar = () => guardar(null);
-    // Refresca rol y permisos al abrir: si el dueño los cambió, aplican sin volver a entrar.
-    if (token) {
-      api<{ usuario: Usuario; permisos: Permisos }>('/auth/yo')
-        .then((r) => { const t = token; if (t) guardar({ token: t, ...r }); })
-        .catch(() => {});
-    }
+    // Al abrir y cada 6 h: refresca rol y permisos (si el dueño los cambió) y renueva el token de 7 días.
+    const renovar = () => {
+      if (token) api<Sesion>('/auth/yo').then((r) => { if (token) guardar(r); }).catch(() => {});
+    };
+    renovar();
+    const id = setInterval(renovar, 6 * 3600_000);
+    return () => clearInterval(id);
   }, []);
 
   const valor = useMemo<Ctx>(

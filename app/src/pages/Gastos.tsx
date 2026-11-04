@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, CheckCircle2, Paperclip, Plus } from 'lucide-react';
-import { formatPesos, LABEL_MEDIO_GASTO, type MedioGasto } from '@moldeados/shared';
+import { formatPesos, LABEL_MEDIO_GASTO, type MedioGasto } from '@moldeados/shared/base';
 import { api, apiBlobUrl, nroTicket, useSesion, verFecha, verMomento } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import { useCategoriasGasto } from '../datos';
 import { BotonExportar } from './Exportar';
-import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
+import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
 
 interface GastoFila { id: string; numero: number; fecha: string; descripcion: string; monto: number; medio: MedioGasto; conFactura: boolean; comprobanteId: string | null; anuladoAt: string | null; categoria: string; empleado: string | null; cargadoPor: string }
 
@@ -16,10 +17,10 @@ export function Gastos() {
   const { puede } = useSesion();
   const [params] = useSearchParams();
   const { data: categorias } = useCategoriasGasto();
-  const [desde, setDesde] = useState(inicioMes());
-  const [hasta, setHasta] = useState('');
-  const [categoriaId, setCategoriaId] = useState<string>('');
-  const { data, isLoading } = useQuery({ queryKey: ['gastos', desde, hasta, categoriaId], queryFn: () => api<GastoFila[]>(`/gastos?desde=${desde}&hasta=${hasta}&categoriaId=${categoriaId}`) });
+  const [f, setF] = useFiltros({ desde: inicioMes(), hasta: '', categoria: '', q: '' });
+  const { desde, hasta, categoria: categoriaId } = f;
+  const q = useDemorado(f.q);
+  const { data, isLoading } = useQuery({ queryKey: ['gastos', desde, hasta, categoriaId, q], queryFn: () => api<GastoFila[]>(`/gastos?desde=${desde}&hasta=${hasta}&categoriaId=${categoriaId}&q=${encodeURIComponent(q)}`) });
   const [viendo, setViendo] = useState<string | null>(null);
   const vigentes = (data ?? []).filter((g) => !g.anuladoAt);
 
@@ -33,12 +34,13 @@ export function Gastos() {
       {params.get('nuevo') && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Gasto guardado.</div>}
 
       <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+        <Buscador placeholder="Buscar qué se pagó, categoría o persona" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar gastos" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-          <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setDesde(e.target.value)} /></label>
-          <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} /></label>
+          <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value })} /></label>
+          <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value })} /></label>
           <div style={{ alignSelf: 'end' }}><BotonExportar que="gastos" desde={desde} hasta={hasta} /></div>
         </div>
-        <Opciones columnas valor={categoriaId} onChange={setCategoriaId} opciones={[{ valor: '', titulo: 'Todas' }, ...(categorias ?? []).map((c) => ({ valor: c.id, titulo: c.nombre }))]} />
+        <Opciones columnas valor={categoriaId} onChange={(categoria) => setF({ categoria })} opciones={[{ valor: '', titulo: 'Todas' }, ...(categorias ?? []).map((c) => ({ valor: c.id, titulo: c.nombre }))]} />
       </div>
 
       {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>No hay gastos con estos filtros.</p></div> : (

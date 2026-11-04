@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle } from 'lucide-react';
-import { formatCantidad, formatMinutos, formatPesos, type Unidad } from '@moldeados/shared';
+import { formatCantidad, formatMinutos, formatPesos, type Unidad } from '@moldeados/shared/base';
 import { api, hoy, verFecha } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import { Muestra } from '../MapleVista';
 import { BotonExportar } from './Exportar';
 import { Cabecera, Cargando } from '../ui';
@@ -51,7 +52,8 @@ const PERIODOS = [['mes', 'Este mes'], ['mes-pasado', 'Mes pasado'], ['30', 'Úl
 
 /** El tablero del dueño: cuánto entró, cuánto salió, qué se hizo, quién debe. */
 export function Tablero() {
-  const [clave, setClave] = useState<string>('mes');
+  const [f, setF] = useFiltros({ periodo: 'mes' });
+  const clave = f.periodo;
   const [desde, hasta] = periodo(clave);
   const { data: t, isLoading } = useQuery({ queryKey: ['tablero', desde, hasta], queryFn: () => api<Datos>(`/tablero?desde=${desde}&hasta=${hasta}`) });
   const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
@@ -60,7 +62,7 @@ export function Tablero() {
     <div className="ancho" style={{ display: 'grid', gap: 24 }}>
       <Cabecera titulo="Tablero" bajada={`Del ${verFecha(desde)} al ${verFecha(hasta)}`}>
         <div className="pestanas" role="group" aria-label="Período">
-          {PERIODOS.map(([k, l]) => <button key={k} aria-pressed={clave === k} onClick={() => setClave(k)}>{l}</button>)}
+          {PERIODOS.map(([k, l]) => <button key={k} aria-pressed={clave === k} onClick={() => setF({ periodo: k })}>{l}</button>)}
         </div>
         <BotonExportar que="todo" desde={desde} hasta={hasta} texto="Descargar el período (.zip)" />
       </Cabecera>

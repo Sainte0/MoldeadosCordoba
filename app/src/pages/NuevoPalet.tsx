@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { LABEL_VEHICULO, PALET_DEFAULT, VEHICULOS, type Vehiculo } from '@moldeados/shared';
+import { LABEL_VEHICULO, PALET_DEFAULT, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api } from '../api';
 import { useStockMaples } from '../datos';
 import { Muestra } from '../MapleVista';

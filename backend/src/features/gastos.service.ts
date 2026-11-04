@@ -78,15 +78,25 @@ export async function tablero(db: Knex, desde: string, hasta: string) {
 
   // Serie: por día hasta 45 días, si no por semana (lunes). Días/semanas sin movimiento van en cero.
   const paso = (Date.parse(hasta) - Date.parse(desde)) / 86_400_000 > 45 ? 'week' : 'day';
+  // Se agrupa cada tabla una sola vez por período y se cruza con la lista de períodos (antes era una subconsulta
+  // por día/semana: con un año de datos tardaba 4 veces más).
   const serie = await db.raw(
     `with periodos as (
        select generate_series(date_trunc(:paso, :desde::date), date_trunc(:paso, :hasta::date), ('1 ' || :paso)::interval)::date as inicio
+     ),
+     ing as (
+       select date_trunc(:paso, fecha)::date as inicio, sum(total_centavos) as s from ventas
+       where anulado_at is null and fecha between :desde and :hasta group by 1
+     ),
+     egr as (
+       select date_trunc(:paso, fecha)::date as inicio, sum(m) as s from (
+         select fecha, total_centavos as m from compras where anulada_at is null and fecha between :desde and :hasta
+         union all
+         select fecha, monto_centavos from gastos where anulado_at is null and fecha between :desde and :hasta
+       ) x group by 1
      )
-     select to_char(p.inicio, 'YYYY-MM-DD') as inicio,
-       coalesce((select sum(total_centavos) from ventas where anulado_at is null and fecha between :desde and :hasta and date_trunc(:paso, fecha)::date = p.inicio), 0)::bigint as ingresos,
-       (coalesce((select sum(total_centavos) from compras where anulada_at is null and fecha between :desde and :hasta and date_trunc(:paso, fecha)::date = p.inicio), 0)
-        + coalesce((select sum(monto_centavos) from gastos where anulado_at is null and fecha between :desde and :hasta and date_trunc(:paso, fecha)::date = p.inicio), 0))::bigint as egresos
-     from periodos p order by p.inicio`,
+     select to_char(p.inicio, 'YYYY-MM-DD') as inicio, coalesce(ing.s, 0)::bigint as ingresos, coalesce(egr.s, 0)::bigint as egresos
+     from periodos p left join ing using (inicio) left join egr using (inicio) order by p.inicio`,
     { paso, desde, hasta },
   );
 

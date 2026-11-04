@@ -23,20 +23,29 @@ export async function recompra(db: Knex, hoy: string) {
     .map(({ contactado: _, ...f }) => f);
 }
 
-/** Consumo de los últimos 30 días y para cuántos días alcanza el stock de cada materia prima. */
-export function consumoYDias(db: Knex) {
-  return [
-    db.raw(`coalesce((select sum(c.real) from parte_consumos c join partes p on p.id = c.parte_id
-             where c.materia_prima_id = materias_primas.id and p.anulado_at is null and p.fecha > current_date - 30), 0)::bigint as "consumo30d"`),
-  ];
+/**
+ * Suma a una consulta de materias_primas el consumo de los últimos 30 días ("consumo30d"). Una sola agrupación que
+ * arranca de los partes del mes (índice por fecha), no una subconsulta por materia prima: con años de datos la
+ * versión anterior recorría todos los consumos una vez por materia.
+ */
+// justificación: el resultado depende de las columnas que elija quien llama; cada uno tipa sus filas.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function conConsumo30d(db: Knex, q: Knex.QueryBuilder): Knex.QueryBuilder<any, any[]> {
+  return q
+    .leftJoin(
+      db.raw(`(select c.materia_prima_id, sum(c.real) as total from partes p join parte_consumos c on c.parte_id = p.id
+               where p.anulado_at is null and p.fecha > current_date - 30 group by c.materia_prima_id) as cons30`),
+      'cons30.materia_prima_id', 'materias_primas.id',
+    )
+    .select(db.raw('coalesce(cons30.total, 0)::bigint as "consumo30d"'));
 }
 export const diasDeStock = (stock: number, consumo30d: number) => (consumo30d > 0 ? Math.max(0, Math.floor(stock / (consumo30d / 30))) : null);
 
 /** Materias primas que se acaban pronto (según el ritmo de consumo) o que están bajo el mínimo. */
 export async function materiasPorAcabarse(db: Knex) {
-  const filas = await db('materias_primas').whereNull('deleted_at').where({ activo: true })
-    .select('id', 'nombre', 'unidad', 'stock_minimo as stockMinimo', 'dias_aviso as diasAviso',
-      db.raw('(select coalesce(sum(m.cantidad), 0) from movimientos_stock m where m.materia_prima_id = materias_primas.id)::bigint as stock'), ...consumoYDias(db));
+  const filas: { id: string; nombre: string; unidad: string; stockMinimo: number; diasAviso: number; stock: string; consumo30d: string }[] = await conConsumo30d(db, db('materias_primas').whereNull('materias_primas.deleted_at').where({ 'materias_primas.activo': true })
+    .select('materias_primas.id', 'nombre', 'unidad', 'stock_minimo as stockMinimo', 'dias_aviso as diasAviso',
+      db.raw('(select coalesce(sum(m.cantidad), 0) from movimientos_stock m where m.materia_prima_id = materias_primas.id)::bigint as stock')));
   return filas
     .map((m) => ({ ...m, stock: Number(m.stock), dias: diasDeStock(Number(m.stock), Number(m.consumo30d)) }))
     .filter((m) => (m.dias !== null && m.dias <= m.diasAviso) || (m.stockMinimo > 0 && m.stock < m.stockMinimo))

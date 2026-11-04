@@ -63,6 +63,6 @@ describe('costo por maple y días de stock (moldeados_test)', () => {
     // Cartón: 600 kg en stock, se usaron 500 kg en 30 días → alcanza 36 días; con aviso a 40 días aparece.
     await db('materias_primas').where({ id: carton }).update({ dias_aviso: 40 });
     const pocas = await materiasPorAcabarse(db);
-    expect(pocas.find((m) => m.id === carton)).toMatchObject({ dias: 36 });
+    expect(pocas.find((m: { id: string }) => m.id === carton)).toMatchObject({ dias: 36 });
   });
 });

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { List, ScanLine, Trash2 } from 'lucide-react';
-import { aCentavos, calcularVenta, formatIva, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared';
+import { aCentavos, calcularVenta, formatIva, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
 import type { Cliente, PaletDisponible } from '../datos';
 import { Escaner, idDePalet } from '../Escaner';

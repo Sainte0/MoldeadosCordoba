@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Ban, CheckCircle2, Layers } from 'lucide-react';
-import { formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, type Turno, type Unidad } from '@moldeados/shared';
+import { formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, type Turno, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { MapleVista } from '../MapleVista';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';

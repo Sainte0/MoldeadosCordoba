@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Calculator, Plus } from 'lucide-react';
-import { aCentavos, formatPesos } from '@moldeados/shared';
+import { aCentavos, formatPesos } from '@moldeados/shared/base';
 import { api, hoy, useSesion, verFecha } from '../api';
 import { useCaja } from '../datos';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero } from '../ui';

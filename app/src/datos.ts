@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { TipoMp, Unidad, Vehiculo } from '@moldeados/shared';
+import type { TipoMp, Unidad, Vehiculo } from '@moldeados/shared/base';
 import { api } from './api';
 
 // Tipos de lo que devuelve la API y las consultas que usan varias pantallas.

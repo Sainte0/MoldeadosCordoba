@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import { ArrowLeft, Ban, CheckCircle2, Printer, Truck } from 'lucide-react';
-import { COLOR_CARTON, formatCantidad, LABEL_TAMANO, LABEL_TURNO, LABEL_VEHICULO, type Turno, type Unidad, type Vehiculo } from '@moldeados/shared';
+import { COLOR_CARTON, formatCantidad, LABEL_TAMANO, LABEL_TURNO, LABEL_VEHICULO, type Turno, type Unidad, type Vehiculo } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useEmpresa } from '../datos';
 import { MapleVista } from '../MapleVista';
@@ -68,7 +68,7 @@ export function PaletDetalle() {
             <div className="codigo">{p.codigo}</div>
             <div>{p.variante}</div>
           </div>
-          <img src="/logo.png" width={44} height={44} alt={empresa?.razonSocial ?? ''} style={{ borderRadius: 8 }} />
+          <img src="/logo.webp" width={44} height={44} alt={empresa?.razonSocial ?? ''} style={{ borderRadius: 8 }} />
         </div>
         {qr && <div className="qr" dangerouslySetInnerHTML={{ __html: qr }} />}
         <div className="datos">

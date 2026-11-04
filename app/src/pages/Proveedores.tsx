@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { formatPesos, LABEL_TIPO_MP, TIPOS_MP, type TipoMp } from '@moldeados/shared';
+import { formatPesos, LABEL_TIPO_MP, TIPOS_MP, type TipoMp } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import { useProveedores, type Proveedor } from '../datos';
 import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada } from '../ui';
 
@@ -11,8 +12,8 @@ const VACIO: Omit<Proveedor, 'id'> = { nombre: '', cuit: '', telefono: '', email
 
 export function Proveedores() {
   const { puede } = useSesion();
-  const [q, setQ] = useState('');
-  const { data, isLoading } = useProveedores(q);
+  const [f, setF] = useFiltros({ q: '' });
+  const { data, isLoading } = useProveedores(useDemorado(f.q));
   const [editando, setEditando] = useState<Partial<Proveedor> | null>(null);
 
   return (
@@ -20,9 +21,9 @@ export function Proveedores() {
       <Cabecera titulo="Proveedores" bajada="Recicladores, supermercados, proveedores de tinta y de aglutinante.">
         {puede('proveedores', 2) && <button className="boton primario" onClick={() => setEditando({ ...VACIO })}><Plus size={18} aria-hidden /> Nuevo proveedor</button>}
       </Cabecera>
-      <div style={{ marginBottom: 16 }}><Buscador placeholder="Buscar por nombre" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar proveedor" /></div>
+      <div style={{ marginBottom: 16 }}><Buscador placeholder="Buscar por nombre" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar proveedor" /></div>
       {isLoading ? <Cargando /> : !data?.length ? (
-        <div className="hoja vacio"><p>{q ? 'Nadie con ese nombre.' : 'Todavía no hay proveedores. Se agregan acá o desde el pesaje.'}</p></div>
+        <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay proveedores. Se agregan acá o desde el pesaje.'}</p></div>
       ) : (
         <div className="hoja filas">
           {data.map((p) => (

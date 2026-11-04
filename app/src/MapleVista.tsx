@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { COLOR_CARTON } from '@moldeados/shared';
+import { COLOR_CARTON } from '@moldeados/shared/base';
 
 const Maple3D = lazy(() => import('./Maple3D'));
 

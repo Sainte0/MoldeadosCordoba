@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Ban } from 'lucide-react';
-import { formatPesos, LABEL_MEDIO, type Medio } from '@moldeados/shared';
+import { formatPesos, LABEL_MEDIO, type Medio } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha } from '../api';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { aCentavos, formatPesos, LABEL_MEDIO, MEDIOS, type Medio } from '@moldeados/shared';
+import { aCentavos, formatPesos, LABEL_MEDIO, MEDIOS, type Medio } from '@moldeados/shared/base';
 import { api, hoy, verFecha } from '../api';
 import { useBancos, type Cliente, type Proveedor } from '../datos';
 import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Camera, X } from 'lucide-react';
-import { aCentavos, formatPesos, LABEL_MEDIO_GASTO, MEDIOS_GASTO, type MedioGasto } from '@moldeados/shared';
+import { aCentavos, formatPesos, LABEL_MEDIO_GASTO, MEDIOS_GASTO, type MedioGasto } from '@moldeados/shared/base';
 import { api, comprimirFoto, hoy, verFecha } from '../api';
 import { useBancos, useCaja, useCategoriasGasto, useEmpleados } from '../datos';
 import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';

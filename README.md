@@ -62,5 +62,11 @@ donde estabas; 28 guías del sistema y procedimientos de planta editables (arran
 huevo"); cada guía o el manual completo se imprime o guarda como PDF. Exportar a Excel (CSV para Excel en
 castellano) desde cada listado, y todo junto en un .zip desde Ajustes › Exportar datos o desde el Tablero.
 
+**Búsqueda, filtros y rendimiento (hecho):** buscador principal (⌘K / lupa) de secciones, acciones, guías y datos;
+búsqueda sin acentos en cada listado; filtros guardados en la URL (se recargan y se comparten); sesión de 7 días
+que se renueva sola. Bundle inicial de 643 KB a 52 KB de código propio + 206 KB de librerías cacheables; logo de
+52 KB a 2 KB (WebP); tablero anual de 78 a 26 ms con datos de años; índices y un N+1 corregidos tras EXPLAIN.
+Config de nginx con gzip y caché larga en `deploy/nginx.conf.example`.
+
 Próximo: deploy al VPS (pendiente: dominio con HTTPS). Ideas para más adelante: resumen automático al dueño por
 WhatsApp/mail, cobranzas con recordatorio, service de máquinas por horas, consultas en lenguaje natural con IA.

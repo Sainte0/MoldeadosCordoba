@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { aMili, aMinutos, consumoTeorico, formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, TURNOS, type Turno } from '@moldeados/shared';
+import { aMili, aMinutos, consumoTeorico, formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, TURNOS, type Turno } from '@moldeados/shared/base';
 import { api, hoy, verFecha } from '../api';
 import { useEmpleados, useMaquinas, useMaterias, useVariantes } from '../datos';
 import { Muestra } from '../MapleVista';

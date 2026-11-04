@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, MessageCircle, PackageOpen } from 'lucide-react';
-import { formatCantidad, formatPesos, telefonoWhatsapp, type EstadoRecompra, type Unidad } from '@moldeados/shared';
+import { formatCantidad, formatPesos, telefonoWhatsapp, type EstadoRecompra, type Unidad } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
 import { useEmpresa } from '../datos';
 

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowUpRight, Plus } from 'lucide-react';
-import { formatPesos, LABEL_MEDIO, type Medio } from '@moldeados/shared';
+import { formatPesos, LABEL_MEDIO, type Medio } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import { useBancos, type Banco } from '../datos';
 import { BotonExportar } from './Exportar';
 import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
@@ -13,8 +14,9 @@ interface Cheque { id: string; tipo: 'cobro' | 'pago'; medio: Medio; monto: numb
 
 export function Cuentas() {
   const { puede } = useSesion();
-  const [de, setDe] = useState<'cliente' | 'proveedor'>('cliente');
-  const [q, setQ] = useState('');
+  const [f, setF] = useFiltros({ de: 'cliente', q: '' });
+  const de = f.de === 'proveedor' ? 'proveedor' : 'cliente';
+  const q = f.q;
   const { data, isLoading } = useQuery({ queryKey: ['cuentas', de], queryFn: () => api<Saldo[]>(`/cuentas/${de}`) });
   const { data: cheques } = useQuery({ queryKey: ['cheques'], queryFn: () => api<Cheque[]>('/cheques') });
   const filas = (data ?? []).filter((s) => !q || s.nombre.toLowerCase().includes(q.toLowerCase())).map((s) => ({ ...s, saldo: s.debe - s.haber }));
@@ -33,11 +35,11 @@ export function Cuentas() {
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <div className="pestanas" role="group" aria-label="Cuentas de">
-          <button aria-pressed={de === 'cliente'} onClick={() => setDe('cliente')}>Clientes</button>
-          <button aria-pressed={de === 'proveedor'} onClick={() => setDe('proveedor')}>Proveedores</button>
+          <button aria-pressed={de === 'cliente'} onClick={() => setF({ de: 'cliente' })}>Clientes</button>
+          <button aria-pressed={de === 'proveedor'} onClick={() => setF({ de: 'proveedor' })}>Proveedores</button>
         </div>
         <BotonExportar que="cuentas" texto="Exportar saldos" />
-        <div style={{ flex: 1, minWidth: 200 }}><Buscador placeholder="Buscar" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar cuenta" /></div>
+        <div style={{ flex: 1, minWidth: 200 }}><Buscador placeholder="Buscar" value={q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar cuenta" /></div>
       </div>
 
       <div className="cifras">

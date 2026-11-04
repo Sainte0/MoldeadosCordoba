@@ -1,12 +1,12 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { formatCantidad, formatMinutos, LABEL_TURNO, type Turno, type Unidad } from '@moldeados/shared';
+import { formatCantidad, formatMinutos, LABEL_TURNO, type Turno, type Unidad } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import { Muestra } from '../MapleVista';
 import { BotonExportar } from './Exportar';
-import { Cabecera, Cargando, Entrada } from '../ui';
+import { Buscador, Cabecera, Cargando, Entrada } from '../ui';
 
 interface Resumen {
   produccion: { maquina: string; codigo: string; variante: string; colorHex: string | null; partes: number; minutos: number; paquetes: number; pulpeadas: number; maples: number; paquetesTeoricos: number | null }[];
@@ -21,10 +21,13 @@ const porHora = (paq: number, min: number) => (min ? (paq / (min / 60)).toLocale
 /** La planilla productiva: cuánto se hizo, en cuánto tiempo, qué se gastó y contra qué debería haberse gastado. */
 export function Produccion() {
   const { puede } = useSesion();
-  const [desde, setDesde] = useState(haceDias(6));
-  const [hasta, setHasta] = useState(hoy());
+  const [f, setF] = useFiltros({ desde: haceDias(6), hasta: hoy(), q: '' });
+  const { desde, hasta } = f;
+  const q = useDemorado(f.q);
+  const setDesde = (desde: string) => setF({ desde });
+  const setHasta = (hasta: string) => setF({ hasta });
   const { data: r } = useQuery({ queryKey: ['partes-resumen', desde, hasta], queryFn: () => api<Resumen>(`/partes/resumen?desde=${desde}&hasta=${hasta}`) });
-  const { data: partes, isLoading } = useQuery({ queryKey: ['partes', desde, hasta], queryFn: () => api<ParteFila[]>(`/partes?desde=${desde}&hasta=${hasta}`) });
+  const { data: partes, isLoading } = useQuery({ queryKey: ['partes', desde, hasta, q], queryFn: () => api<ParteFila[]>(`/partes?desde=${desde}&hasta=${hasta}&q=${encodeURIComponent(q)}`) });
   const tot = (r?.produccion ?? []).reduce((a, p) => ({ paquetes: a.paquetes + p.paquetes, minutos: a.minutos + p.minutos, maples: a.maples + p.maples, partes: a.partes + p.partes }), { paquetes: 0, minutos: 0, maples: 0, partes: 0 });
 
   return (
@@ -39,7 +42,7 @@ export function Produccion() {
         <BotonExportar que="produccion" desde={desde} hasta={hasta} />
         <div className="pestanas" role="group" aria-label="Rango rápido" style={{ alignSelf: 'center' }}>
           {([['Hoy', 0], ['7 días', 6], ['30 días', 29]] as const).map(([t, n]) => (
-            <button key={t} aria-pressed={desde === haceDias(n) && hasta === hoy()} onClick={() => { setDesde(haceDias(n)); setHasta(hoy()); }}>{t}</button>
+            <button key={t} aria-pressed={desde === haceDias(n) && hasta === hoy()} onClick={() => setF({ desde: haceDias(n), hasta: hoy() })}>{t}</button>
           ))}
         </div>
       </div>
@@ -94,7 +97,10 @@ export function Produccion() {
       )}
 
       <section>
-        <h3 style={{ marginBottom: 12 }}>Partes</h3>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+          <h3>Partes</h3>
+          <div style={{ flex: 1, minWidth: 220 }}><Buscador placeholder="Buscar código, máquina o n.º de parte" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar partes" /></div>
+        </div>
         {isLoading ? <Cargando /> : !partes?.length ? <div className="hoja vacio"><p>No hay partes cargados en estas fechas.</p></div> : (
           <div className="hoja filas">
             {partes.map((p) => (

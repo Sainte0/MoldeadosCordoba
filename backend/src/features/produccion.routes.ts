@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { anularSchema, empleadoSchema, empresaSchema, maquinaSchema, paletSchema, parteSchema, varianteSchema, type Rol } from '@moldeados/shared';
 import { db } from '../db.js';
+import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno, sesion } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError, UnauthorizedError } from '../lib/errors.js';
@@ -126,7 +127,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
   });
 
   // ---------- Partes de producción ----------
-  app.get<{ Querystring: { desde?: string; hasta?: string; maquinaId?: string; pagina?: string } }>('/partes', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; maquinaId?: string; pagina?: string; q?: string } }>('/partes', async (req) => {
     await requerir(db, req, 'produccion', 1);
     const q = req.query;
     return {
@@ -137,6 +138,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
           if (fechaOk(q.hasta)) qb.where('p.fecha', '<=', q.hasta!);
           if (uuidOk(q.maquinaId)) qb.where('p.maquina_id', q.maquinaId!);
         })
+        .modify(buscar(q.q, ['v.codigo', 'v.nombre', 'm.codigo', 'p.notas'], 'p.numero'))
         .select('p.id', 'p.numero', 'p.fecha', 'p.turno', 'p.minutos', 'p.paquetes', 'p.maples_por_hora as maplesPorHora', 'p.maples_por_paquete as maplesPorPaquete',
           'p.anulado_at as anuladoAt', 'v.codigo', 'v.nombre as variante', 'v.color_hex as colorHex', 'm.codigo as maquina')
         .orderBy([{ column: 'p.fecha', order: 'desc' }, { column: 'p.numero', order: 'desc' }])
@@ -200,10 +202,16 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
     return { data: await stockMaples(db) };
   });
 
-  app.get<{ Querystring: { pagina?: string } }>('/palets', async (req) => {
+  app.get<{ Querystring: { pagina?: string; q?: string; estado?: string } }>('/palets', async (req) => {
     await requerir(db, req, 'produccion', 1);
+    const { q, estado } = req.query;
     return {
-      data: await db('palets as pa').join('variantes as v', 'v.id', 'pa.variante_id')
+      data: await db('palets as pa').join('variantes as v', 'v.id', 'pa.variante_id').leftJoin('ventas as ve', 've.id', 'pa.venta_id').leftJoin('clientes as cl', 'cl.id', 've.cliente_id')
+        .modify((qb) => {
+          if (estado === 'listos') qb.whereNull('pa.anulado_at').whereNull('pa.venta_id');
+          if (estado === 'vendidos') qb.whereNotNull('pa.venta_id');
+        })
+        .modify(buscar(q, ['v.codigo', 'pa.destino', 'cl.nombre'], 'pa.numero'))
         .select('pa.id', 'pa.numero', 'pa.paquetes', 'pa.ancho', 'pa.largo', 'pa.alto', 'pa.vehiculo', 'pa.destino', 'pa.created_at as armadoAt', 'pa.anulado_at as anuladoAt',
           'v.codigo', 'v.nombre as variante', 'v.color_hex as colorHex', 'v.maples_por_paquete as maplesPorPaquete')
         .orderBy('pa.numero', 'desc').limit(50).offset(Math.max(0, Number(req.query.pagina) || 0) * 50),

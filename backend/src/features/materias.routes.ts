@@ -4,7 +4,7 @@ import { db } from '../db.js';
 import { requerir } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { NotFoundError } from '../lib/errors.js';
-import { consumoYDias, diasDeStock } from './avisos.service.js';
+import { conConsumo30d, diasDeStock } from './avisos.service.js';
 
 const COLS = ['id', 'nombre', 'tipo', 'unidad', 'color', 'stock_minimo as stockMinimo', 'dias_aviso as diasAviso', 'activo'];
 const STOCK = db.raw('(select coalesce(sum(m.cantidad), 0)::bigint from movimientos_stock m where m.materia_prima_id = materias_primas.id) as stock');
@@ -13,8 +13,9 @@ export async function materiasRoutes(app: FastifyInstance): Promise<void> {
   app.get('/materias', async (req) => {
     // El pesaje y las compras necesitan la lista: alcanza con poder cargar compras o ver materia prima.
     await requerir(db, req, 'compras', 1).catch(() => requerir(db, req, 'materias', 1));
-    const filas = await db('materias_primas').whereNull('deleted_at').select(COLS).select(STOCK).select(...consumoYDias(db)).orderBy([{ column: 'tipo' }, { column: 'nombre' }]);
-    return { data: filas.map((m) => ({ ...m, dias: diasDeStock(Number(m.stock), Number(m.consumo30d)) })) };
+    const filas = await conConsumo30d(db, db('materias_primas').whereNull('materias_primas.deleted_at').select(COLS.map((c) => `materias_primas.${c}`)).select(STOCK))
+      .orderBy([{ column: 'materias_primas.tipo' }, { column: 'materias_primas.nombre' }]);
+    return { data: filas.map((m: Record<string, unknown>) => ({ ...m, dias: diasDeStock(Number(m.stock), Number(m.consumo30d)) })) };
   });
 
   app.get<{ Params: { id: string } }>('/materias/:id/movimientos', async (req) => {

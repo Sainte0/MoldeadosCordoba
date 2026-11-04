@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { calcularVenta, movimientoDineroSchema, ventaSchema } from '@moldeados/shared';
 import { db } from '../src/db.js';
 import { anularPalet } from '../src/features/produccion.service.js';
+import { buscar } from '../src/lib/buscar.js';
 import { anularMovimiento, anularVenta, crearMovimiento, crearVenta, cuentaCorriente, saldos } from '../src/features/ventas.service.js';
 
 describe('cálculo de venta', () => {
@@ -64,5 +65,13 @@ describe('despacho y cuentas (moldeados_test)', () => {
     expect(Number(s.debe) - Number(s.haber)).toBe(64_800_000 - 5_000_000);
     const cc = await cuentaCorriente(db, 'cliente', cliente);
     expect(cc.at(-1)!.saldo).toBe(59_800_000);
+  });
+
+  it('sin acentos, por varias palabras y por número', async () => {
+    const nombres = async (q: string) => (await db('clientes as c').modify(buscar(q, ['c.nombre'])).pluck('c.nombre')).sort();
+    expect(await nombres('alamos')).toEqual(['Granja Los Álamos']);
+    expect(await nombres('AVÍCOLA sur')).toEqual(['Avícola Sur']);
+    expect(await nombres('granja sur')).toEqual([]);
+    expect(await nombres('100%')).toEqual([]); // los comodines del usuario no rompen nada
   });
 });

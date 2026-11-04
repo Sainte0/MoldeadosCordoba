@@ -1,4 +1,4 @@
-import { ALICUOTAS_IVA, formatIva } from '@moldeados/shared';
+import { ALICUOTAS_IVA, formatIva } from '@moldeados/shared/base';
 import { Campo, Entrada, Opciones } from '../ui';
 
 export interface DatosFactura { conFactura: boolean | null; nroFactura: string; ivaBp: number }

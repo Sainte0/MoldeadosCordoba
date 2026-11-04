@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, FileDown, Pencil, Plus, Printer } from 'lucide-react';
 import { api, useSesion, verMomento } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import { useEmpresa } from '../datos';
 import { GUIAS, normalizar, type Guia } from '../guias';
 import { Aviso, Buscador, Cabecera, Campo, Dialogo, Entrada } from '../ui';
@@ -20,7 +21,8 @@ export function Ayuda() {
   const desde = params.get('desde') ?? '';
   const { puede } = useSesion();
   const { data: procs } = useQuery({ queryKey: ['procedimientos'], queryFn: () => api<Procedimiento[]>('/procedimientos') });
-  const [q, setQ] = useState('');
+  const [f, setF] = useFiltros({ q: '', desde: '' });
+  const q = f.q;
   const [editando, setEditando] = useState<Partial<Procedimiento> | null>(null);
   const [imprimir, setImprimir] = useState<Imprimir>(null);
   const editaProcs = puede('usuarios', 3) || puede('produccion', 3);
@@ -50,7 +52,7 @@ export function Ayuda() {
             <FileDown size={18} aria-hidden /> Manual completo (PDF)
           </button>
         </Cabecera>
-        <Buscador placeholder="¿Qué querés hacer? Ej.: anular una venta, cheque, etiqueta" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar en la ayuda" autoFocus={!desde} />
+        <Buscador placeholder="¿Qué querés hacer? Ej.: anular una venta, cheque, etiqueta" value={q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar en la ayuda" autoFocus={!desde} />
 
         {!palabras.length && deEstaPantalla.length > 0 && (
           <section style={{ display: 'grid', gap: 10 }}>
@@ -122,7 +124,7 @@ function Impresion({ guias, procedimientos, titulo }: NonNullable<Imprimir>) {
     <article className="impresion">
       <style>{'@media print { @page { size: A4; margin: 16mm 14mm; } }'}</style>
       <header>
-        <img src="/logo.png" width={40} height={40} alt="" />
+        <img src="/logo.webp" width={40} height={40} alt="" />
         <div><b>{empresa?.razonSocial ?? 'Moldeados Córdoba'}</b><div>{titulo}</div></div>
       </header>
       {procedimientos.map((p) => (

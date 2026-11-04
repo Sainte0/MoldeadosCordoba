@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Ban, CheckCircle2, Printer, Wallet } from 'lucide-react';
-import { formatIva, formatPesos, LABEL_VEHICULO, type Vehiculo } from '@moldeados/shared';
+import { formatIva, formatPesos, LABEL_VEHICULO, type Vehiculo } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useEmpresa } from '../datos';
 import { Muestra } from '../MapleVista';
@@ -50,7 +50,7 @@ export function VentaDetalle() {
       <article className="ticket remito">
         <div className="encabezado">
           <div>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}><img src="/logo.png" width={36} height={36} alt="" style={{ borderRadius: 7 }} /><b>{empresa?.razonSocial}</b></div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}><img src="/logo.webp" width={36} height={36} alt="" style={{ borderRadius: 7 }} /><b>{empresa?.razonSocial}</b></div>
             <div className="chico tenue">{[empresa?.direccion, empresa?.telefono, empresa?.cuit && `CUIT ${empresa.cuit}`].filter(Boolean).join(' · ')}</div>
             <div className="chico tenue">Remito de entrega</div>
           </div>

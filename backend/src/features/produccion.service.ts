@@ -158,21 +158,22 @@ export async function trazabilidad(db: Knex, paletId: string) {
     : [];
   const hasta = lotes.reduce((a, l) => (l.fecha > a ? l.fecha : a), '0000-00-00');
 
-  const origen = [];
-  for (const c of consumos) {
-    const compras = await db('compra_items as i').join('compras as co', 'co.id', 'i.compra_id').join('proveedores as pr', 'pr.id', 'co.proveedor_id')
-      .where('i.materia_prima_id', c.id).whereNull('co.anulada_at').where('co.fecha', '<=', hasta)
-      .select('co.id', 'co.numero', 'co.fecha', 'co.tipo', 'pr.nombre as proveedor', 'i.cantidad')
-      .orderBy([{ column: 'co.fecha', order: 'desc' }, { column: 'co.numero', order: 'desc' }]).limit(20);
-    let acumulado = 0;
-    const usadas = [];
-    for (const co of compras) {
-      usadas.push(co);
-      acumulado += co.cantidad;
-      if (acumulado >= c.real) break;
-    }
-    origen.push({ ...c, compras: usadas });
-  }
+  // Una sola consulta (antes una por materia prima): las compras de cada materia, de la más nueva a la más vieja,
+  // con la suma acumulada; se queda con las necesarias para cubrir lo consumido.
+  const compras: { materia_prima_id: string; id: string; numero: number; fecha: string; tipo: string; proveedor: string; cantidad: number }[] = consumos.length
+    ? (await db.raw(
+      `select x.materia_prima_id, x.id, x.numero, x.fecha, x.tipo, x.proveedor, x.cantidad from (
+         select i.materia_prima_id, co.id, co.numero, to_char(co.fecha, 'YYYY-MM-DD') as fecha, co.tipo, pr.nombre as proveedor, i.cantidad,
+           sum(i.cantidad) over (partition by i.materia_prima_id order by co.fecha desc, co.numero desc) as acumulado
+         from compra_items i join compras co on co.id = i.compra_id join proveedores pr on pr.id = co.proveedor_id
+         where i.materia_prima_id = any(?) and co.anulada_at is null and co.fecha <= ?
+       ) x join unnest(?::uuid[], ?::bigint[]) as u(mp, usado) on u.mp = x.materia_prima_id
+       where x.acumulado - x.cantidad < u.usado
+       order by x.fecha desc, x.numero desc`,
+      [consumos.map((c) => c.id), hasta, consumos.map((c) => c.id), consumos.map((c) => Number(c.real))],
+    )).rows
+    : [];
+  const origen = consumos.map((c) => ({ ...c, compras: compras.filter((co) => co.materia_prima_id === c.id).map(({ materia_prima_id: _, ...co }) => co) }));
   const venta = await db('palets as pa').join('ventas as v', 'v.id', 'pa.venta_id').join('clientes as c', 'c.id', 'v.cliente_id').where('pa.id', paletId)
     .first('v.id', 'v.numero', 'v.fecha', 'v.retira', 'v.vehiculo', 'v.patente', 'c.nombre as cliente');
   return { ...palet, lotes, origen, venta: venta ?? null };

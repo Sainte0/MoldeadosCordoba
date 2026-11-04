@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import type { FastifyInstance } from 'fastify';
 import { instructivoSchema, loginSchema, usuarioSchema, permisoSchema, type Rol } from '@moldeados/shared';
 import { db } from '../db.js';
-import { firmar, matriz, requerir, sesion } from '../lib/auth.js';
+import { firmar, invalidarPermisos, matriz, requerir, sesion } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from '../lib/errors.js';
 
@@ -27,7 +27,8 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const s = sesion(req);
     const u = await db('usuarios').where({ id: s.usuarioId, activo: true }).whereNull('deleted_at').first(COLS);
     if (!u) throw new UnauthorizedError();
-    return { data: { usuario: u, permisos: (await matriz(db))[u.rol as Rol] } };
+    // Token renovado: así la sesión no vence mientras la persona siga usando el sistema.
+    return { data: { token: firmar({ usuarioId: u.id, rol: u.rol as Rol }), usuario: u, permisos: (await matriz(db))[u.rol as Rol] } };
   });
 
   app.get('/usuarios', async (req) => {
@@ -97,6 +98,7 @@ export async function authRoutes(app: FastifyInstance): Promise<void> {
     const antes = (await matriz(db))[rol][modulo];
     await db.transaction(async (trx) => {
       await trx('rol_permisos').insert({ rol, modulo, nivel }).onConflict(['rol', 'modulo']).merge();
+      invalidarPermisos();
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'permiso', antes: { rol, modulo, nivel: antes }, despues: { rol, modulo, nivel } });
     });
     return { data: await matriz(db) };

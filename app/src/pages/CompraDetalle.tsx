@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Ban, CheckCircle2, Printer } from 'lucide-react';
-import { formatCantidad, formatIva, formatPesos, type Unidad } from '@moldeados/shared';
+import { formatCantidad, formatIva, formatPesos, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';
 import { useEmpresa } from '../datos';
@@ -54,7 +54,7 @@ export function CompraDetalle() {
         <div className="encabezado">
           <div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <img src="/logo.png" width={36} height={35} alt="" style={{ borderRadius: 7 }} />
+              <img src="/logo.webp" width={36} height={35} alt="" style={{ borderRadius: 7 }} />
               <b>{empresa?.razonSocial ?? 'Moldeados Córdoba'}</b>
             </div>
             <div className="chico tenue">{[empresa?.direccion, empresa?.telefono].filter(Boolean).join(' · ')}</div>

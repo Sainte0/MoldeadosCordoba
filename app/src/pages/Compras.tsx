@@ -1,22 +1,23 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Scale } from 'lucide-react';
-import { formatPesos } from '@moldeados/shared';
+import { formatPesos } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha } from '../api';
+import { useDemorado, useFiltros } from '../filtros';
 import type { CompraFila } from '../datos';
 import { BotonExportar } from './Exportar';
-import { Cabecera, Cargando, Entrada, Opciones } from '../ui';
+import { Buscador, Cabecera, Cargando, Entrada, Opciones } from '../ui';
 
 export function Compras() {
   const { puede } = useSesion();
-  const [tipo, setTipo] = useState<'' | 'pesaje' | 'compra'>('');
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
-  const [pagina, setPagina] = useState(0);
+  const [f, setF] = useFiltros({ tipo: '', desde: '', hasta: '', pagina: '0', q: '' });
+  const tipo = f.tipo as '' | 'pesaje' | 'compra';
+  const { desde, hasta } = f;
+  const pagina = Number(f.pagina) || 0;
+  const q = useDemorado(f.q);
   const { data, isLoading } = useQuery({
-    queryKey: ['compras', tipo, desde, hasta, pagina],
-    queryFn: () => api<CompraFila[]>(`/compras?tipo=${tipo}&desde=${desde}&hasta=${hasta}&pagina=${pagina}`),
+    queryKey: ['compras', tipo, desde, hasta, pagina, q],
+    queryFn: () => api<CompraFila[]>(`/compras?tipo=${tipo}&desde=${desde}&hasta=${hasta}&pagina=${pagina}&q=${encodeURIComponent(q)}`),
   });
   const total = (data ?? []).filter((c) => !c.anuladaAt).reduce((a, c) => a + c.total, 0);
 
@@ -32,10 +33,11 @@ export function Compras() {
       </Cabecera>
 
       <div className="hoja relleno" style={{ display: 'grid', gap: 14, marginBottom: 16 }}>
-        <Opciones<'' | 'pesaje' | 'compra'> columnas valor={tipo} onChange={(t) => { setTipo(t); setPagina(0); }} opciones={[{ valor: '', titulo: 'Todo' }, { valor: 'pesaje', titulo: 'Pesajes' }, { valor: 'compra', titulo: 'Otras compras' }]} />
+        <Buscador placeholder="Buscar proveedor, n.º de ticket, factura o patente" value={f.q} onChange={(e) => setF({ q: e.target.value, pagina: '0' })} aria-label="Buscar compras" />
+        <Opciones<'' | 'pesaje' | 'compra'> columnas valor={tipo} onChange={(t) => setF({ tipo: t, pagina: '0' })} opciones={[{ valor: '', titulo: 'Todo' }, { valor: 'pesaje', titulo: 'Pesajes' }, { valor: 'compra', titulo: 'Otras compras' }]} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-          <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => { setDesde(e.target.value); setPagina(0); }} /></label>
-          <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => { setHasta(e.target.value); setPagina(0); }} /></label>
+          <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value, pagina: '0' })} /></label>
+          <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value, pagina: '0' })} /></label>
           <div style={{ alignSelf: 'end' }}><BotonExportar que="compras" desde={desde} hasta={hasta} /></div>
         </div>
       </div>
@@ -60,8 +62,8 @@ export function Compras() {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-            {pagina > 0 && <button className="boton secundario" onClick={() => setPagina(pagina - 1)}>Más nuevas</button>}
-            {data.length === 50 && <button className="boton secundario" onClick={() => setPagina(pagina + 1)}>Más viejas</button>}
+            {pagina > 0 && <button className="boton secundario" onClick={() => setF({ pagina: String(pagina - 1) })}>Más nuevas</button>}
+            {data.length === 50 && <button className="boton secundario" onClick={() => setF({ pagina: String(pagina + 1) })}>Más viejas</button>}
           </div>
         </>
       )}
