@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { anularSchema, compraSchema, pesajeSchema } from '@moldeados/shared';
 import { db } from '../db.js';
+import { idPorNumero } from '../lib/numero.js';
 import { buscar } from '../lib/buscar.js';
 import { requerir } from '../lib/auth.js';
 import { NotFoundError } from '../lib/errors.js';
@@ -50,6 +51,7 @@ export async function comprasRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>('/compras/:id', async (req) => {
     await requerir(db, req, 'compras', 1);
+    req.params.id = await idPorNumero(db, 'compras', req.params.id);
     if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos esa compra');
     const c = await db('compras as c')
       .join('proveedores as p', 'p.id', 'c.proveedor_id')

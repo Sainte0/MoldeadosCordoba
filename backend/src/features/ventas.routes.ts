@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { anularSchema, bancoSchema, clienteSchema, movimientoDineroSchema, pedidoSchema, precioSchema, ventaSchema } from '@moldeados/shared';
 import { db } from '../db.js';
+import { idPorNumero } from '../lib/numero.js';
 import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
@@ -26,7 +27,7 @@ async function avisarPedidoNuevo(autor: string, pedidoId: string): Promise<void>
   const roles = (Object.keys(m) as (keyof typeof m)[]).filter((r) => m[r].ventas >= 1 || m[r].produccion >= 1);
   const ids = (await db('usuarios').whereIn('rol', roles).where({ activo: true }).whereNull('deleted_at').whereNot({ id: autor }).select('id')).map((u) => u.id);
   const [a, mm, d] = (p.entrega ?? '').split('-');
-  await avisar(db, ids, { tipo: 'pedido', titulo: `Pedido nuevo de ${p.cliente}`, detalle: p.entrega ? `Para el ${d}/${mm}/${a}` : 'Sin fecha de entrega', ruta: `/pedidos/${pedidoId}` });
+  await avisar(db, ids, { tipo: 'pedido', titulo: `Pedido nuevo de ${p.cliente}`, detalle: p.entrega ? `Para el ${d}/${mm}/${a}` : 'Sin fecha de entrega', ruta: `/pedidos/${p.numero}` });
 }
 
 export async function ventasRoutes(app: FastifyInstance): Promise<void> {
@@ -185,6 +186,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>('/ventas/:id', async (req) => {
     await requerir(db, req, 'ventas', 1);
+    req.params.id = await idPorNumero(db, 'ventas', req.params.id);
     const v = await db('ventas as v').join('clientes as c', 'c.id', 'v.cliente_id').join('usuarios as u', 'u.id', 'v.usuario_id').leftJoin('usuarios as ua', 'ua.id', 'v.anulado_por')
       .where('v.id', uuidOk(req.params.id) ?? null)
       .first('v.id', 'v.numero', 'v.fecha', 'v.con_factura as conFactura', 'v.nro_factura as nroFactura', 'v.iva_bp as ivaBp', 'v.neto_centavos as neto', 'v.iva_centavos as iva',
@@ -249,6 +251,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
   });
   app.get<{ Params: { id: string } }>('/pedidos/:id', async (req) => {
     await requerir(db, req, 'ventas', 1);
+    req.params.id = await idPorNumero(db, 'pedidos', req.params.id);
     const p = await db('pedidos as p').join('clientes as c', 'c.id', 'p.cliente_id').join('usuarios as u', 'u.id', 'p.usuario_id').where('p.id', uuidOk(req.params.id) ?? null)
       .first('p.id', 'p.numero', 'p.estado', 'p.fecha_entrega as fechaEntrega', 'p.vehiculo', 'p.notas', 'p.created_at as cargadoAt', 'u.nombre as cargadoPor', 'c.id as clienteId', 'c.nombre as cliente');
     if (!p) throw new NotFoundError('No encontramos ese pedido');

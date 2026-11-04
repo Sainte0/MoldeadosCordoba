@@ -117,7 +117,7 @@ export function Produccion() {
         {isLoading ? <Cargando /> : !partes?.length ? <div className="hoja vacio"><p>No hay partes cargados en estas fechas.</p></div> : (
           <div className="hoja filas">
             {partes.map((p) => (
-              <Link key={p.id} to={`/produccion/${p.id}`} className={`fila${p.anuladoAt ? ' anulada' : ''}`}>
+              <Link key={p.id} to={`/produccion/${p.numero}`} className={`fila${p.anuladoAt ? ' anulada' : ''}`}>
                 <div className="con-muestra">
                   <Muestra color={p.colorHex} />
                   <div><div className="principal">{p.maquina} · {p.codigo}</div><div className="chico tenue">{verFecha(p.fecha)}, turno {LABEL_TURNO[p.turno].toLowerCase()} · Parte {nroTicket(p.numero)} · {formatMinutos(p.minutos)}</div></div>

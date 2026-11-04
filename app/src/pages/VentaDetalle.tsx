@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Ban, CheckCircle2, PenLine, Printer, Wallet } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCircle2, PenLine, Printer, Truck, Wallet } from 'lucide-react';
 import { formatIva, formatPesos, LABEL_VEHICULO, type Vehiculo } from '@moldeados/shared/base';
 import { api, apiBlobUrl, nroTicket, useSesion, verFecha, verMomento } from '../api';
+import { useUrlConNumero } from '../filtros';
 import { Firma } from '../Firma';
 import { useEmpresa } from '../datos';
 import { Muestra } from '../MapleVista';
+import { Estado } from '../Estado';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';
 
 interface Detalle {
@@ -25,6 +27,7 @@ export function VentaDetalle() {
   const qc = useQueryClient();
   const { data: empresa } = useEmpresa();
   const { data: v, isLoading, error } = useQuery({ queryKey: ['venta', id], queryFn: () => api<Detalle>(`/ventas/${id}`) });
+  useUrlConNumero('/ventas', id, v?.numero);
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -58,6 +61,20 @@ export function VentaDetalle() {
       <Link to="/ventas" className="boton fantasma no-imprimir" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Ventas</Link>
       {params.get('nuevo') && !v.anuladoAt && <div className="aviso ok no-imprimir" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Despacho confirmado: la carga quedó vendida{v.firmaId ? ' y el remito firmado' : '. Imprimí el remito para que lo firme quien retira'}.</div>}
 
+      <header className="cabeza-detalle no-imprimir">
+        <span className="ico-detalle"><Truck size={22} aria-hidden /></span>
+        <div>
+          <h1>Remito {nroTicket(v.numero)}</h1>
+          <p className="tenue">{v.cliente} · {verFecha(v.fecha)} · {maples.toLocaleString('es-AR')} maples · {formatPesos(v.total)}</p>
+        </div>
+        {v.anuladoAt ? <Estado nivel="critico">Anulado</Estado> : v.firmaId ? <Estado nivel="ok">Firmado</Estado> : <Estado nivel="atencion">Sin firmar</Estado>}
+      </header>
+      <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {!v.anuladoAt && !v.firmaId && puede('ventas', 2) && <button className="boton primario grande" onClick={() => setFirmando(true)}><PenLine size={20} aria-hidden /> Firmar en pantalla</button>}
+        <button className={`boton ${!v.anuladoAt && !v.firmaId && puede('ventas', 2) ? 'secundario' : 'primario grande'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir remito</button>
+        {!v.anuladoAt && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=cobro&id=${v.clienteId}`} className="boton secundario"><Wallet size={18} aria-hidden /> Registrar cobro</Link>}
+        {!v.anuladoAt && puede('ventas', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
+      </div>
       <article className="ticket remito">
         <div className="encabezado">
           <div>
@@ -72,7 +89,7 @@ export function VentaDetalle() {
           <dt>Cliente</dt><dd>{v.cliente}{v.clienteCuit && <span className="tenue"> · CUIT {v.clienteCuit}</span>}</dd>
           {v.clienteDireccion && <><dt>Dirección</dt><dd>{v.clienteDireccion}</dd></>}
           <dt>Retira</dt><dd>{v.retira}</dd>
-          {v.pedidoId && <><dt>Pedido</dt><dd><Link to={`/pedidos/${v.pedidoId}`}>{nroTicket(v.pedidoNumero ?? 0)}</Link></dd></>}
+          {v.pedidoId && <><dt>Pedido</dt><dd><Link to={`/pedidos/${v.pedidoNumero}`}>{nroTicket(v.pedidoNumero ?? 0)}</Link></dd></>}
           {(v.vehiculo || v.patente) && <><dt>Vehículo</dt><dd>{[v.vehiculo && LABEL_VEHICULO[v.vehiculo], v.patente].filter(Boolean).join(' · ')}</dd></>}
           <dt>Factura</dt><dd>{v.conFactura ? `Sí${v.nroFactura ? ` · ${v.nroFactura}` : ''}` : 'No'}</dd>
         </dl>
@@ -81,7 +98,7 @@ export function VentaDetalle() {
           <tbody>
             {v.items.map((i) => (
               <tr key={i.id}>
-                <td>{i.suelto ? `${i.paquetes} sueltos` : <Link to={`/palets/${i.paletId}`}>{nroTicket(i.palet)}</Link>}</td>
+                <td>{i.suelto ? `${i.paquetes} sueltos` : <Link to={`/palets/${i.palet}`}>{nroTicket(i.palet)}</Link>}</td>
                 <td><span className="con-muestra" style={{ gap: 6 }}><Muestra color={i.colorHex} />{i.codigo}</span></td>
                 <td>{i.maples.toLocaleString('es-AR')}</td><td>{formatPesos(i.precioMaple)}</td><td>{formatPesos(i.subtotal)}</td>
               </tr>
@@ -100,12 +117,6 @@ export function VentaDetalle() {
         <p className="chico tenue">Despachado por {v.cargadoPor}, {verMomento(v.cargadaAt)}</p>
       </article>
 
-      <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <button className="boton primario grande" onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir remito</button>
-        {!v.anuladoAt && !v.firmaId && puede('ventas', 2) && <button className="boton secundario" onClick={() => setFirmando(true)}><PenLine size={18} aria-hidden /> Firmar en pantalla</button>}
-        {!v.anuladoAt && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=cobro&id=${v.clienteId}`} className="boton secundario"><Wallet size={18} aria-hidden /> Registrar cobro</Link>}
-        {!v.anuladoAt && puede('ventas', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
-      </div>
 
       {firmando && (
         <Dialogo titulo="Firma de quien retira" onCerrar={() => setFirmando(false)}>

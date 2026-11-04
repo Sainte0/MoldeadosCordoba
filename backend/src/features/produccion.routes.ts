@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { anularSchema, empleadoSchema, empresaSchema, maquinaSchema, paletSchema, parteSchema, serviceSchema, varianteSchema, type Rol } from '@moldeados/shared';
 import { db } from '../db.js';
+import { idPorNumero } from '../lib/numero.js';
 import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno, sesion } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
@@ -193,6 +194,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { id: string } }>('/partes/:id', async (req) => {
     await requerir(db, req, 'produccion', 1);
+    req.params.id = await idPorNumero(db, 'partes', req.params.id);
     if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese parte');
     const p = await db('partes as p').join('variantes as v', 'v.id', 'p.variante_id').join('maquinas as m', 'm.id', 'p.maquina_id')
       .join('usuarios as u', 'u.id', 'p.usuario_id').leftJoin('usuarios as ua', 'ua.id', 'p.anulado_por').where('p.id', req.params.id)
@@ -247,6 +249,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
     const s = sesion(req);
     const u = await db('usuarios').where({ id: s.usuarioId, activo: true }).whereNull('deleted_at').first('rol');
     if (!u) throw new UnauthorizedError();
+    req.params.id = await idPorNumero(db, 'palets', req.params.id);
     if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese palet');
     const t = await trazabilidad(db, req.params.id);
     const p = (await matriz(db))[u.rol as Rol];

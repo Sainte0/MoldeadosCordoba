@@ -59,7 +59,7 @@ export function Palets() {
         {isLoading ? <Cargando /> : !palets?.length ? <div className="hoja vacio"><p>{f.q ? 'No hay palets con esa búsqueda.' : f.estado === 'listos' ? 'No hay palets listos para salir. Se arman desde "Armar palet".' : f.estado === 'vendidos' ? 'Todavía no se vendió ningún palet.' : 'Todavía no se armó ningún palet.'}</p></div> : (
           <div className="hoja filas">
             {palets.map((p) => (
-              <Link key={p.id} to={`/palets/${p.id}`} className={`fila${p.anuladoAt ? ' anulada' : ''}`}>
+              <Link key={p.id} to={`/palets/${p.numero}`} className={`fila${p.anuladoAt ? ' anulada' : ''}`}>
                 <div className="con-muestra">
                   <Muestra color={p.colorHex} />
                   <div>

@@ -51,7 +51,7 @@ export function Compras() {
           <p className="tenue chico" style={{ marginBottom: 8 }}>{data.length} en esta página · {formatPesos(total)} sin contar anuladas</p>
           <div className="hoja filas">
             {data.map((c) => (
-              <Link key={c.id} to={`/compras/${c.id}`} className={`fila${c.anuladaAt ? ' anulada' : ''}`}>
+              <Link key={c.id} to={`/compras/${c.numero}`} className={`fila${c.anuladaAt ? ' anulada' : ''}`}>
                 <div>
                   <div className="principal">{c.proveedor}</div>
                   <div className="chico tenue">{verFecha(c.fecha)} · {c.tipo === 'pesaje' ? 'Ticket' : 'Compra'} {nroTicket(c.numero)} · {c.resumen}</div>

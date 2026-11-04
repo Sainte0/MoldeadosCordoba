@@ -33,7 +33,7 @@ export function Ventas() {
           <p className="tenue chico" style={{ marginBottom: 8 }}>{vigentes.reduce((a, v) => a + v.maples, 0).toLocaleString('es-AR')} maples · {formatPesos(vigentes.reduce((a, v) => a + v.total, 0))} sin contar anuladas</p>
           <div className="hoja filas">
             {data.map((v) => (
-              <Link key={v.id} to={`/ventas/${v.id}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}>
+              <Link key={v.id} to={`/ventas/${v.numero}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}>
                 <div>
                   <div className="principal">{v.cliente}</div>
                   <div className="chico tenue">{verFecha(v.fecha)} · Remito {nroTicket(v.numero)} {v.maples > 0 ? ` · ${plural(v.palets, 'palet', 'palets')}, ${plural(v.maples, 'maple', 'maples')}` : ''}{v.retira ? ` · retiró ${v.retira}` : ''}</div>

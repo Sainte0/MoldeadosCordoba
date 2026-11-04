@@ -323,7 +323,7 @@ a.tile-link:hover { border-color: var(--linea-fuerte); }
   .ticket { border: 0; box-shadow: none; }
 }
 @media print {
-  .solo-etiqueta > :not(.etiqueta) { display: none !important; }
+  .solo-etiqueta > :not(.etiqueta):not(.etiqueta-al-pie), .etiqueta-al-pie > h3 { display: none !important; }
   .etiqueta { border: 0; max-width: none; padding: 0; }
 }
 
@@ -461,3 +461,14 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
 @keyframes toast-entra { from { opacity: 0; transform: translate(-50%, 12px); } }
 @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
 @media (max-width: 760px) { .solo-escritorio { display: none; } }
+
+/* Cabeza de las pantallas de detalle: qué es y en qué estado, sin scrollear. */
+.cabeza-detalle { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.cabeza-detalle h1 { font-size: clamp(1.5rem, 4vw, 2rem); }
+.cabeza-detalle p { margin-top: 4px; }
+@media (max-width: 520px) { .cabeza-detalle { grid-template-columns: auto 1fr; } .cabeza-detalle > :nth-child(3) { grid-column: 1 / -1; justify-self: start; } }
+.etiqueta-al-pie { display: grid; gap: 12px; }
+.etiqueta-al-pie .etiqueta { max-width: 360px; }
+.fila-buscar { display: flex; gap: 6px; align-items: center; }
+.fila-buscar .abrir-buscador { flex: 1; min-width: 0; }
+.ico-detalle { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: var(--accion-suave); color: var(--accion); }

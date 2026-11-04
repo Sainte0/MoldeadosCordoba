@@ -83,5 +83,11 @@ describe('importar planillas (moldeados_test)', () => {
     expect(lista.filter((p) => p.ventaId)).toEqual([expect.objectContaining({ cliente: 'Granja Test' })]);
     const listos = await app.inject({ method: 'GET', url: '/api/palets?estado=listos', headers: { authorization: `Bearer ${token}` } });
     expect(listos.json().data).toHaveLength(1);
+    // La dirección del palet usa el número (/palets/12); el id largo de las etiquetas viejas sigue andando.
+    const { id, numero } = listos.json().data[0] as { id: string; numero: number };
+    const ver = (x: string) => app.inject({ method: 'GET', url: `/api/palets/${x}`, headers: { authorization: `Bearer ${token}` } }).then((q) => ({ status: q.statusCode, id: q.json().data?.id }));
+    expect(await ver(String(numero))).toEqual({ status: 200, id });
+    expect(await ver(id)).toEqual({ status: 200, id });
+    expect((await ver('999999')).status).toBe(404);
   });
 });

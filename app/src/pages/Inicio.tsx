@@ -88,7 +88,7 @@ export function Inicio() {
           <section className="hoja">
             <div className="fila"><div><h3>Compras y pesajes de hoy</h3>{validas.length > 0 && <p className="chico tenue">{plural(validas.length, 'carga', 'cargas')}</p>}</div>{validas.length > 0 && <span className="cifra">{formatPesos(validas.reduce((a, c) => a + c.total, 0))}</span>}</div>
             {validas.length === 0 ? <p className="tenue" style={{ padding: '0 18px 18px' }}>Todavía no se cargó nada hoy.</p> : validas.map((c) => (
-              <Link to={`/compras/${c.id}`} className="fila" key={c.id}>
+              <Link to={`/compras/${c.numero}`} className="fila" key={c.id}>
                 <div><div className="principal">{c.proveedor}</div><div className="chico tenue">{c.resumen}</div></div>
                 <span className="cifra">{formatPesos(c.total)}</span>
               </Link>

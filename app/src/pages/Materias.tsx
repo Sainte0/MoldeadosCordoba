@@ -97,7 +97,7 @@ function FichaMateria({ m, onCerrar, onEditar }: { m: MateriaPrima; onCerrar: ()
         {movs?.map((mv) => (
           <div className="fila" key={mv.id}>
             <div>
-              <div className="principal">{MOTIVO[mv.motivo] ?? mv.motivo}{mv.compraId && <> · <Link to={`/compras/${mv.compraId}`}>{nroTicket(mv.compraNumero ?? 0)}</Link></>}</div>
+              <div className="principal">{MOTIVO[mv.motivo] ?? mv.motivo}{mv.compraId && <> · <Link to={`/compras/${mv.compraNumero}`}>{nroTicket(mv.compraNumero ?? 0)}</Link></>}</div>
               <div className="chico tenue">{verMomento(mv.fecha)} · {mv.usuario}{mv.nota ? ` · ${mv.nota}` : ''}</div>
             </div>
             <span className="cifra" style={{ color: mv.cantidad < 0 ? 'var(--peligro)' : 'var(--accion)' }}>{mv.cantidad > 0 ? '+' : ''}{formatCantidad(mv.cantidad, m.unidad)}</span>

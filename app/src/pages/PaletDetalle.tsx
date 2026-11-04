@@ -3,11 +3,13 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import QRCode from 'qrcode';
 import { ArrowLeft, Ban, CheckCircle2, Printer, Truck } from 'lucide-react';
-import { COLOR_CARTON, formatCantidad, LABEL_TAMANO, LABEL_TURNO, LABEL_VEHICULO, type Turno, type Unidad, type Vehiculo } from '@moldeados/shared/base';
+import { COLOR_CARTON, formatCantidad, LABEL_TURNO, LABEL_VEHICULO, type Turno, type Unidad, type Vehiculo } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
+import { useUrlConNumero } from '../filtros';
 import { useEmpresa } from '../datos';
-import { MapleVista } from '../MapleVista';
+import { MapleVista, Muestra } from '../MapleVista';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';
+import { Estado } from '../Estado';
 
 interface Traza {
   id: string; numero: number; ancho: number; largo: number; alto: number; paquetes: number; vehiculo: Vehiculo | null; destino: string | null; notas: string | null;
@@ -27,16 +29,17 @@ export function PaletDetalle() {
   const qc = useQueryClient();
   const { data: empresa } = useEmpresa();
   const { data: p, isLoading, error } = useQuery({ queryKey: ['palet', id], queryFn: () => api<Traza>(`/palets/${id}`) });
+  useUrlConNumero('/palets', id, p?.numero);
   const [qr, setQr] = useState('');
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id) return;
+    if (!p) return;
     // El QR lleva a esta misma página: con el celular se escanea y se ve la trazabilidad (pide entrar si hace falta).
-    QRCode.toString(`${window.location.origin}/palets/${id}`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' }).then(setQr).catch(() => setQr(''));
-  }, [id]);
+    QRCode.toString(`${window.location.origin}/palets/${p.numero}`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' }).then(setQr).catch(() => setQr(''));
+  }, [p?.numero]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <Cargando />;
   if (!p) return <Aviso>{error instanceof Error ? error.message : 'No encontramos ese palet'}</Aviso>;
@@ -53,61 +56,73 @@ export function PaletDetalle() {
     }
   };
 
+  const vendido = !!p.venta;
+  const recien = !!params.get('nuevo') && !p.anuladoAt;
+  const maples = p.paquetes * p.maplesPorPaquete;
+
+  const etiqueta = (
+    <article className="etiqueta" aria-label="Etiqueta del palet">
+      <div className="franja" style={{ background: p.colorHex ?? COLOR_CARTON }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+        <div>
+          <div className="codigo">{p.codigo}</div>
+          <div>{p.variante}</div>
+        </div>
+        <img src="/logo.webp" width={44} height={44} alt={empresa?.razonSocial ?? ''} style={{ borderRadius: 8 }} />
+      </div>
+      {qr && <div className="qr" dangerouslySetInnerHTML={{ __html: qr }} />}
+      <div className="datos">
+        <div>Palet<b>{nroTicket(p.numero)}</b></div>
+        <div>Paquetes<b>{p.paquetes} × {p.maplesPorPaquete}</b></div>
+        <div>Maples<b>{maples.toLocaleString('es-AR')}</b></div>
+        <div>Armado<b>{p.ancho}×{p.largo}×{p.alto}</b></div>
+        {fechas.length > 0 && <div>Producido<b>{verFecha(fechas[0]!)}{fechas.length > 1 && fechas[0] !== fechas[fechas.length - 1] ? ` al ${verFecha(fechas[fechas.length - 1]!)}` : ''}</b></div>}
+        {p.destino && <div>Para<b>{p.destino}</b></div>}
+      </div>
+      {empresa && <div className="chico">{empresa.razonSocial} · {[empresa.direccion, empresa.telefono].filter(Boolean).join(' · ')}</div>}
+    </article>
+  );
+
+  // Orden por uso: qué palet es y en qué estado (lo que se busca al escanearlo), qué se puede hacer, de dónde salió,
+  // y la etiqueta al final. Recién armado es al revés: lo primero es imprimir la etiqueta.
   return (
-    <div className="columna solo-etiqueta" style={{ display: 'grid', gap: 20 }}>
+    <div className="columna solo-etiqueta detalle-palet" style={{ display: 'grid', gap: 20 }}>
       {/* Tamaño de hoja solo para esta página: el ticket y el remito imprimen en A4. */}
       <style>{'@media print { @page { size: 100mm 150mm; margin: 4mm; } }'}</style>
       <Link to="/palets" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Stock y palets</Link>
-      {params.get('nuevo') && !p.anuladoAt && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Palet armado. Imprimí la etiqueta y pegala en el film.</div>}
-      {p.anuladoAt && <Aviso>Palet anulado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
+      {recien && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Palet armado. Imprimí la etiqueta y pegala en el film.</div>}
+      {p.anuladoAt && <Aviso>Palet desarmado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
 
-      <article className="etiqueta" aria-label="Etiqueta del palet">
-        <div className="franja" style={{ background: p.colorHex ?? COLOR_CARTON }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
-          <div>
-            <div className="codigo">{p.codigo}</div>
-            <div>{p.variante}</div>
-          </div>
-          <img src="/logo.webp" width={44} height={44} alt={empresa?.razonSocial ?? ''} style={{ borderRadius: 8 }} />
+      <header className="cabeza-detalle">
+        <Muestra color={p.colorHex} grande />
+        <div>
+          <h1>Palet {nroTicket(p.numero)}</h1>
+          <p className="tenue">{p.codigo} · {p.variante} · {maples.toLocaleString('es-AR')} maples ({p.paquetes} paq. × {p.maplesPorPaquete})</p>
         </div>
-        {qr && <div className="qr" dangerouslySetInnerHTML={{ __html: qr }} />}
-        <div className="datos">
-          <div>Palet<b>{nroTicket(p.numero)}</b></div>
-          <div>Paquetes<b>{p.paquetes} × {p.maplesPorPaquete}</b></div>
-          <div>Maples<b>{(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')}</b></div>
-          <div>Armado<b>{p.ancho}×{p.largo}×{p.alto}</b></div>
-          {fechas.length > 0 && <div>Producido<b>{verFecha(fechas[0]!)}{fechas.length > 1 && fechas[0] !== fechas[fechas.length - 1] ? ` al ${verFecha(fechas[fechas.length - 1]!)}` : ''}</b></div>}
-          {p.destino && <div>Para<b>{p.destino}</b></div>}
-        </div>
-        {empresa && <div className="chico">{empresa.razonSocial} · {[empresa.direccion, empresa.telefono].filter(Boolean).join(' · ')}</div>}
-      </article>
+        {p.anuladoAt ? <Estado nivel="critico">Desarmado</Estado> : vendido ? <span className="marca-texto">Vendido</span> : <Estado nivel="ok">Listo para salir</Estado>}
+      </header>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <button className="boton primario grande" onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir etiqueta</button>
-        {!p.anuladoAt && !p.venta && p.puedeDespachar && <Link to={`/ventas/nueva?palet=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Despachar este palet</Link>}
-        {!p.anuladoAt && !p.venta && puede('produccion', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Desarmar (anular)</button>}
+        {!p.anuladoAt && !vendido && p.puedeDespachar && !recien && <Link to={`/ventas/nueva?palet=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Despachar este palet</Link>}
+        <button className={`boton ${recien || (!vendido && !p.anuladoAt && !p.puedeDespachar) ? 'primario grande' : 'secundario'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir etiqueta</button>
+        {!p.anuladoAt && !vendido && puede('produccion', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Desarmar</button>}
       </div>
+
+      {recien && <><MapleVista color={p.colorHex} alto={160} />{etiqueta}</>}
 
       {p.venta && (
         <section className="hoja relleno" style={{ display: 'grid', gap: 8 }}>
           <h3>Vendido</h3>
           <p>A <b>{p.venta.cliente}</b> el {verFecha(p.venta.fecha)}. Lo retiró {p.venta.retira}{p.venta.vehiculo ? ` en ${LABEL_VEHICULO[p.venta.vehiculo].toLowerCase()}` : ''}{p.venta.patente ? ` (${p.venta.patente})` : ''}.</p>
-          {puede('ventas') && <Link to={`/ventas/${p.venta.id}`}>Ver remito {nroTicket(p.venta.numero)}</Link>}
+          {puede('ventas') && <Link to={`/ventas/${p.venta.numero}`}>Ver remito {nroTicket(p.venta.numero)}</Link>}
         </section>
       )}
-      <MapleVista color={p.colorHex} alto={180} />
-      <dl className="resumen hoja relleno">
-        <dt>Maple</dt><dd>{p.variante} ({LABEL_TAMANO[p.tamano].toLowerCase()})</dd>
-        {p.vehiculo && <><dt>Vehículo</dt><dd>{LABEL_VEHICULO[p.vehiculo]}</dd></>}
-        <dt>Armado por</dt><dd>{p.armadoPor}, {verMomento(p.armadoAt)}</dd>
-        {p.notas && <><dt>Notas</dt><dd>{p.notas}</dd></>}
-      </dl>
 
       {p.lotes && (
         <section className="hoja">
           <div className="fila"><h3>De qué producción salió</h3></div>
           {p.lotes.map((l) => (
-            <Link key={l.id} to={`/produccion/${l.id}`} className="fila">
+            <Link key={l.id} to={`/produccion/${l.numero}`} className="fila">
               <div><div className="principal">{verFecha(l.fecha)}, turno {LABEL_TURNO[l.turno].toLowerCase()} · {l.maquina}</div><div className="chico tenue">Parte {nroTicket(l.numero)} · {l.personal}</div></div>
               <span className="cifra">{l.paquetes} paq.</span>
             </Link>
@@ -123,12 +138,26 @@ export function PaletDetalle() {
               <div>
                 <div className="principal">{o.nombre}: {formatCantidad(o.real, o.unidad)}</div>
                 {o.compras.map((c) => (
-                  <div key={c.id} className="chico"><Link to={`/compras/${c.id}`}>{c.tipo === 'pesaje' ? 'Ticket' : 'Compra'} {nroTicket(c.numero)}</Link> · {c.proveedor} · {verFecha(c.fecha)} · {formatCantidad(c.cantidad, o.unidad)}</div>
+                  <div key={c.id} className="chico"><Link to={`/compras/${c.numero}`}>{c.tipo === 'pesaje' ? 'Ticket' : 'Compra'} {nroTicket(c.numero)}</Link> · {c.proveedor} · {verFecha(c.fecha)} · {formatCantidad(c.cantidad, o.unidad)}</div>
                 ))}
                 {!o.compras.length && <div className="chico tenue">No hay compras cargadas de esta materia prima antes de la producción.</div>}
               </div>
             </div>
           ))}
+        </section>
+      )}
+
+      <dl className="resumen hoja relleno">
+        <dt>Armado por</dt><dd>{p.armadoPor}, {verMomento(p.armadoAt)}</dd>
+        <dt>Medidas</dt><dd>{p.ancho} × {p.largo} paquetes, {p.alto} de alto{p.vehiculo ? ` · para ${LABEL_VEHICULO[p.vehiculo].toLowerCase()}` : ''}</dd>
+        {p.destino && <><dt>Para</dt><dd>{p.destino}</dd></>}
+        {p.notas && <><dt>Notas</dt><dd>{p.notas}</dd></>}
+      </dl>
+
+      {!recien && (
+        <section className="etiqueta-al-pie">
+          <h3>Etiqueta</h3>
+          {etiqueta}
         </section>
       )}
 

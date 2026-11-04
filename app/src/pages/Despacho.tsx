@@ -77,12 +77,14 @@ export function Despacho() {
   }, [preciosCliente]);
 
   const leido = async (texto: string) => {
-    const id = idDePalet(texto);
-    if (!id) return setLectura({ ok: false, texto: 'Ese código no es una etiqueta de palet.' });
-    if (elegidos.includes(id)) return setLectura({ ok: true, texto: 'Ese palet ya está en la carga.' });
+    const leidoId = idDePalet(texto);
+    if (!leidoId) return setLectura({ ok: false, texto: 'Ese código no es una etiqueta de palet.' });
+    const es = (x: PaletDisponible) => x.id === leidoId || String(x.numero) === leidoId;
     let lista = disponibles ?? [];
-    if (!lista.some((p) => p.id === id)) lista = (await refetch()).data ?? []; // armado recién en otro equipo
-    const p = lista.find((x) => x.id === id);
+    if (!lista.some(es)) lista = (await refetch()).data ?? []; // armado recién en otro equipo
+    const p = lista.find(es);
+    const id = p?.id ?? leidoId;
+    if (elegidos.includes(id)) return setLectura({ ok: true, texto: 'Ese palet ya está en la carga.' });
     if (!p) {
       // No está disponible: decir por qué.
       const info = await api<{ numero: number; anuladoAt: string | null; venta: { numero: number; cliente: string } | null }>(`/palets/${id}`).catch(() => null);

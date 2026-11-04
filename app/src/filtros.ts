@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 
 /**
  * Filtros de un listado guardados en la URL (?desde=…&q=…): se puede recargar, guardar el link o mandarlo por
@@ -32,3 +32,15 @@ export function useDemorado<T>(valor: T, ms = 300): T {
 
 /** Sin acentos ni mayúsculas, para buscar como escribe la gente. */
 export const normalizar = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/**
+ * Pantallas de detalle: la dirección muestra el número que se ve en papel (/palets/12). Si se entró con el id largo
+ * (enlace viejo, QR ya pegado), se reemplaza por el número sin sumar un paso al "Atrás".
+ */
+export function useUrlConNumero(base: string, param: string | undefined, numero: number | undefined): void {
+  const ir = useNavigate();
+  const { search } = useLocation();
+  useEffect(() => {
+    if (numero !== undefined && param && param !== String(numero)) ir(`${base}/${numero}${search}`, { replace: true });
+  }, [base, param, numero]); // eslint-disable-line react-hooks/exhaustive-deps
+}

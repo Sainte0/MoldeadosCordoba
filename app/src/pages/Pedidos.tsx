@@ -5,7 +5,7 @@ import { ArrowLeft, Ban, CheckCircle2, Plus, RotateCcw, Trash2, Truck } from 'lu
 import { LABEL_VEHICULO, PALET_DEFAULT, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
 import { useStockMaples, type Cliente } from '../datos';
-import { useDemorado, useFiltros } from '../filtros';
+import { useDemorado, useFiltros, useUrlConNumero } from '../filtros';
 import { Muestra } from '../MapleVista';
 import { Asistente, Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
 import { ElegirCliente } from './ElegirCliente';
@@ -41,7 +41,7 @@ export function Pedidos() {
       {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{f.estado === 'abierto' ? 'No hay pedidos por entregar.' : 'No hay pedidos con estos filtros.'}</p></div> : (
         <div className="hoja filas">
           {data.map((p) => (
-            <Link key={p.id} to={`/pedidos/${p.id}`} className="fila">
+            <Link key={p.id} to={`/pedidos/${p.numero}`} className="fila">
               <div>
                 <div className="principal">{p.cliente} <span className="tenue" style={{ fontWeight: 400 }}>· Pedido {nroTicket(p.numero)}</span></div>
                 <div className="chico tenue">{p.resumen}{p.vehiculo ? ` · ${LABEL_VEHICULO[p.vehiculo]}` : ''}</div>
@@ -159,6 +159,7 @@ export function PedidoDetalleVista() {
   const { puede } = useSesion();
   const qc = useQueryClient();
   const { data: p, isLoading } = useQuery({ queryKey: ['pedido', id], queryFn: () => api<PedidoDetalle>(`/pedidos/${id}`) });
+  useUrlConNumero('/pedidos', id, p?.numero);
   const [cancelando, setCancelando] = useState(false);
   const [motivo, setMotivo] = useState('');
   if (isLoading || !p) return <Cargando />;
@@ -188,7 +189,7 @@ export function PedidoDetalleVista() {
       {p.ventas.length > 0 && (
         <section className="hoja">
           <div className="fila"><h3>Despachos</h3></div>
-          {p.ventas.map((v) => <Link key={v.id} to={`/ventas/${v.id}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}><span>Remito {nroTicket(v.numero)} · {verFecha(v.fecha)}{v.retira ? ` · retiró ${v.retira}` : ''}</span><span className="chico tenue">Ver</span></Link>)}
+          {p.ventas.map((v) => <Link key={v.id} to={`/ventas/${v.numero}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}><span>Remito {nroTicket(v.numero)} · {verFecha(v.fecha)}{v.retira ? ` · retiró ${v.retira}` : ''}</span><span className="chico tenue">Ver</span></Link>)}
         </section>
       )}
       <p className="chico tenue">Cargado por {p.cargadoPor}</p>

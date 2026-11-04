@@ -76,6 +76,7 @@ export function Escaner({ onCodigo, mensaje }: { onCodigo: (texto: string) => vo
 }
 
 /** El QR de la etiqueta lleva la dirección del palet; de ahí sale su identificador. */
+/** Del texto del QR, el palet: el número (etiquetas nuevas, /palets/12) o el id largo (etiquetas viejas). */
 export function idDePalet(texto: string): string | null {
-  return /\/palets\/([0-9a-f-]{36})/i.exec(texto)?.[1] ?? (/^[0-9a-f-]{36}$/i.test(texto) ? texto : null);
+  return /\/palets\/([0-9a-f-]{36}|\d{1,12})(?:[?#/]|$)/i.exec(texto.trim())?.[1] ?? (/^[0-9a-f-]{36}$/i.test(texto.trim()) ? texto.trim() : null);
 }

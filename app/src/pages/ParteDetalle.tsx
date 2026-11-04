@@ -4,7 +4,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Ban, CheckCircle2, Layers } from 'lucide-react';
 import { formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, type Turno, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
-import { MapleVista } from '../MapleVista';
+import { useUrlConNumero } from '../filtros';
+import { MapleVista, Muestra } from '../MapleVista';
+import { Estado } from '../Estado';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';
 
 interface Detalle {
@@ -20,6 +22,7 @@ export function ParteDetalle() {
   const { puede } = useSesion();
   const qc = useQueryClient();
   const { data: p, isLoading, error } = useQuery({ queryKey: ['parte', id], queryFn: () => api<Detalle>(`/partes/${id}`) });
+  useUrlConNumero('/produccion', id, p?.numero);
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -39,18 +42,28 @@ export function ParteDetalle() {
     }
   };
 
+  const rinde = esperado ? Math.round((p.paquetes / esperado) * 100) : null;
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
       <Link to="/produccion" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Producción</Link>
       {params.get('nuevo') && !p.anuladoAt && (
         <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Parte guardado. Los paquetes ya están en stock y la materia prima descontada.</div>
       )}
-      <MapleVista color={p.colorHex} alto={200} />
-      <header>
-        <h1>{p.codigo}, {p.paquetes} paquetes</h1>
-        <p className="tenue" style={{ marginTop: 6 }}>Parte {nroTicket(p.numero)} · {p.maquina} · {verFecha(p.fecha)}, turno {LABEL_TURNO[p.turno].toLowerCase()}</p>
+      {/* El maple 3D solo como confirmación al guardar; al consultar un parte, primero los datos. */}
+      {params.get('nuevo') && !p.anuladoAt && <MapleVista color={p.colorHex} alto={180} />}
+      <header className="cabeza-detalle">
+        <Muestra color={p.colorHex} grande />
+        <div>
+          <h1>Parte {nroTicket(p.numero)}</h1>
+          <p className="tenue">{p.codigo} · {p.paquetes} paquetes · {p.maquina} · {verFecha(p.fecha)}, turno {LABEL_TURNO[p.turno].toLowerCase()}</p>
+        </div>
+        {p.anuladoAt ? <Estado nivel="critico">Anulado</Estado> : rinde === null ? null : <Estado nivel={rinde >= 95 ? 'ok' : rinde >= 80 ? 'atencion' : 'critico'}>Rinde {rinde} %</Estado>}
       </header>
       {p.anuladoAt && <Aviso>Anulado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {!p.anuladoAt && puede('produccion', 2) && <Link to="/palets/nuevo" className="boton primario grande"><Layers size={20} aria-hidden /> Armar palet</Link>}
+        {!p.anuladoAt && puede('produccion', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
+      </div>
 
       <dl className="resumen hoja relleno">
         <dt>Maple</dt><dd>{p.variante}</dd>
@@ -58,7 +71,7 @@ export function ParteDetalle() {
         <dt>Personal</dt><dd>{p.personal.join(', ')}</dd>
         <dt>Tiempo</dt><dd>{formatMinutos(p.minutos)} · {p.pulpeadas} pulpeadas</dd>
         <dt>Maples</dt><dd className="cifra">{(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')}</dd>
-        {esperado !== null && <><dt>Rendimiento</dt><dd>{esperado ? Math.round((p.paquetes / esperado) * 100) : 0} % (se esperaban {esperado} paquetes)</dd></>}
+        {esperado !== null && <><dt>Rendimiento</dt><dd>{rinde ?? 0} % (se esperaban {esperado} paquetes)</dd></>}
         {p.notas && <><dt>Notas</dt><dd>{p.notas}</dd></>}
       </dl>
 
@@ -77,15 +90,11 @@ export function ParteDetalle() {
       {p.palets.length > 0 && (
         <section className="hoja">
           <div className="fila"><h3>En palets</h3></div>
-          {p.palets.map((pa) => <Link key={pa.id} to={`/palets/${pa.id}`} className="fila"><span>Palet {nroTicket(pa.numero)}</span><span className="cifra">{pa.paquetes} paq.</span></Link>)}
+          {p.palets.map((pa) => <Link key={pa.id} to={`/palets/${pa.numero}`} className="fila"><span>Palet {nroTicket(pa.numero)}</span><span className="cifra">{pa.paquetes} paq.</span></Link>)}
         </section>
       )}
       <p className="chico tenue">Cargado por {p.cargadoPor}, {verMomento(p.cargadoAt)}</p>
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        {!p.anuladoAt && puede('produccion', 2) && <Link to="/palets/nuevo" className="boton primario grande"><Layers size={20} aria-hidden /> Armar palet</Link>}
-        {!p.anuladoAt && puede('produccion', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
-      </div>
 
       {anulando && (
         <Dialogo titulo={`Anular parte ${nroTicket(p.numero)}`} onCerrar={() => setAnulando(false)}>

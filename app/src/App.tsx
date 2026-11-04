@@ -127,11 +127,14 @@ export function App() {
       <nav className={`lateral${abierto ? ' abierto' : ''}`} aria-label="Secciones">
         <div className="cabeza-lateral">
           <Marca />
-          {abierto ? <button className="boton icono" onClick={() => setAbierto(false)} aria-label="Cerrar menú"><X size={24} /></button> : <span className="solo-escritorio"><Campana alAbrir={() => setAsoma(null)} /></span>}
+          {abierto && <button className="boton icono" onClick={() => setAbierto(false)} aria-label="Cerrar menú"><X size={24} /></button>}
         </div>
-        <button className="abrir-buscador" onClick={() => { setAbierto(false); setBuscando(true); }}>
-          <Search size={18} aria-hidden /> <span>Buscar</span> <kbd>{/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd>
-        </button>
+        <div className="fila-buscar">
+          <button className="abrir-buscador" onClick={() => { setAbierto(false); setBuscando(true); }}>
+            <Search size={18} aria-hidden /> <span>Buscar</span> <kbd>{/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd>
+          </button>
+          {!abierto && <span className="solo-escritorio"><Campana alAbrir={() => setAsoma(null)} /></span>}
+        </div>
         <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' activo' : ''}`}><Home size={20} aria-hidden /> Inicio</NavLink>
         {[...AREAS, AJUSTES].map((area) => {
           const visibles = area.pestanas.filter((x) => p(x.modulo));

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Ban, CheckCircle2, Printer } from 'lucide-react';
+import { ArrowLeft, Ban, CheckCircle2, Printer, Scale, ShoppingCart } from 'lucide-react';
 import { formatCantidad, formatIva, formatPesos, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
+import { useUrlConNumero } from '../filtros';
 import { Aviso, Campo, Cargando, Dialogo } from '../ui';
 import { useEmpresa } from '../datos';
+import { Estado } from '../Estado';
 
 interface Detalle {
   id: string; numero: number; tipo: 'pesaje' | 'compra'; fecha: string; conFactura: boolean; nroFactura: string | null; ivaBp: number;
@@ -22,6 +24,7 @@ export function CompraDetalle() {
   const qc = useQueryClient();
   const { data: empresa } = useEmpresa();
   const { data: c, isLoading, error } = useQuery({ queryKey: ['compra', id], queryFn: () => api<Detalle>(`/compras/${id}`) });
+  useUrlConNumero('/compras', id, c?.numero);
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -50,6 +53,18 @@ export function CompraDetalle() {
         </div>
       )}
 
+      <header className="cabeza-detalle no-imprimir">
+        <span className="ico-detalle">{pesaje ? <Scale size={22} aria-hidden /> : <ShoppingCart size={22} aria-hidden />}</span>
+        <div>
+          <h1>{pesaje ? 'Ticket' : 'Compra'} {nroTicket(c.numero)}</h1>
+          <p className="tenue">{c.proveedor} · {verFecha(c.fecha)} · {formatPesos(c.total)} · {c.conFactura ? 'con factura' : 'sin factura'}</p>
+        </div>
+        {c.anuladaAt && <Estado nivel="critico">Anulada</Estado>}
+      </header>
+      <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <button className="boton secundario" onClick={() => window.print()}><Printer size={18} aria-hidden /> Imprimir</button>
+        {!c.anuladaAt && puede('compras', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
+      </div>
       <article className="ticket">
         <div className="encabezado">
           <div>
@@ -89,10 +104,6 @@ export function CompraDetalle() {
         <p className="chico tenue">Cargado por {c.cargadoPor}, {verMomento(c.cargadaAt)}</p>
       </article>
 
-      <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        <button className="boton primario grande" onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir</button>
-        {!c.anuladaAt && puede('compras', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
-      </div>
 
       {anulando && (
         <Dialogo titulo={`Anular ${pesaje ? 'ticket' : 'compra'} ${nroTicket(c.numero)}`} onCerrar={() => setAnulando(false)}>
