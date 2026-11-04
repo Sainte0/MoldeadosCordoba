@@ -131,7 +131,7 @@ export function NuevoParte() {
               <div>
                 <div className="principal">{c.nombre}</div>
                 <div className="chico tenue">Receta: {formatCantidad(c.teorico, c.unidad)} · en stock {formatCantidad(c.stock, c.unidad)}</div>
-                {c.real !== null && c.real > c.stock && <span className="marca-texto alerta">Queda stock negativo: revisá que esté cargada la compra</span>}
+                {c.real !== null && c.real > c.stock && <span className="marca-texto alerta">No alcanza lo que hay cargado: avisá a administración que falta cargar una compra</span>}
               </div>
               <EntradaNumero unidad={c.unidad === 'kg' ? 'kg' : 'L'} placeholder={formatCantidad(c.teorico, c.unidad).split(' ')[0]} aria-label={`${c.nombre} usado`}
                 value={correcciones[c.materiaPrimaId] ?? ''} onChange={(e) => setCorrecciones({ ...correcciones, [c.materiaPrimaId]: e.target.value })} />

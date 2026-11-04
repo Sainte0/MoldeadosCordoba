@@ -5,8 +5,7 @@ import { buscar } from '../lib/buscar.js';
 import { matriz, requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError } from '../lib/errors.js';
-import { materiasPorAcabarse, recompra } from './avisos.service.js';
-import { maquinasConService } from './produccion.service.js';
+import { atencion, recompra } from './avisos.service.js';
 import { actualizarEstadoPedido, despachadoDelPedido, guardarFirma, guardarPedido, anularMovimiento, anularVenta, cambiarEstadoCheque, crearMovimiento, crearVenta, cuentaCorriente, preciosParaCliente, saldos } from './ventas.service.js';
 
 // Clientes, precios, ventas (despacho de palets), bancos, cobros/pagos y cuentas corrientes.
@@ -91,14 +90,13 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
   // ---------- Avisos ----------
   // Lo que el sistema detecta solo. Cada sección sale según los permisos de quien mira.
   app.get('/avisos', async (req) => {
-    const s = await requerirAlguno(db, req, [['ventas', 1], ['materias', 1], ['compras', 1], ['produccion', 1]]);
+    const s = await requerirAlguno(db, req, [['ventas', 1], ['materias', 1], ['compras', 1], ['produccion', 1], ['cuentas', 1], ['productos', 1]]);
     const m = (await matriz(db))[s.rol];
     const hoy = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
     return {
       data: {
         clientes: m.ventas >= 1 ? await recompra(db, hoy) : null,
-        materias: m.materias >= 1 || m.compras >= 1 ? await materiasPorAcabarse(db) : null,
-        maquinas: m.produccion >= 1 || m.productos >= 1 ? (await maquinasConService(db)).filter((x) => x.activo && x.leTocaService) : null,
+        atencion: await atencion(db, hoy, (mod) => (m as Record<string, number>)[mod]! >= 1),
       },
     };
   });

@@ -63,7 +63,7 @@ export async function armarResumen(q: Knex, fecha: string): Promise<{ titulo: st
   const avisos: string[] = [];
   for (const c of cheques as { tipo: string; monto: number; dia: string; quien: string }[]) avisos.push(`Cheque ${c.tipo === 'pago' ? 'nuestro a cubrir' : 'para depositar'} ${c.dia === fecha ? 'hoy' : `el ${c.dia.slice(8, 10)}/${c.dia.slice(5, 7)}`}: ${formatPesos(n(c.monto))} (${c.quien})`);
   for (const p of pedidos as { nombre: string; dia: string }[]) avisos.push(`Pedido de ${p.nombre} ${p.dia < fecha ? 'atrasado' : p.dia === fecha ? 'para hoy' : 'para mañana'}`);
-  for (const m of materias as { nombre: string; unidad: Unidad; stock: number; dias: number | null }[]) avisos.push(`${m.nombre}: quedan ${formatCantidad(m.stock, m.unidad)}${m.dias !== null ? `, alcanza ${m.dias} días` : ''}`);
+  for (const m of materias as { nombre: string; estado: { titulo: string; detalle: string } }[]) avisos.push(`${m.nombre}: ${m.estado.titulo.toLowerCase()}. ${m.estado.detalle}`);
   for (const m of maquinas.filter((x) => x.activo && x.leTocaService)) avisos.push(`${m.codigo}: le toca service (${m.horasDesdeService} h)`);
   const leToca = clientes.filter((c) => c.estado === 'le_toca').length;
   if (leToca) avisos.push(`${leToca} ${leToca === 1 ? 'cliente al que le toca' : 'clientes a los que les toca'} comprar`);

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Copy, MessageCircle } from 'lucide-react';
-import { formatCantidad, formatMinutos, formatPesos, type Unidad } from '@moldeados/shared/base';
+import { formatCantidad, formatMinutos, formatPesos, plural, type Unidad } from '@moldeados/shared/base';
 import { api, hoy, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { Muestra } from '../MapleVista';
@@ -72,25 +72,25 @@ export function Tablero() {
       {isLoading || !t ? <Cargando /> : (
         <>
           <div className="cifras">
-            <div><span className="cifra">{formatPesos(t.ventas.total)}</span><small>vendido · {t.ventas.maples.toLocaleString('es-AR')} maples en {t.ventas.cantidad} despachos · {pct(t.ventas.conFactura, t.ventas.total)} % con factura</small></div>
-            <div><span className="cifra">{formatPesos(t.compras.total)}</span><small>en compras de materia prima · {pct(t.compras.conFactura, t.compras.total)} % con factura</small></div>
+            <div><span className={`cifra ${t.resultado < 0 ? 'saldo-mas' : 'saldo-ok'}`}>{t.resultado < 0 ? '− ' : ''}{formatPesos(Math.abs(t.resultado))}</span><small>{t.resultado < 0 ? 'se gastó más de lo que se vendió' : 'quedó después de compras y gastos'}</small></div>
+            <div><span className="cifra">{formatPesos(t.ventas.total)}</span><small>vendido · {plural(t.ventas.maples, 'maple', 'maples')} en {plural(t.ventas.cantidad, 'despacho', 'despachos')}</small></div>
+            <div><span className="cifra">{formatPesos(t.compras.total)}</span><small>en compras de materia prima</small></div>
             <div><span className="cifra">{formatPesos(t.gastos.total)}</span><small>en gastos</small></div>
-            <div><span className={`cifra ${t.resultado < 0 ? 'saldo-mas' : ''}`}>{t.resultado < 0 ? '− ' : ''}{formatPesos(Math.abs(t.resultado))}</span><small>ventas menos compras y gastos</small></div>
           </div>
 
           <div className="cifras">
-            <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porCobrar)}</span><small>nos deben los clientes (hoy)</small></Link>
-            <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porPagar)}</span><small>les debemos a proveedores (hoy)</small></Link>
+            <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porCobrar)}</span><small>nos deben los clientes hoy</small></Link>
+            <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porPagar)}</span><small>les debemos a proveedores hoy</small></Link>
             <Link to="/caja" className="tile-link"><span className="cifra">{formatPesos(t.caja)}</span><small>en caja chica</small></Link>
-            <Link to="/palets" className="tile-link"><span className="cifra">{t.paletsListos.cantidad}</span><small>palets listos para salir ({t.paletsListos.paquetes} paquetes)</small></Link>
+            <Link to="/palets" className="tile-link"><span className="cifra">{t.paletsListos.cantidad ? plural(t.paletsListos.cantidad, 'palet', 'palets') : 'Ninguno'}</span><small>{t.paletsListos.cantidad ? `listos para salir · ${plural(t.paletsListos.paquetes, 'paquete', 'paquetes')}` : 'palet listo para salir'}</small></Link>
           </div>
           {t.materiasBajoMinimo > 0 && (
-            <Link to="/materia-prima" className="aviso" style={{ display: 'flex', gap: 10, alignItems: 'center', textDecoration: 'none', background: '#fbefc4', color: '#6b5310' }}>
+            <Link to="/materia-prima" className="atencion-item atencion" style={{ textDecoration: 'none' }}>
               <AlertTriangle size={20} aria-hidden /> {t.materiasBajoMinimo === 1 ? 'Una materia prima está' : `${t.materiasBajoMinimo} materias primas están`} por debajo del stock mínimo.
             </Link>
           )}
 
-          <section className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+          <section className="hoja relleno" style={{ display: 'grid', gap: 12, gridTemplateColumns: 'minmax(0, 1fr)' }}>
             <h3>Entradas y salidas {t.paso === 'week' ? 'por semana' : 'por día'}</h3>
             <GraficoIngresosEgresos serie={t.serie} paso={t.paso} />
             <p className="chico tenue">Cobrado en el período: {formatPesos(t.cobros)} · Pagado a proveedores: {formatPesos(t.pagos)}</p>

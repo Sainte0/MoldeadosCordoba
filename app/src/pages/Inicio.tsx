@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
-import { formatCantidad, formatPesos, type Modulo } from '@moldeados/shared/base';
+import { estadoStock, formatCantidad, formatPesos, ORDEN_NIVEL, type Modulo, plural } from '@moldeados/shared/base';
 import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
 import { Muestra } from '../MapleVista';
 import { TAREAS } from '../navegacion';
-import { ParaVender, PedidosProximos, PorAcabarse, ServiceMaquinas } from './Avisos';
+import { Atencion, ParaVender, PedidosProximos } from './Avisos';
+import { Estado } from '../Estado';
 
 function saludo(): string {
   const h = Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date()));
@@ -31,6 +32,9 @@ export function Inicio() {
         <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar?{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Ver el tablero</Link></>}</p>
       </header>
 
+      {/* Orden por prioridad: lo urgente, lo que hay que cargar, lo que viene, y después cómo estamos. */}
+      <Atencion />
+
       <div className="tareas">
         {TAREAS.filter((t) => puede(t.modulo, 2)).slice(0, 4).map((t, i) => (
           <Link key={t.a} to={t.a} className={`tarea${i < 2 ? '' : ' clara'}`}>
@@ -44,8 +48,6 @@ export function Inicio() {
       <div className="rejilla par">
         <PedidosProximos />
         <ParaVender limite={5} />
-        <PorAcabarse />
-        <ServiceMaquinas />
       </div>
 
       {maples && maples.some((m) => m.producido - m.vendido > 0) && (
@@ -53,8 +55,8 @@ export function Inicio() {
           <div className="fila"><h3>Maples en stock</h3><Link to="/palets" className="chico">Ver palets</Link></div>
           {maples.filter((m) => m.producido - m.vendido > 0).map((m) => (
             <div className="fila" key={m.id}>
-              <span className="con-muestra"><Muestra color={m.colorHex} /> <span className="principal">{m.codigo}</span></span>
-              <span><span className="cifra">{(m.producido - m.vendido).toLocaleString('es-AR')}</span> <span className="chico tenue">paq. en planta · {m.enPalets - m.vendido} en palets listos</span></span>
+              <span className="con-muestra"><Muestra color={m.colorHex} /> <span><span className="principal">{m.codigo}</span><br /><span className="chico tenue">{m.enPalets - m.vendido > 0 ? `${plural(m.enPalets - m.vendido, 'paquete', 'paquetes')} en palets listos` : 'Todavía sin paletizar'}</span></span></span>
+              <span className="derecha"><span className="cifra">{(m.producido - m.vendido).toLocaleString('es-AR')}</span><br /><span className="chico tenue">paquetes</span></span>
             </div>
           ))}
         </section>
@@ -67,24 +69,22 @@ export function Inicio() {
               <h3>Stock de materia prima</h3>
               {puede('materias') && <Link to="/materia-prima" className="chico">Ver todo</Link>}
             </div>
-            {materias.filter((m) => m.activo).map((m) => {
-              const bajo = m.stockMinimo > 0 && m.stock < m.stockMinimo;
-              const pct = m.stockMinimo > 0 ? Math.min(100, (m.stock / (m.stockMinimo * 2)) * 100) : m.stock > 0 ? 100 : 0;
-              return (
+            {materias.filter((m) => m.activo)
+              .map((m) => ({ m, e: estadoStock(m) }))
+              .sort((x, y) => ORDEN_NIVEL[x.e.nivel] - ORDEN_NIVEL[y.e.nivel])
+              .map(({ m, e }) => (
                 <div className="fila" key={m.id}>
-                  <span className="principal">{m.nombre}</span>
-                  <span className="cifra" style={{ color: bajo ? 'var(--peligro)' : undefined }}>{formatCantidad(m.stock, m.unidad)}</span>
-                  <div className={`nivel${bajo ? ' bajo' : ''}`} aria-hidden><i style={{ width: `${pct}%` }} /></div>
-                  {bajo && <span className="marca-texto alerta" style={{ gridColumn: '1 / -1', justifySelf: 'start' }}>Por debajo del mínimo ({formatCantidad(m.stockMinimo, m.unidad)})</span>}
+                  <div><div className="principal">{m.nombre}</div><div className="chico tenue">{m.stock < 0 ? 'Falta cargar una compra o corregir el stock.' : e.detalle}</div></div>
+                  <div className="derecha"><div className="cifra">{formatCantidad(e.stockVisible, m.unidad)}</div><Estado nivel={e.nivel}>{e.titulo}</Estado></div>
+                  <div className={`nivel ${e.nivel}`} aria-hidden><i style={{ width: `${m.dias === null ? (e.stockVisible > 0 ? 100 : 0) : Math.min(100, (m.dias / 30) * 100)}%` }} /></div>
                 </div>
-              );
-            })}
+              ))}
             {materias.length === 0 && <div className="vacio"><Package aria-hidden /><p>No hay materia prima cargada.</p></div>}
           </section>
         )}
         {puede('compras') && (
           <section className="hoja">
-            <div className="fila"><h3>Hoy</h3><span className="cifra">{formatPesos(validas.reduce((a, c) => a + c.total, 0))}</span></div>
+            <div className="fila"><div><h3>Compras y pesajes de hoy</h3>{validas.length > 0 && <p className="chico tenue">{plural(validas.length, 'carga', 'cargas')}</p>}</div>{validas.length > 0 && <span className="cifra">{formatPesos(validas.reduce((a, c) => a + c.total, 0))}</span>}</div>
             {validas.length === 0 ? <p className="tenue" style={{ padding: '0 18px 18px' }}>Todavía no se cargó nada hoy.</p> : validas.map((c) => (
               <Link to={`/compras/${c.id}`} className="fila" key={c.id}>
                 <div><div className="principal">{c.proveedor}</div><div className="chico tenue">{c.resumen}</div></div>

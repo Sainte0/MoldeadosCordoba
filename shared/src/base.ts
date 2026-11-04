@@ -198,3 +198,29 @@ export function telefonoWhatsapp(tel: string | null): string | null {
   d = d.replace(/^(\d{2,4})15(\d{6,8})$/, '$1$2'); // 351 15 xxxxxxx → 351 xxxxxxx
   return d.length === 10 ? `549${d}` : null;
 }
+
+// ---------- Niveles de urgencia (los mismos colores en toda la app) ----------
+
+/** critico = hay que actuar ya (rojo) · atencion = pronto (ámbar) · ok = bien (verde). */
+export type Nivel3 = 'critico' | 'atencion' | 'ok';
+export const ORDEN_NIVEL: Record<Nivel3, number> = { critico: 0, atencion: 1, ok: 2 };
+
+/**
+ * Estado del stock de una materia prima, en palabras. Nunca muestra un número negativo: si se usó más de lo
+ * cargado, es que falta cargar una compra (o el stock está mal) y eso es lo que se dice.
+ */
+export function estadoStock(m: { stock: number; unidad: Unidad; stockMinimo: number; dias: number | null; diasAviso: number }): { nivel: Nivel3; titulo: string; detalle: string; stockVisible: number } {
+  const visible = Math.max(0, m.stock);
+  if (m.stock < 0) return { nivel: 'critico', titulo: 'Sin stock cargado', stockVisible: 0,
+    detalle: `Se usaron ${formatCantidad(-m.stock, m.unidad)} más de lo que había cargado. Falta cargar una compra o corregir el stock.` };
+  if (m.stock === 0) return { nivel: 'critico', titulo: 'Agotado', stockVisible: 0, detalle: 'No queda nada.' };
+  const alcanza = m.dias === null ? null : m.dias < 1 ? 'menos de un día' : m.dias === 1 ? '1 día' : `${m.dias} días`;
+  if (m.dias !== null && m.dias <= 2) return { nivel: 'critico', titulo: 'Se acaba ya', stockVisible: visible, detalle: `Alcanza para ${alcanza} al ritmo de los últimos 30 días.` };
+  const bajoMinimo = m.stockMinimo > 0 && m.stock < m.stockMinimo;
+  if (bajoMinimo || (m.dias !== null && m.dias <= m.diasAviso)) return { nivel: 'atencion', titulo: 'Queda poco', stockVisible: visible,
+    detalle: alcanza ? `Alcanza para ${alcanza}.` : `Debajo del mínimo (${formatCantidad(m.stockMinimo, m.unidad)}).` };
+  return { nivel: 'ok', titulo: 'Hay stock', stockVisible: visible, detalle: alcanza ? `Alcanza para ${alcanza}.` : 'Sin consumo en los últimos 30 días.' };
+}
+
+/** "1 día" / "3 días": para no escribir nunca "1 días". */
+export const plural = (n: number, uno: string, varios: string) => `${n.toLocaleString('es-AR')} ${n === 1 ? uno : varios}`;

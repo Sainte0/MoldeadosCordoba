@@ -1,14 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, MessageCircle, PackageOpen, Wrench } from 'lucide-react';
-import { formatCantidad, formatPesos, telefonoWhatsapp, type EstadoRecompra, type Unidad } from '@moldeados/shared/base';
+import { Check, MessageCircle, OctagonAlert, TriangleAlert } from 'lucide-react';
+import { formatPesos, telefonoWhatsapp, type EstadoRecompra, type Nivel3 } from '@moldeados/shared/base';
+import { Estado } from '../Estado';
 import { api, useSesion, verFecha } from '../api';
 import { useEmpresa } from '../datos';
 
 interface ClienteAviso { id: string; nombre: string; telefono: string | null; ultimoTotal: number; ultimoMaples: number; ultimaCompra: string; compras: number; cadaDias: number | null; diasDesdeUltima: number; estado: EstadoRecompra }
-interface MateriaAviso { id: string; nombre: string; unidad: Unidad; stock: number; stockMinimo: number; dias: number | null; diasAviso: number }
-interface MaquinaAviso { id: string; codigo: string; nombre: string; horasDesdeService: number; serviceCadaHoras: number; servicePasado: boolean }
-interface Avisos { clientes: ClienteAviso[] | null; materias: MateriaAviso[] | null; maquinas: MaquinaAviso[] | null }
+interface AvisoAtencion { nivel: Nivel3; tipo: string; titulo: string; detalle: string; accion: { texto: string; ruta: string } }
+interface Avisos { clientes: ClienteAviso[] | null; atencion: AvisoAtencion[] }
 
 export const useAvisos = () => useQuery({ queryKey: ['avisos'], queryFn: () => api<Avisos>('/avisos'), staleTime: 60_000 });
 
@@ -64,44 +64,26 @@ export function ParaVender({ limite }: { limite?: number }) {
   );
 }
 
-/** Materia prima que se acaba pronto según lo que se viene usando. */
-export function PorAcabarse() {
-  const { puede } = useSesion();
+/** Lo que hay que atender, de lo más urgente (rojo) a lo que puede esperar un poco (ámbar), con su acción. */
+export function Atencion() {
   const { data } = useAvisos();
-  if (!data?.materias?.length) return null;
+  if (!data?.atencion.length) return null;
+  const rojos = data.atencion.filter((a) => a.nivel === 'critico').length;
   return (
-    <section className="hoja">
-      <div className="fila"><div><h3>Hay que comprar</h3><p className="chico tenue">Según lo que se usó en los últimos 30 días.</p></div></div>
-      {data.materias.map((m) => (
-        <div className="fila" key={m.id}>
-          <div className="con-muestra">
-            <PackageOpen size={20} aria-hidden style={{ color: 'var(--kraft)' }} />
-            <div>
-              <div className="principal">{m.nombre}</div>
-              <div className="chico tenue">Quedan {formatCantidad(m.stock, m.unidad)}{m.dias !== null ? ` · alcanza para ${m.dias === 0 ? 'menos de un día' : `${m.dias} días`}` : ' · debajo del mínimo'}</div>
+    <section aria-labelledby="titulo-atencion" style={{ display: 'grid', gap: 10 }}>
+      <h3 id="titulo-atencion">Atención {rojos > 0 && <Estado nivel="critico">{rojos} {rojos === 1 ? 'urgente' : 'urgentes'}</Estado>}</h3>
+      <div className="atencion-lista">
+        {data.atencion.map((a, i) => {
+          const I = a.nivel === 'critico' ? OctagonAlert : TriangleAlert;
+          return (
+            <div key={i} className={`atencion-item ${a.nivel}`}>
+              <I size={22} aria-hidden />
+              <div><b>{a.titulo}</b><small>{a.detalle}</small></div>
+              <Link to={a.accion.ruta} className="boton secundario">{a.accion.texto}</Link>
             </div>
-          </div>
-          {puede('compras', 2) && <Link to={m.dias !== null && m.nombre.toLowerCase().includes('cart') ? '/pesaje' : '/compras/nueva'} className="boton secundario">Cargar compra</Link>}
-        </div>
-      ))}
-    </section>
-  );
-}
-
-/** Máquinas a las que les toca (o se les pasó) el service según las horas de los partes. */
-export function ServiceMaquinas() {
-  const { data } = useAvisos();
-  if (!data?.maquinas?.length) return null;
-  return (
-    <section className="hoja">
-      <div className="fila"><div><h3>Service de máquinas</h3><p className="chico tenue">Según las horas cargadas en los partes.</p></div></div>
-      {data.maquinas.map((m) => (
-        <Link to="/maples" className="fila" key={m.id}>
-          <span className="con-muestra"><Wrench size={20} aria-hidden style={{ color: m.servicePasado ? 'var(--peligro)' : 'var(--alerta)' }} />
-            <span><span className="principal">{m.codigo}</span><br /><span className="chico tenue">{m.horasDesdeService} h de {m.serviceCadaHoras} h</span></span></span>
-          <span className={`marca-texto ${m.servicePasado ? 'peligro' : 'alerta'}`}>{m.servicePasado ? 'Vencido' : 'Le toca'}</span>
-        </Link>
-      ))}
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -112,11 +94,12 @@ export function PedidosProximos() {
   const { data } = useQuery({ queryKey: ['pedidos', 'abierto', ''], queryFn: () => api<{ id: string; numero: number; fechaEntrega: string | null; cliente: string; resumen: string; paquetes: number; despachado: number }[]>('/pedidos?estado=abierto'), enabled: puede('ventas') });
   const hoyStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
   const limite = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
-  const lista = (data ?? []).filter((p) => !p.fechaEntrega || p.fechaEntrega <= limite).slice(0, 6);
+  // Los atrasados y los de hoy ya están en Atención: acá, lo que viene.
+  const lista = (data ?? []).filter((p) => !p.fechaEntrega || (p.fechaEntrega > hoyStr && p.fechaEntrega <= limite)).slice(0, 6);
   if (!lista.length) return null;
   return (
     <section className="hoja">
-      <div className="fila"><div><h3>Pedidos para entregar</h3><p className="chico tenue">Atrasados y de los próximos 3 días.</p></div><Link to="/pedidos" className="chico">Ver todos</Link></div>
+      <div className="fila"><div><h3>Próximos pedidos</h3><p className="chico tenue">Los de los próximos 3 días.</p></div><Link to="/pedidos" className="chico">Ver todos</Link></div>
       {lista.map((p) => (
         <Link to={`/pedidos/${p.id}`} className="fila" key={p.id}>
           <div><div className="principal">{p.cliente}</div><div className="chico tenue">{p.resumen} · {p.despachado} de {p.paquetes} paq. entregados</div></div>

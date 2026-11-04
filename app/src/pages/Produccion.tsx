@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { formatCantidad, formatMinutos, formatPesos, LABEL_TURNO, type Turno, type Unidad } from '@moldeados/shared/base';
+import { formatCantidad, formatMinutos, formatPesos, LABEL_TURNO, plural, type Turno, type Unidad } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { Muestra } from '../MapleVista';
@@ -51,7 +51,7 @@ export function Produccion() {
       <div className="cifras">
         <div><span className="cifra">{tot.paquetes.toLocaleString('es-AR')}</span><small>paquetes</small></div>
         <div><span className="cifra">{tot.maples.toLocaleString('es-AR')}</span><small>maples</small></div>
-        <div><span className="cifra">{formatMinutos(tot.minutos)}</span><small>de máquina en {tot.partes} partes</small></div>
+        <div><span className="cifra">{formatMinutos(tot.minutos)}</span><small>de máquina en {plural(tot.partes, 'parte', 'partes')}</small></div>
         <div><span className="cifra">{porHora(tot.paquetes, tot.minutos)}</span><small>paquetes por hora, promedio</small></div>
       </div>
 
@@ -64,7 +64,7 @@ export function Produccion() {
               <div className="fila" key={p.maquina + p.codigo}>
                 <div className="con-muestra">
                   <Muestra color={p.colorHex} />
-                  <div><div className="principal">{p.maquina} · {p.codigo}</div><div className="chico tenue">{p.partes} partes · {formatMinutos(p.minutos)} · {porHora(p.paquetes, p.minutos)} paq./h · {p.pulpeadas} pulpeadas</div></div>
+                  <div><div className="principal">{p.maquina} · {p.codigo}</div><div className="chico tenue">{plural(p.partes, 'parte', 'partes')} · {formatMinutos(p.minutos)} · {porHora(p.paquetes, p.minutos)} paq./h · {plural(p.pulpeadas, 'pulpeada', 'pulpeadas')}</div></div>
                 </div>
                 <div className="derecha">
                   <div className="cifra">{p.paquetes.toLocaleString('es-AR')} paq.</div>
@@ -102,7 +102,7 @@ export function Produccion() {
           <div className="fila"><div><h3>Horas por persona</h3><p className="chico tenue">Las horas de máquina de los partes en que figura cada uno.</p></div><BotonExportar que="horas" desde={desde} hasta={hasta} texto="Exportar" /></div>
           {horas.filter((h) => h.minutos > 0).map((h) => (
             <div className="fila" key={h.id}>
-              <div><div className="principal">{h.nombre}</div><div className="chico tenue">{h.dias} días · {h.partes} partes · mañana {formatMinutos(h.manana)} · tarde {formatMinutos(h.tarde)}</div></div>
+              <div><div className="principal">{h.nombre}</div><div className="chico tenue">{plural(h.dias, 'día', 'días')} · {plural(h.partes, 'parte', 'partes')}{h.manana && h.tarde ? ` · mañana ${formatMinutos(h.manana)}, tarde ${formatMinutos(h.tarde)}` : h.manana ? ' · turno mañana' : ' · turno tarde'}</div></div>
               <div className="derecha"><div className="cifra">{formatMinutos(h.minutos)}</div>{h.estimado !== null && <div className="chico tenue">{formatPesos(h.estimado)} estimado</div>}</div>
             </div>
           ))}

@@ -236,6 +236,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
         })
         .modify(buscar(q, ['v.codigo', 'pa.destino', 'cl.nombre'], 'pa.numero'))
         .select('pa.suelto', 'pa.id', 'pa.numero', 'pa.paquetes', 'pa.ancho', 'pa.largo', 'pa.alto', 'pa.vehiculo', 'pa.destino', 'pa.created_at as armadoAt', 'pa.anulado_at as anuladoAt',
+          'pa.venta_id as ventaId', 've.numero as remito', 've.fecha as vendidoEl', 'cl.nombre as cliente',
           'v.codigo', 'v.nombre as variante', 'v.color_hex as colorHex', 'v.maples_por_paquete as maplesPorPaquete')
         .orderBy('pa.numero', 'desc').limit(50).offset(Math.max(0, Number(req.query.pagina) || 0) * 50),
     };

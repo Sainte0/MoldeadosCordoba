@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ScanLine } from 'lucide-react';
-import { formatPesos } from '@moldeados/shared/base';
+import { formatPesos, plural } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { BotonExportar } from './Exportar';
@@ -36,7 +36,7 @@ export function Ventas() {
               <Link key={v.id} to={`/ventas/${v.id}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}>
                 <div>
                   <div className="principal">{v.cliente}</div>
-                  <div className="chico tenue">{verFecha(v.fecha)} · Remito {nroTicket(v.numero)} · {v.palets} palets, {v.maples.toLocaleString('es-AR')} maples{v.retira ? ` · retiró ${v.retira}` : ''}</div>
+                  <div className="chico tenue">{verFecha(v.fecha)} · Remito {nroTicket(v.numero)} {v.maples > 0 ? ` · ${plural(v.palets, 'palet', 'palets')}, ${plural(v.maples, 'maple', 'maples')}` : ''}{v.retira ? ` · retiró ${v.retira}` : ''}</div>
                 </div>
                 <div className="derecha">
                   <div className="cifra">{formatPesos(v.total)}</div>

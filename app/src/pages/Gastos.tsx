@@ -2,12 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, CheckCircle2, Paperclip, Plus } from 'lucide-react';
-import { formatPesos, LABEL_MEDIO_GASTO, type MedioGasto } from '@moldeados/shared/base';
+import { formatPesos, LABEL_MEDIO_GASTO, plural, type MedioGasto } from '@moldeados/shared/base';
 import { api, apiBlobUrl, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { useCategoriasGasto } from '../datos';
 import { BotonExportar } from './Exportar';
-import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
+import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada } from '../ui';
 
 interface GastoFila { id: string; numero: number; fecha: string; descripcion: string; monto: number; medio: MedioGasto; conFactura: boolean; comprobanteId: string | null; anuladoAt: string | null; categoria: string; empleado: string | null; cargadoPor: string }
 
@@ -40,12 +40,12 @@ export function Gastos() {
           <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value })} /></label>
           <div style={{ alignSelf: 'end' }}><BotonExportar que="gastos" desde={desde} hasta={hasta} /></div>
         </div>
-        <Opciones columnas valor={categoriaId} onChange={(categoria) => setF({ categoria })} opciones={[{ valor: '', titulo: 'Todas' }, ...(categorias ?? []).map((c) => ({ valor: c.id, titulo: c.nombre }))]} />
+        <Campo etiqueta="Categoría"><select value={categoriaId} onChange={(e) => setF({ categoria: e.target.value })}><option value="">Todas</option>{(categorias ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Campo>
       </div>
 
       {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>No hay gastos con estos filtros.</p></div> : (
         <>
-          <div className="lectura"><span>{vigentes.length} gastos</span><span className="cifra">{formatPesos(vigentes.reduce((a, g) => a + g.monto, 0))}</span></div>
+          <div className="lectura"><span>{plural(vigentes.length, 'gasto', 'gastos')}</span><span className="cifra">{formatPesos(vigentes.reduce((a, g) => a + g.monto, 0))}</span></div>
           <div className="hoja filas">
             {data.map((g) => (
               <button key={g.id} className={`fila${g.anuladoAt ? ' anulada' : ''}`} onClick={() => setViendo(g.id)}>

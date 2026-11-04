@@ -14,7 +14,7 @@ describe('importar planillas (moldeados_test)', () => {
 
   beforeEach(async () => {
     app ??= await buildApp();
-    await db.raw('truncate saldos_iniciales, caja_movimientos, gastos, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, parte_consumos, parte_empleados, partes, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
+    await db.raw('truncate solicitudes_idempotentes, pedido_items, pedidos, servicios_maquina, saldos_iniciales, caja_movimientos, gastos, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, receta_items, variantes, maquinas, parte_consumos, parte_empleados, partes, movimientos_stock, compra_items, compras, materias_primas, proveedores, auditoria, usuarios cascade');
     const [u] = await db('usuarios').insert({ nombre: 'T', usuario: 't', password_hash: 'x', rol: 'dueno' }).returning('id');
     token = firmar({ usuarioId: u.id, rol: 'dueno' });
   });
@@ -69,5 +69,19 @@ describe('importar planillas (moldeados_test)', () => {
     expect(b.json().data.id).toBe(a.json().data.id);
     expect(b.headers['idempotent-replay']).toBe('true');
     expect(await db('clientes').count('* as n').first()).toMatchObject({ n: 1 });
+  });
+
+  it('el listado de palets dice cuáles están vendidos (no los muestra como listos para salir)', async () => {
+    const u = (await db('usuarios').first('id')).id;
+    const [{ id: maq }] = await db('maquinas').insert({ codigo: 'MPX', nombre: 'X' }).returning('id');
+    const [{ id: v }] = await db('variantes').insert({ codigo: 'TST', nombre: 'Test', tamano: 'grande', maquina_id: maq }).returning('id');
+    const [{ id: c }] = await db('clientes').insert({ nombre: 'Granja Test' }).returning('id');
+    const [{ id: venta }] = await db('ventas').insert({ cliente_id: c, fecha: '2026-11-04', con_factura: false, neto_centavos: 1, iva_centavos: 0, total_centavos: 1, usuario_id: u }).returning('id');
+    await db('palets').insert([{ variante_id: v, ancho: 1, largo: 1, alto: 1, paquetes: 1, usuario_id: u, venta_id: venta }, { variante_id: v, ancho: 1, largo: 1, alto: 1, paquetes: 1, usuario_id: u }]);
+    const r = await app.inject({ method: 'GET', url: '/api/palets', headers: { authorization: `Bearer ${token}` } });
+    const lista = r.json().data as { ventaId: string | null; cliente: string | null }[];
+    expect(lista.filter((p) => p.ventaId)).toEqual([expect.objectContaining({ cliente: 'Granja Test' })]);
+    const listos = await app.inject({ method: 'GET', url: '/api/palets?estado=listos', headers: { authorization: `Bearer ${token}` } });
+    expect(listos.json().data).toHaveLength(1);
   });
 });

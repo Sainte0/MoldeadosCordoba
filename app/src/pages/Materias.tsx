@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
-import { aMili, formatCantidad, LABEL_TIPO_MP, TIPOS_MP, type TipoMp, type Unidad } from '@moldeados/shared/base';
+import { Plus, Scale, ShoppingCart } from 'lucide-react';
+import { aMili, estadoStock, formatCantidad, LABEL_TIPO_MP, ORDEN_NIVEL, TIPOS_MP, type TipoMp, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verMomento } from '../api';
 import { useMaterias, type MateriaPrima } from '../datos';
+import { Estado } from '../Estado';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';
 
 const MOTIVO: Record<string, string> = { compra: 'Compra', anulacion_compra: 'Compra anulada', ajuste: 'Corrección', consumo: 'Producción', anulacion_consumo: 'Producción anulada' };
@@ -18,25 +19,28 @@ export function Materias() {
   return (
     <div className="ancho">
       <Cabecera titulo="Materia prima" bajada="Lo que hay en planta. Sube con cada compra y baja con la producción.">
-        {puede('materias', 3) && <button className="boton primario" onClick={() => setEditando({ tipo: 'tinta', unidad: 'l', activo: true, stockMinimo: 0 })}><Plus size={18} aria-hidden /> Agregar</button>}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {puede('compras', 2) && <Link to="/compras/nueva" className="boton primario"><ShoppingCart size={18} aria-hidden /> Cargar compra</Link>}
+          {puede('compras', 2) && <Link to="/pesaje" className="boton secundario"><Scale size={18} aria-hidden /> Pesaje de cartón</Link>}
+          {puede('materias', 3) && <button className="boton fantasma" onClick={() => setEditando({ tipo: 'tinta', unidad: 'l', activo: true, stockMinimo: 0 })}><Plus size={18} aria-hidden /> Nueva materia prima</button>}
+        </div>
       </Cabecera>
       {isLoading ? <Cargando /> : (
         <div className="hoja filas">
-          {data?.map((m) => {
-            const bajo = m.stockMinimo > 0 && m.stock < m.stockMinimo;
-            return (
+          {data?.map((m) => ({ m, e: estadoStock(m) }))
+            .sort((x, y) => Number(!x.m.activo) - Number(!y.m.activo) || ORDEN_NIVEL[x.e.nivel] - ORDEN_NIVEL[y.e.nivel] || x.m.nombre.localeCompare(y.m.nombre))
+            .map(({ m, e }) => (
               <button key={m.id} className="fila" onClick={() => setViendo(m)} style={{ opacity: m.activo ? 1 : 0.55 }}>
                 <div>
                   <div className="principal">{m.nombre}</div>
-                  <div className="chico tenue">{LABEL_TIPO_MP[m.tipo]}{m.color ? ` · ${m.color}` : ''}{!m.activo ? ' · Desactivada' : ''}</div>
+                  <div className="chico tenue">{m.activo ? e.detalle : 'Desactivada'}</div>
                 </div>
                 <div className="derecha">
-                  <div className="cifra" style={{ fontSize: '1.3rem', color: bajo ? 'var(--peligro)' : undefined }}>{formatCantidad(m.stock, m.unidad)}</div>
-                  {m.dias !== null ? <span className={`chico ${m.dias <= m.diasAviso ? 'saldo-mas' : 'tenue'}`}>alcanza {m.dias} días</span> : bajo && <span className="marca-texto alerta">Bajo mínimo</span>}
+                  <div className="cifra" style={{ fontSize: '1.3rem' }}>{formatCantidad(e.stockVisible, m.unidad)}</div>
+                  {m.activo && <Estado nivel={e.nivel}>{e.titulo}</Estado>}
                 </div>
               </button>
-            );
-          })}
+            ))}
         </div>
       )}
       {viendo && <FichaMateria m={viendo} onCerrar={() => setViendo(null)} onEditar={() => { setEditando(viendo); setViendo(null); }} />}
@@ -72,7 +76,8 @@ function FichaMateria({ m, onCerrar, onEditar }: { m: MateriaPrima; onCerrar: ()
 
   return (
     <Dialogo titulo={m.nombre} onCerrar={onCerrar}>
-      <div className="lectura"><span>En stock</span><span className="cifra">{formatCantidad(m.stock, m.unidad)}</span></div>
+      <div className="lectura"><span>En stock</span><span className="cifra">{formatCantidad(Math.max(0, m.stock), m.unidad)}</span></div>
+      {estadoStock(m).nivel !== 'ok' && <div className={`atencion-item ${estadoStock(m).nivel}`} style={{ gridTemplateColumns: '1fr' }}><div><b>{estadoStock(m).titulo}</b><small>{estadoStock(m).detalle}</small></div></div>}
       {puede('materias', 3) && (
         <details className="hoja relleno">
           <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Corregir stock</summary>

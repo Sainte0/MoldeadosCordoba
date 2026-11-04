@@ -1,5 +1,5 @@
 import type { Knex } from 'knex';
-import { ritmoCliente } from '@moldeados/shared';
+import { estadoStock, ORDEN_NIVEL, ritmoCliente, type Nivel3, type Unidad } from '@moldeados/shared';
 
 // Avisos que el sistema saca solo de lo que ya se carga: a quién llamar para vender, qué materia prima se está
 // por acabar y cuánto cuesta hacer cada maple. Nada de esto se carga a mano.
@@ -47,9 +47,13 @@ export async function materiasPorAcabarse(db: Knex) {
     .select('materias_primas.id', 'nombre', 'unidad', 'stock_minimo as stockMinimo', 'dias_aviso as diasAviso',
       db.raw('(select coalesce(sum(m.cantidad), 0) from movimientos_stock m where m.materia_prima_id = materias_primas.id)::bigint as stock')));
   return filas
-    .map((m) => ({ ...m, stock: Number(m.stock), dias: diasDeStock(Number(m.stock), Number(m.consumo30d)) }))
-    .filter((m) => (m.dias !== null && m.dias <= m.diasAviso) || (m.stockMinimo > 0 && m.stock < m.stockMinimo))
-    .sort((a, b) => (a.dias ?? 999) - (b.dias ?? 999));
+    .map((m) => {
+      const stock = Number(m.stock);
+      const dias = diasDeStock(stock, Number(m.consumo30d));
+      return { ...m, stock, dias, estado: estadoStock({ stock, unidad: m.unidad as Unidad, stockMinimo: Number(m.stockMinimo), dias, diasAviso: m.diasAviso }) };
+    })
+    .filter((m) => m.estado.nivel !== 'ok')
+    .sort((a, b) => ORDEN_NIVEL[a.estado.nivel] - ORDEN_NIVEL[b.estado.nivel] || (a.dias ?? 999) - (b.dias ?? 999));
 }
 
 /**
@@ -104,4 +108,52 @@ export async function costosYMargen(db: Knex, desde: string, hasta: string) {
     porCodigo: porCodigo.map((c) => ({ ...c, costoMaple: c.costoMaple === null ? null : Number(c.costoMaple), precioMaple: c.precioMaple === null ? null : Number(c.precioMaple), maplesVendidos: Number(c.maplesVendidos) })),
     porCliente: [...porCliente.values()].map((f) => ({ ...f, margen: f.neto - f.costo })).sort((a, b) => b.margen - a.margen),
   };
+}
+
+export interface Aviso { nivel: Nivel3; tipo: string; titulo: string; detalle: string; accion: { texto: string; ruta: string } }
+
+/**
+ * Todo lo que hay que atender, en un solo listado y por urgencia (lo rojo primero). Cada aviso dice qué pasa y
+ * lleva a dónde se resuelve. Solo lo que el rol puede ver o hacer.
+ */
+export async function atencion(db: Knex, hoy: string, puede: (modulo: string) => boolean): Promise<Aviso[]> {
+  const avisos: Aviso[] = [];
+  if (puede('materias') || puede('compras')) {
+    for (const m of await materiasPorAcabarse(db)) {
+      const falta = m.stock < 0;
+      avisos.push({ nivel: m.estado.nivel, tipo: 'materia', titulo: `${m.nombre}: ${m.estado.titulo.toLowerCase()}`, detalle: m.estado.detalle,
+        accion: falta ? { texto: 'Revisar stock', ruta: '/materia-prima' } : { texto: 'Cargar compra', ruta: /cart/i.test(m.nombre) ? '/pesaje' : '/compras/nueva' } });
+    }
+  }
+  if (puede('ventas')) {
+    const pedidos = await db('pedidos as p').join('clientes as c', 'c.id', 'p.cliente_id').where('p.estado', 'abierto').where('p.fecha_entrega', '<=', hoy)
+      .select('p.id', 'p.numero', 'p.fecha_entrega as dia', 'c.nombre').orderBy('p.fecha_entrega');
+    for (const p of pedidos) {
+      const atrasado = p.dia < hoy;
+      avisos.push({ nivel: atrasado ? 'critico' : 'atencion', tipo: 'pedido', titulo: `Pedido de ${p.nombre} ${atrasado ? 'atrasado' : 'para hoy'}`,
+        detalle: atrasado ? `Era para el ${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)} y todavía no se entregó todo.` : 'Todavía no se despachó completo.',
+        accion: { texto: 'Despachar', ruta: `/ventas/nueva?pedido=${p.id}` } });
+    }
+  }
+  if (puede('cuentas')) {
+    const cheques = await db('movimientos_dinero as m').leftJoin('clientes as c', 'c.id', 'm.cliente_id').leftJoin('proveedores as p', 'p.id', 'm.proveedor_id')
+      .whereNull('m.anulado_at').whereIn('m.medio', ['cheque', 'echeq'])
+      .where((w) => w.where((x) => x.where('m.tipo', 'pago').whereBetween('m.cheque_fecha_cobro', [hoy, db.raw("?::date + 1", [hoy])]))
+        .orWhere((x) => x.where('m.cheque_estado', 'cartera').where('m.cheque_fecha_cobro', '<=', hoy)))
+      .select('m.tipo', 'm.monto_centavos as monto', 'm.cheque_fecha_cobro as dia', db.raw('coalesce(c.nombre, p.nombre) as quien'));
+    for (const c of cheques) {
+      const pesos = (Number(c.monto) / 100).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' });
+      avisos.push(c.tipo === 'pago'
+        ? { nivel: c.dia === hoy ? 'critico' : 'atencion', tipo: 'cheque', titulo: `Se debita un cheque nuestro ${c.dia === hoy ? 'hoy' : 'mañana'}`, detalle: `${pesos} a ${c.quien}. Que haya fondos en la cuenta.`, accion: { texto: 'Ver cheques', ruta: '/cuentas' } }
+        : { nivel: 'atencion', tipo: 'cheque', titulo: `Cheque de ${c.quien} para depositar`, detalle: `${pesos}, ya se puede cobrar.`, accion: { texto: 'Ver cheques', ruta: '/cuentas' } });
+    }
+  }
+  if (puede('produccion') || puede('productos')) {
+    const { maquinasConService } = await import('./produccion.service.js');
+    for (const m of (await maquinasConService(db)).filter((x) => x.activo && x.leTocaService)) {
+      avisos.push({ nivel: m.servicePasado ? 'critico' : 'atencion', tipo: 'service', titulo: `${m.codigo}: ${m.servicePasado ? 'service vencido' : 'le toca service'}`,
+        detalle: `${m.horasDesdeService} h trabajadas de ${m.serviceCadaHoras} h.`, accion: { texto: 'Registrar service', ruta: '/maples' } });
+    }
+  }
+  return avisos.sort((a, b) => ORDEN_NIVEL[a.nivel] - ORDEN_NIVEL[b.nivel]);
 }

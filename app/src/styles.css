@@ -87,7 +87,7 @@ p { margin: 0; max-width: 68ch; }
 .nav-pie button { background: none; border: 0; color: var(--tinta-2); padding: 8px 0 0; cursor: pointer; display: flex; gap: 8px; align-items: center; }
 .nav-pie button:hover { color: var(--accion); }
 .columna { max-width: 720px; }
-.ancho { max-width: 1120px; }
+.ancho { max-width: 1120px; min-width: 0; grid-template-columns: minmax(0, 1fr); }
 .cabecera { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .cabecera p { margin-top: 6px; }
 .barra-movil { display: none; }
@@ -206,8 +206,8 @@ button.fila:last-child { border-bottom: 0; }
 
 .rejilla { display: grid; gap: 16px; }
 @media (min-width: 1000px) {
-  .rejilla.par { grid-template-columns: 1fr 1fr; align-items: start; }
-  .rejilla.dos { grid-template-columns: 1.4fr 1fr; align-items: start; }
+  .rejilla.par { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .rejilla.dos { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); align-items: start; }
 }
 
 /* Tareas de la portada: lo que se carga en planta, grande y a mano. */
@@ -287,6 +287,7 @@ a.tile-link:hover { border-color: var(--linea-fuerte); }
 .desvio-mas { color: var(--peligro); }
 .desvio-menos { color: var(--ok); }
 .saldo-mas { color: var(--peligro); }
+.saldo-ok { color: var(--ok); }
 .saldo-cero { color: var(--tinta-3); }
 .colores { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .colores button { width: 40px; height: 40px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 1px var(--linea-fuerte); cursor: pointer; }
@@ -401,3 +402,22 @@ kbd { font: 600 0.72rem/1 inherit; padding: 3px 6px; border-radius: 6px; border:
 .cola-fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; border-radius: var(--radio-s); background: var(--alerta-claro); color: var(--alerta); font-weight: 500; }
 .cola-fila span { flex: 1; min-width: 200px; }
 .cola-error { background: var(--peligro-claro); color: var(--peligro); }
+
+/* Niveles de urgencia: rojo = actuar ya, ámbar = pronto, verde = bien. Siempre con ícono y texto. */
+:root { --critico: #b42318; --critico-fondo: #fef3f2; --atencion-c: #b54708; --atencion-fondo: #fffaeb; --ok-c: #067647; --ok-fondo: #ecfdf3; }
+.estado { display: inline-flex; align-items: center; gap: 5px; font-size: 0.78rem; font-weight: 650; padding: 3px 9px 3px 7px; border-radius: 999px; white-space: nowrap; }
+.estado-critico { background: var(--critico-fondo); color: var(--critico); }
+.estado-atencion { background: var(--atencion-fondo); color: var(--atencion-c); }
+.estado-ok { background: var(--ok-fondo); color: var(--ok-c); }
+.atencion-lista { display: grid; gap: 8px; }
+.atencion-item { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: var(--radio-m); border: 1px solid var(--linea); background: var(--superficie); }
+.atencion-item.critico { background: var(--critico-fondo); border-color: #fecdca; }
+.atencion-item.atencion { background: var(--atencion-fondo); border-color: #fedf89; }
+.atencion-item > svg { flex: none; }
+.atencion-item.critico > svg { color: var(--critico); }
+.atencion-item.atencion > svg { color: var(--atencion-c); }
+.atencion-item b { display: block; }
+.atencion-item small { color: var(--tinta-2); }
+@media (max-width: 560px) { .atencion-item { grid-template-columns: auto 1fr; } .atencion-item .boton { grid-column: 1 / -1; } }
+.nivel.critico i { background: var(--critico); }
+.nivel.atencion i { background: #f79009; }
