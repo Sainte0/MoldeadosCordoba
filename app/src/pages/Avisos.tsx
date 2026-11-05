@@ -22,14 +22,13 @@ function mensaje(c: ClienteAviso, empresa: string): string {
 }
 
 /** Clientes para llamar: a los que les toca comprar y los que dejaron. WhatsApp con el mensaje armado. */
-export function ParaVender({ limite }: { limite?: number }) {
+export function ParaVender() {
   const { puede } = useSesion();
   const qc = useQueryClient();
   const { data } = useAvisos();
   const { data: empresa } = useEmpresa();
   const lista = data?.clientes ?? [];
   if (!data?.clientes || !lista.length) return null;
-  const visibles = limite ? lista.slice(0, limite) : lista;
 
   const contactado = async (id: string) => {
     await api(`/clientes/${id}/contactado`, { method: 'POST' });
@@ -40,9 +39,8 @@ export function ParaVender({ limite }: { limite?: number }) {
     <section className="hoja">
       <div className="fila">
         <div><h3>Para vender</h3><p className="chico tenue">Según cada cuánto compra cada cliente.</p></div>
-        {limite && lista.length > limite && <Link to="/clientes" className="chico">Ver los {lista.length}</Link>}
       </div>
-      {visibles.map((c) => {
+      {lista.map((c) => {
         const wa = telefonoWhatsapp(c.telefono);
         return (
           <div className="fila aviso-cliente" key={c.id}>

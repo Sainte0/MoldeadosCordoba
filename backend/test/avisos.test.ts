@@ -28,7 +28,7 @@ describe('teléfono para WhatsApp', () => {
 
 import { afterAll } from 'vitest';
 import { db } from '../src/db.js';
-import { costosYMargen, materiasPorAcabarse } from '../src/features/avisos.service.js';
+import { costosYMargen, materiasPorAcabarse, revisarRecompra } from '../src/features/avisos.service.js';
 
 describe('costo por maple y días de stock (moldeados_test)', () => {
   afterAll(() => db.destroy());
@@ -64,5 +64,20 @@ describe('costo por maple y días de stock (moldeados_test)', () => {
     await db('materias_primas').where({ id: carton }).update({ dias_aviso: 40 });
     const pocas = await materiasPorAcabarse(db);
     expect(pocas.find((m: { id: string }) => m.id === carton)).toMatchObject({ dias: 36 });
+  });
+
+  it('avisa una vez por última compra a quien vende, no a planta', async () => {
+    await db.raw('truncate notificaciones, venta_items, ventas, clientes, auditoria, usuarios cascade');
+    const [{ id: u }] = await db('usuarios').insert({ nombre: 'Dueño', usuario: 'd', password_hash: 'x', rol: 'dueno' }).returning('id');
+    const [{ id: op }] = await db('usuarios').insert({ nombre: 'Op', usuario: 'o', password_hash: 'x', rol: 'operario' }).returning('id');
+    const [{ id: cli }] = await db('clientes').insert({ nombre: 'Avícola Santa Rosa' }).returning('id');
+    const venta = (dias: number) => db('ventas').insert({ cliente_id: cli, fecha: db.raw(`current_date - ${dias}`), con_factura: false, neto_centavos: 1, iva_centavos: 0, total_centavos: 1, usuario_id: u });
+    // Compra cada 8 días; la última hace 7 → le toca.
+    for (const d of [23, 15, 7]) await venta(d);
+    expect(await revisarRecompra(db)).toBe(1);
+    expect(await revisarRecompra(db)).toBe(0); // al otro minuto (o día) no repite
+    const n = await db('notificaciones').select('usuario_id', 'titulo');
+    expect(n).toEqual([{ usuario_id: u, titulo: 'A Avícola Santa Rosa le toca comprar' }]);
+    expect(n.some((x) => x.usuario_id === op)).toBe(false);
   });
 });

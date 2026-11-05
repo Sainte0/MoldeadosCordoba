@@ -6,7 +6,7 @@ import { api, hoy, useSesion } from '../api';
 import { useMaterias, useStockMaples, type CompraFila } from '../datos';
 import { Muestra } from '../MapleVista';
 import { TAREAS } from '../navegacion';
-import { ParaVender, PedidosProximos } from './Avisos';
+import { PedidosProximos } from './Avisos';
 import { Dialogo } from '../ui';
 import { Estado } from '../Estado';
 import { AgendaHoy } from './AgendaHoy';
@@ -51,10 +51,8 @@ export function Inicio() {
         ))}
       </div>
 
-      <div className="rejilla par">
-        <PedidosProximos />
-        <ParaVender limite={5} />
-      </div>
+      {/* "Para vender" llega como notificación (campana) y la lista completa está en Ventas › Clientes. */}
+      <PedidosProximos />
 
       {maples && maples.some((m) => m.producido - m.vendido > 0) && (
         <section className="hoja">

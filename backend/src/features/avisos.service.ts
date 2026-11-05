@@ -1,5 +1,7 @@
 import type { Knex } from 'knex';
-import { CLIENTE_SIN_NOMBRE, estadoStock, formatPesos, ORDEN_NIVEL, ritmoCliente, type Nivel3, type Unidad } from '@moldeados/shared';
+import { CLIENTE_SIN_NOMBRE, estadoStock, formatPesos, ORDEN_NIVEL, ritmoCliente, type Nivel3, type Rol, type Unidad } from '@moldeados/shared';
+import { matriz } from '../lib/auth.js';
+import { avisar } from './avisos-vivo.js';
 
 // Avisos que el sistema saca solo de lo que ya se carga: a quién llamar para vender, qué materia prima se está
 // por acabar y cuánto cuesta hacer cada maple. Nada de esto se carga a mano.
@@ -21,6 +23,31 @@ export async function recompra(db: Knex, hoy: string) {
     // Primero a los que les toca (venta casi segura); después los que dejaron, los más recientes primero.
     .sort((a, b) => (a.estado === b.estado ? (a.estado === 'le_toca' ? b.diasDesdeUltima - a.diasDesdeUltima : a.diasDesdeUltima - b.diasDesdeUltima) : a.estado === 'le_toca' ? -1 : 1))
     .map(({ contactado: _, ...f }) => f);
+}
+
+/**
+ * "Para vender" como notificación: a quien vende le avisa cuando a un cliente le toca comprar (o dejó), una sola vez
+ * por cada última compra del cliente (si vuelve a comprar, el próximo ciclo avisa de nuevo). Lo llama el timer.
+ */
+export async function revisarRecompra(k: Knex): Promise<number> {
+  const { rows: [t] } = await k.raw<{ rows: { hoy: string }[] }>("select to_char(now(), 'YYYY-MM-DD') as hoy");
+  const clientes = await recompra(k, t!.hoy);
+  if (!clientes.length) return 0;
+  const m = await matriz(k);
+  const roles = (Object.keys(m) as Rol[]).filter((r) => m[r].ventas >= 2);
+  const usuarios = (await k('usuarios').where({ activo: true }).whereNull('deleted_at').whereIn('rol', roles).select('id')).map((u) => u.id as string);
+  if (!usuarios.length) return 0;
+  let n = 0;
+  for (const c of clientes) {
+    const titulo = c.estado === 'le_toca' ? `A ${c.nombre} le toca comprar` : `${c.nombre} dejó de comprar`;
+    // ponytail: la marca de "ya avisado" es el propio aviso (mismo título desde su última compra); sin tabla aparte.
+    const ya = await k('notificaciones').where({ tipo: 'recompra', titulo }).where('created_at', '>=', c.ultimaCompra).first('id');
+    if (ya) continue;
+    const ritmo = c.cadaDias ? `Compra cada ${c.cadaDias} días` : 'Compró una vez';
+    await avisar(k, usuarios, { tipo: 'recompra', titulo, detalle: `${ritmo} · última hace ${c.diasDesdeUltima} días: ${c.ultimoMaples ? `${c.ultimoMaples.toLocaleString('es-AR')} maples, ` : ''}${formatPesos(c.ultimoTotal)}`, ruta: '/clientes' });
+    n++;
+  }
+  return n;
 }
 
 /**
