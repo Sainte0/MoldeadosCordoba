@@ -31,9 +31,11 @@ export function Inicio() {
   return (
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       {aviso && <div className="aviso ok" role="status">{aviso}</div>}
-      <header>
+      {/* Franja de marca: el saludo, el día y el turno sobre la grilla de alvéolos de un maple. */}
+      <header className="inicio-cabeza">
+        <p className="inicio-dia">{diaYTurno()}</p>
         <h1>{saludo()}, {sesion?.usuario.nombre.split(' ')[0]}</h1>
-        <p className="tenue" style={{ marginTop: 6 }}>¿Qué vas a cargar? · <Link to="/agenda" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><CalendarClock size={16} aria-hidden /> Agenda</Link>{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Tablero</Link></>}</p>
+        <p className="inicio-links">¿Qué vas a cargar? · <Link to="/agenda" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><CalendarClock size={16} aria-hidden /> Agenda</Link>{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Tablero</Link></>}</p>
       </header>
 
       <Bienvenida />
@@ -118,4 +120,13 @@ function Bienvenida() {
       </div>
     </Dialogo>
   );
+}
+
+/** "Miércoles 11 de noviembre · turno mañana" (hora argentina; la planta trabaja en dos turnos). */
+function diaYTurno(): string {
+  const z = { timeZone: 'America/Argentina/Buenos_Aires' } as const;
+  const ahora = new Date();
+  const dia = new Intl.DateTimeFormat('es-AR', { ...z, weekday: 'long', day: 'numeric', month: 'long' }).format(ahora).replace(',', '');
+  const h = Number(new Intl.DateTimeFormat('es-AR', { ...z, hour: 'numeric', hour12: false }).format(ahora));
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} · turno ${h < 14 ? 'mañana' : 'tarde'}`;
 }

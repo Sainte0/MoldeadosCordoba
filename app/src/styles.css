@@ -660,3 +660,70 @@ h2 { font-size: 1.2rem; }
 .asistente-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .asistente-cabeza .alveolos { min-width: 0; }
 .salir-asistente { flex: none; min-height: 40px; }
+
+/* ---------- Identidad en el iPhone ----------
+   Una sola idea fuerte: el navy de la marca enmarca la app (barra de arriba, franja del inicio y barra de abajo,
+   continuando la barra de estado del iPhone, que ya es navy) y la grilla de alvéolos de un maple como textura.
+   Escanear es un alvéolo amarillo (el color de "señal" de la marca), no el círculo azul de cualquier app.
+   El resto queda sobrio: superficies blancas, una sola acción azul. */
+@media (max-width: 760px) {
+  .barra-movil { background: var(--tinta); border-bottom: 0; backdrop-filter: none; -webkit-backdrop-filter: none; color: #fff; }
+  .barra-movil .marca b { color: #fff; font-variation-settings: 'wdth' 72; font-weight: 800; font-size: 1.12rem; letter-spacing: -0.01em; }
+  .barra-movil .marca img { border-radius: 8px; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.14); }
+  .barra-movil .reloj b { color: #fff; }
+  .barra-movil .boton.icono { color: #dfe5ef; background: none; }
+  .barra-movil .globito { box-shadow: 0 0 0 2px var(--tinta); }
+
+  h1 { font-variation-settings: 'wdth' 74; font-weight: 800; letter-spacing: -0.012em; font-size: 1.7rem; line-height: 1.05; }
+  .asistente h1 { font-size: 1.85rem; }
+
+  /* Inicio: la franja navy sigue a la barra de arriba; las tareas se apoyan sobre su borde. */
+  .inicio-cabeza {
+    margin: -14px -16px 0;
+    padding: 18px 16px 58px; color: #fff; position: relative; overflow: hidden;
+    background:
+      radial-gradient(circle, rgba(168, 123, 69, 0.26) 0 8px, transparent 9px) 0 0 / 26px 26px,
+      linear-gradient(var(--tinta), var(--tinta));
+  }
+  .inicio-cabeza::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, var(--tinta) 38%, rgba(14, 26, 48, 0.55) 70%, rgba(14, 26, 48, 0.2)); }
+  .inicio-cabeza > * { position: relative; z-index: 1; }
+  .inicio-cabeza h1 { color: #fff; font-size: 2rem; }
+  .inicio-dia { margin: 0 0 4px; font-size: 0.82rem; font-weight: 600; color: var(--senal); }
+  .inicio-links { margin: 8px 0 0; color: #b9c4d6; font-size: 0.92rem; }
+  .inicio-links a { color: #fff; }
+  /* Lo que sigue a la franja (las tareas o la agenda de hoy) se apoya sobre su borde. */
+  .inicio-cabeza + * { margin-top: -46px; position: relative; z-index: 2; }
+  .tarea { border: 0; box-shadow: 0 1px 2px rgba(14, 26, 48, 0.06), 0 6px 16px -10px rgba(14, 26, 48, 0.35); }
+
+  /* Barra de abajo en navy: activo = pastilla clara detrás del ícono (nunca rayas). */
+  .barra-inferior { background: var(--tinta); border-top: 0; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .barra-inferior > a, .barra-inferior > button { color: #8f9bb0; }
+  .barra-inferior > a > svg, .barra-inferior > button > svg { padding: 3px 14px; box-sizing: content-box; border-radius: 999px; transition: background 0.15s; }
+  .barra-inferior > .activo { color: #fff; }
+  .barra-inferior > .activo > svg { background: rgba(255, 255, 255, 0.12); }
+  .barra-inferior .central .disco {
+    width: 50px; height: 50px; margin-top: -22px; border-radius: 17px; background: var(--senal); color: var(--tinta);
+    box-shadow: 0 0 0 4px var(--tinta), 0 6px 14px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* Inicio en iPad y computadora: la misma franja de marca, como bloque redondeado (al lado está el menú). */
+.inicio-cabeza {
+  padding: 22px 24px 64px; color: #fff; position: relative; overflow: hidden; border-radius: var(--radio-m);
+  background:
+    radial-gradient(circle, rgba(168, 123, 69, 0.26) 0 9px, transparent 10px) 0 0 / 30px 30px,
+    linear-gradient(var(--tinta), var(--tinta));
+}
+.inicio-cabeza::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, var(--tinta) 40%, rgba(14, 26, 48, 0.55) 72%, rgba(14, 26, 48, 0.2)); }
+.inicio-cabeza > * { position: relative; z-index: 1; }
+.inicio-cabeza h1 { color: #fff; font-variation-settings: 'wdth' 74; font-weight: 800; font-size: clamp(2rem, 3.4vw, 2.5rem); letter-spacing: -0.012em; }
+.inicio-cabeza + * { margin-top: -48px; position: relative; z-index: 2; margin-left: 12px; margin-right: 12px; }
+.inicio-dia { margin: 0 0 4px; font-size: 0.85rem; font-weight: 600; color: var(--senal); }
+.inicio-links { margin: 8px 0 0; color: #b9c4d6; }
+.inicio-links a { color: #fff; }
+h1 { font-variation-settings: 'wdth' 76; font-weight: 800; letter-spacing: -0.012em; }
+@media (max-width: 760px) {
+  .inicio-cabeza { border-radius: 0; padding: 18px 16px 58px; }
+  .inicio-cabeza h1 { font-size: 2rem; }
+  .inicio-cabeza + * { margin-left: 0; margin-right: 0; }
+}
