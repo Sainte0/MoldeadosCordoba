@@ -61,7 +61,9 @@ const Exportar = lazy(() => import('./pages/Exportar').then((m) => ({ default: m
 function Marca() {
   return (
     <div className="marca">
-      <img src="/logo.webp" width={34} height={33} alt="" style={{ borderRadius: 7 }} />
+      <img className="marca-logo" src="/logo.webp" width={34} height={33} alt="" style={{ borderRadius: 7 }} />
+      {/* Sobre el navy del iPhone, la marca en blanco sin el cuadrado (redibujada del logo de su web). */}
+      <img className="marca-trazo" src="/marca-blanca.svg" width={38} height={31} alt="" />
       <div><b>Moldeados Córdoba</b><small>Planta y administración</small></div>
     </div>
   );

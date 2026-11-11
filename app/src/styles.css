@@ -727,3 +727,28 @@ h1 { font-variation-settings: 'wdth' 76; font-weight: 800; letter-spacing: -0.01
   .inicio-cabeza h1 { font-size: 2rem; }
   .inicio-cabeza + * { margin-left: 0; margin-right: 0; }
 }
+
+/* ---------- Ajustes de la marca (revisión con captura del iPhone) ---------- */
+.marca-trazo { display: none; }
+/* Accesos de la franja: pastillas translúcidas, no links subrayados. */
+.inicio-links { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
+.inicio-links a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: #fff; text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+.inicio-links a:hover { background: rgba(255, 255, 255, 0.16); }
+/* Alvéolos como en un maple real: filas desplazadas, más chicos y más tenues (textura, no lunares). */
+.inicio-cabeza {
+  background:
+    radial-gradient(circle, rgba(168, 123, 69, 0.2) 0 6px, transparent 7px) 0 0 / 22px 19px,
+    radial-gradient(circle, rgba(168, 123, 69, 0.2) 0 6px, transparent 7px) 11px 9.5px / 22px 19px,
+    linear-gradient(var(--tinta), var(--tinta));
+}
+@media (max-width: 760px) {
+  /* La hora ya está en la barra de estado del iPhone: no repetirla. */
+  .barra-movil .reloj { display: none; }
+  .barra-movil .marca-logo { display: none; }
+  .barra-movil .marca-trazo { display: block; height: 26px; width: auto; }
+  .barra-movil .marca { gap: 12px; }
+  /* El borde de la franja con una curva suave, como el labio de un maple. */
+  .inicio-cabeza { border-radius: 0 0 50% 50% / 0 0 18px 18px; }
+  .inicio-links { margin-top: 12px; }
+}
+@media (max-width: 760px) { .barra-movil .marca img.marca-trazo { box-shadow: none; border-radius: 0; } }

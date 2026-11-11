@@ -35,7 +35,10 @@ export function Inicio() {
       <header className="inicio-cabeza">
         <p className="inicio-dia">{diaYTurno()}</p>
         <h1>{saludo()}, {sesion?.usuario.nombre.split(' ')[0]}</h1>
-        <p className="inicio-links">¿Qué vas a cargar? · <Link to="/agenda" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><CalendarClock size={16} aria-hidden /> Agenda</Link>{puede('tablero') && <> · <Link to="/tablero" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><ChartColumn size={16} aria-hidden /> Tablero</Link></>}</p>
+        <nav className="inicio-links" aria-label="Accesos">
+          <Link to="/agenda"><CalendarClock size={16} aria-hidden /> Agenda</Link>
+          {puede('tablero') && <Link to="/tablero"><ChartColumn size={16} aria-hidden /> Tablero</Link>}
+        </nav>
       </header>
 
       <Bienvenida />
@@ -75,7 +78,11 @@ export function Inicio() {
               <h3>Stock de materia prima</h3>
               {puede('materias') && <Link to="/materia-prima" className="chico">Ver todo</Link>}
             </div>
-            {materias.filter((m) => m.activo)
+            {/* Nunca se cargó nada (todo en cero y sin consumo): no es una alarma, es el arranque. */}
+            {materias.length > 0 && materias.filter((m) => m.activo).every((m) => m.stock === 0 && m.dias === null) ? (
+              <div className="fila"><div><div className="principal">Todavía no hay stock cargado</div><div className="chico tenue">Se suma solo con cada pesaje de cartón o compra de tinta y aglutinante.</div></div>
+                {puede('compras', 2) && <Link to="/pesaje" className="boton secundario">Cargar pesaje</Link>}</div>
+            ) : materias.filter((m) => m.activo)
               .map((m) => ({ m, e: estadoStock(m) }))
               .sort((x, y) => ORDEN_NIVEL[x.e.nivel] - ORDEN_NIVEL[y.e.nivel])
               .map(({ m, e }) => (
