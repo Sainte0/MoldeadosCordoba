@@ -5,7 +5,7 @@ import { AJUSTES, AREAS, enArea, registrarRuta, TAREAS, type Area } from './nave
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
 import { useCola } from './cola';
-import { Dialogo } from './ui';
+import { AreaActual, Dialogo } from './ui';
 import { precargar } from './persistencia';
 import { useQueryClient } from '@tanstack/react-query';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
@@ -118,10 +118,12 @@ export function App() {
   const cerrarSesion = () => { void desactivarPush().finally(salir); };
 
   if (!sesion) return <Login />;
+  const areaActual = [...AREAS, AJUSTES].find((a) => enArea(a, pathname)) ?? null;
   const p = (m: Modulo, n: 1 | 2 | 3 = 1) => puede(m, n);
 
   return (
-    <div className="marco">
+    // Cada sección con su color (como las apps de Apple): botones, pestañas, menú e ícono del título.
+    <div className="marco" data-area={areaActual?.texto ?? 'Inicio'}>
       <div className="barra-movil">
         <Marca />
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
@@ -146,7 +148,7 @@ export function App() {
           const visibles = area.pestanas.filter((x) => p(x.modulo));
           if (!visibles.length) return null;
           return (
-            <NavLink key={area.texto} to={visibles[0]!.a} className={`nav-link${enArea(area, pathname) ? ' activo' : ''}${area === AJUSTES ? ' nav-ajustes' : ''}`}>
+            <NavLink key={area.texto} to={visibles[0]!.a} data-area={area.texto} className={`nav-link${enArea(area, pathname) ? ' activo' : ''}${area === AJUSTES ? ' nav-ajustes' : ''}`}>
               <area.icono size={20} aria-hidden /> {area.texto}
             </NavLink>
           );
@@ -177,6 +179,7 @@ export function App() {
           <X size={18} aria-hidden />
         </button>
       )}
+      <AreaActual.Provider value={areaActual}>
       <main className="contenido">
         <div className="barra-arriba" aria-label="Avisos">
           <BotonAtencion />
@@ -235,6 +238,7 @@ export function App() {
         </Routes>
         </Suspense>
       </main>
+      </AreaActual.Provider>
       <BarraInferior pathname={pathname} puede={p} onMas={() => setAbierto(true)} onBuscar={() => setBuscando(true)} />
     </div>
   );

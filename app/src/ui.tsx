@@ -1,10 +1,13 @@
 import { createPortal } from 'react-dom';
-import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { ArrowLeft, Check, Info, Pencil, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, useSesion } from './api';
-import { nombreDeRuta, rutaAnterior } from './navegacion';
+import { nombreDeRuta, rutaAnterior, type Area } from './navegacion';
+
+/** La sección en la que se está (Planta, Ventas…): su ícono acompaña el título de cada pantalla. */
+export const AreaActual = createContext<Area | null>(null);
 
 // Componentes propios. Sin librerías de UI: todo lo de acá se pensó para tocar con el dedo en planta.
 
@@ -196,10 +199,11 @@ export function MasFiltros({ activos, resumen, children }: { activos: number; re
 
 /** `dato`: la bajada es información (ej. el período), no una explicación: se ve también en el iPhone. */
 export function Cabecera({ titulo, bajada, dato, children }: { titulo: string; bajada?: ReactNode; dato?: boolean; children?: ReactNode }) {
+  const area = useContext(AreaActual);
   return (
     <header className="cabecera">
       <div>
-        <h1>{titulo}</h1>
+        <h1>{area && <span className="area-ico" aria-hidden><area.icono size={18} /></span>}{titulo}</h1>
         {bajada && <p className={dato ? 'tenue' : 'tenue explicacion'}>{bajada}</p>}
       </div>
       {children}

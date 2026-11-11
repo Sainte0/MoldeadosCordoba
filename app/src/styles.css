@@ -809,3 +809,26 @@ a.fila:active, button.fila:active { background: #ececf0; }
 }
 .volver { justify-self: start; padding-left: 4px; color: var(--accion); font-weight: 500; }
 .volver:hover { color: var(--accion-hover); }
+
+/* ---------- Un color por sección (como las apps de Apple: mismo diseño, cada una con su tinte) ----------
+   Planta naranja, Ventas el azul de la marca, Compras cartón, Plata verde, Tablero índigo, Ajustes gris.
+   Tiñe botones, pestaña activa, links, la barra de abajo y el ícono del título. Tonos con contraste AA sobre blanco. */
+[data-area='Planta'] { --accion: #c2560a; --accion-hover: #a34607; --accion-suave: #fcefe4; }
+[data-area='Compras'] { --accion: #8b5e2e; --accion-hover: #724b23; --accion-suave: #f4ece2; }
+[data-area='Plata'] { --accion: #1d7a45; --accion-hover: #166339; --accion-suave: #e5f3ea; }
+[data-area='Tablero'] { --accion: #4f46c8; --accion-hover: #3f37a8; --accion-suave: #ecebfa; }
+[data-area='Ajustes'] { --accion: #4f5866; --accion-hover: #3d4450; --accion-suave: #eceef1; }
+.boton.secundario:hover:not(:disabled) { background: var(--accion-suave); filter: brightness(0.97); }
+.entrada:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accion) 16%, transparent); }
+
+/* Ícono de la sección junto al título (cuadradito de color, como Ajustes del iPhone). */
+.area-ico { display: inline-grid; place-items: center; width: 1.25em; height: 1.25em; margin-right: 0.35em; border-radius: 0.3em; background: var(--accion); color: #fff; vertical-align: -0.16em; }
+.area-ico svg { width: 0.62em; height: 0.62em; }
+
+/* Menú lateral: cada sección con su ícono de color; la activa, llena con su color. */
+.nav-link[data-area='Planta'] { --accion: #c2560a; }
+.nav-link[data-area='Ventas'] { --accion: #004fbc; }
+.nav-link[data-area='Compras'] { --accion: #8b5e2e; }
+.nav-link[data-area='Plata'] { --accion: #1d7a45; }
+.nav-link[data-area='Tablero'] { --accion: #4f46c8; }
+.nav-link[data-area='Ajustes'] { --accion: #4f5866; }
