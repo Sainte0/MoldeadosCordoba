@@ -129,6 +129,18 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
+    id: 'planilla', area: 'Planta', titulo: 'Planilla del día: todo lo del día en una pantalla', pantallas: ['/planilla'],
+    palabras: 'planilla diaria dia fabricado vendido retiraron palets alto stock fabrica carton kilos rapido',
+    pasos: [
+      'Inicio › "Planilla del día" (en el iPhone, también abajo). Arriba elegís el día; por defecto, hoy.',
+      'Lo que se fabricó: maple, turno, hora de comienzo y de parada, cuántos palets y de qué alto. Ancho y largo son siempre los mismos. Tocá "Agregar"; quiénes trabajaron es opcional.',
+      'Lo que se vendió y se retiró: escribí el cliente (si es nuevo, se crea solo), el maple, cuántos palets y de qué alto. Toma el precio del cliente o el de lista y queda pendiente de cobro.',
+      'El palet se arma a la medida al vender. Si hace falta, el sistema desarma uno ya armado (por ejemplo uno de 8 para entregar 6) y lo que sobra queda libre en la fábrica.',
+      'Cartón que entró: proveedor, kilos y precio por kilo.',
+      'Arriba ves lo fabricado, lo vendido, lo que queda en la fábrica y el cartón del día. Tocá cualquier renglón para ver el detalle o anularlo.',
+    ],
+  },
+  {
     id: 'parte', area: 'Planta', titulo: 'Cargar el parte de producción de un turno', pantallas: ['/produccion'],
     palabras: 'parte turno maquina mp-1 mp-2 paquetes pulpeadas horas operarios produccion',
     pasos: [

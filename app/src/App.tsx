@@ -34,6 +34,7 @@ const NuevoParte = lazy(() => import('./pages/NuevoParte').then((m) => ({ defaul
 const ParteDetalle = lazy(() => import('./pages/ParteDetalle').then((m) => ({ default: m.ParteDetalle })));
 const Palets = lazy(() => import('./pages/Palets').then((m) => ({ default: m.Palets })));
 const NuevoPalet = lazy(() => import('./pages/NuevoPalet').then((m) => ({ default: m.NuevoPalet })));
+const Planilla = lazy(() => import('./pages/Planilla').then((m) => ({ default: m.Planilla })));
 const Escanear = lazy(() => import('./pages/Escanear').then((m) => ({ default: m.Escanear })));
 const PaletDetalle = lazy(() => import('./pages/PaletDetalle').then((m) => ({ default: m.PaletDetalle })));
 const Maples = lazy(() => import('./pages/Maples').then((m) => ({ default: m.Maples })));
@@ -221,6 +222,7 @@ export function App() {
           {([['/compras/nueva', 'compras'], ['/ventas/nueva', 'ventas'], ['/pedidos/nuevo', 'ventas'], ['/produccion/nuevo', 'produccion'], ['/palets/nuevo', 'produccion']] as const)
             .filter(([, m]) => !p(m, 2)).map(([r]) => <Route key={r} path={r} element={<Navigate to="/" replace />} />)}
           <Route path="/escanear" element={<Escanear />} />
+          {(p('produccion') || p('ventas') || p('compras')) && <Route path="/planilla" element={<Planilla />} />}
           <Route path="/palets/:id" element={<PaletDetalle />} />
           {p('productos') && <Route path="/maples" element={<Maples />} />}
           {p('materias') && <Route path="/materia-prima" element={<Materias />} />}

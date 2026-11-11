@@ -26,6 +26,12 @@ export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
     { en: '.instructivo', texto: 'Cada paso tiene su ayuda. El dueño la puede reescribir con el lápiz.' },
     { en: SIGUIENTE, texto: 'Con la carga lista, "Siguiente". Después: cliente, quién retira, calidad y precio, factura, si pagó algo, la firma y confirmar.' },
   ],
+  planilla: [
+    { ruta: '/planilla', en: '.planilla .cifras', texto: 'El resumen del día: lo fabricado, lo vendido, lo que queda en la fábrica y el cartón que entró.' },
+    { en: '.planilla section:nth-of-type(1) .planilla-renglon', texto: 'Lo que se fabricó: maple, turno, comienzo, parada, palets y alto. "Agregar" y listo; quiénes trabajaron es opcional.' },
+    { en: '.planilla section:nth-of-type(2) .planilla-renglon', texto: 'Lo que se vendió: cliente, maple, palets y alto. El palet se arma a la medida y toma el precio de lista.' },
+    { en: '.planilla section:nth-of-type(3) .planilla-renglon', texto: 'El cartón que entró: proveedor, kilos y precio por kilo.' },
+  ],
   parte: [
     { ruta: '/produccion/nuevo', en: '.paso-cuerpo .opciones', texto: 'Primero el turno. Si cargás un turno de otro día, cambiá la fecha abajo.' },
     { en: '.paso-cuerpo input[type=date]', texto: 'La fecha del turno. Por defecto, hoy.' },

@@ -859,3 +859,25 @@ a.fila:active, button.fila:active { background: #ececf0; }
   .login-form { padding: 0; }
   .login-form form { padding: 24px 20px; border-radius: 20px; width: 100%; max-width: 520px; }
 }
+
+/* ---------- Planilla del día: renglones de carga en línea ---------- */
+.planilla-renglon { display: grid; gap: 10px 12px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); align-items: end; padding: 14px 16px 16px; border-top: 1px solid var(--linea); background: #fafafc; }
+.planilla-renglon .entrada { min-height: 44px; padding: 8px 12px; }
+.planilla-renglon .pestanas { width: 100%; }
+.planilla-renglon .pestanas button { flex: 1; }
+.planilla-renglon > .boton { min-height: 44px; }
+.planilla-renglon > .aviso, .planilla-quienes, .planilla-cuenta { grid-column: 1 / -1; }
+.planilla-quienes { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.planilla-check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 500; }
+.planilla-check input { width: 20px; height: 20px; accent-color: var(--accion); }
+.chip { border: 0; border-radius: 999px; padding: 6px 12px; background: rgba(118, 118, 128, 0.12); font-weight: 500; cursor: pointer; }
+.chip[aria-pressed='true'] { background: var(--accion); color: #fff; }
+.tarea[data-tarea='Planilla'] .ico { background: #5856d6; }
+/* En la planilla las cantidades son frases ("2 palets de 6 y 4 de alto"): pueden bajar de renglón. */
+.planilla .cifras .cifra { white-space: normal; overflow-wrap: normal; }
+@media (max-width: 760px) {
+  .planilla .fila { grid-template-columns: minmax(0, 1fr); }
+  .planilla .fila .derecha { text-align: left; padding-left: 48px; justify-self: start; }
+  .planilla .fila > .cifra { justify-self: start; }
+  .planilla .fila:first-child { grid-template-columns: minmax(0, 1fr) auto; }
+}

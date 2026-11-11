@@ -151,6 +151,34 @@ export const parteSchema = z.object({
   notas: opcional(1000),
 });
 
+const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'La hora no es válida');
+
+/**
+ * Planilla del día: lo fabricado en una máquina (palets × alto; ancho y largo fijos). Se guarda como parte de
+ * producción en paquetes; los palets se arman recién al vender, a la medida.
+ */
+export const planillaProduccionSchema = z.object({
+  fecha,
+  turno: z.enum(TURNOS),
+  varianteId: uuid('Elegí qué maple se hizo'),
+  inicio: hora,
+  fin: hora,
+  palets: z.number().int().min(1, 'Ingresá cuántos palets salieron').max(200),
+  alto: z.number().int().min(1).max(20),
+  empleadoIds: z.array(z.string().uuid()).default([]),
+});
+
+/** Planilla del día: una venta/retiro (palets × alto de un código para un cliente). El palet se arma a la medida. */
+export const planillaVentaSchema = z.object({
+  fecha,
+  clienteId: uuid('Elegí el cliente'),
+  varianteId: uuid('Elegí el maple'),
+  palets: z.number().int().min(1, 'Ingresá cuántos palets').max(100),
+  alto: z.number().int().min(1).max(20),
+  conFactura: z.boolean().default(false),
+  retira: opcional(120),
+});
+
 export const paletSchema = z.object({
   varianteId: uuid('Elegí qué maple va en el palet'),
   ancho: z.number().int().min(1).max(10),
@@ -337,3 +365,5 @@ export const suscripcionSchema = z.object({
   endpoint: z.string().url().max(1000),
   keys: z.object({ p256dh: z.string().min(10).max(200), auth: z.string().min(4).max(100) }),
 });
+export type PlanillaProduccionInput = z.infer<typeof planillaProduccionSchema>;
+export type PlanillaVentaInput = z.infer<typeof planillaVentaSchema>;

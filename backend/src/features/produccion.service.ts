@@ -7,7 +7,12 @@ import { ConflictError, NotFoundError, ValidationError } from '../lib/errors.js'
 // viejos primero). Todo en una transacción con su auditoría; anular agrega movimientos que compensan.
 
 export async function crearParte(db: Knex, usuarioId: string, i: ParteInput): Promise<{ id: string; numero: number }> {
-  return db.transaction(async (trx) => {
+  return db.transaction((trx) => insertarParte(trx, usuarioId, i));
+}
+
+/** Guarda un parte dentro de una transacción ya abierta (la planilla del día lo usa junto con otras cosas). */
+export async function insertarParte(trx: Knex.Transaction, usuarioId: string, i: ParteInput): Promise<{ id: string; numero: number }> {
+  {
     const v = await trx('variantes').where({ id: i.varianteId, activo: true }).whereNull('deleted_at').first('id', 'maquina_id', 'maples_por_paquete', 'maples_por_hora');
     if (!v) throw new ValidationError('Ese maple no existe o está desactivado');
     const m = await trx('maquinas').where({ id: i.maquinaId, activo: true }).whereNull('deleted_at').first('id');
@@ -38,7 +43,8 @@ export async function crearParte(db: Knex, usuarioId: string, i: ParteInput): Pr
         maples_por_paquete: v.maples_por_paquete, maples_por_hora: v.maples_por_hora, notas: i.notas, usuario_id: usuarioId,
       })
       .returning(['id', 'numero']);
-    await trx('parte_empleados').insert(empleados.map((e) => ({ parte_id: parte.id, empleado_id: e })));
+    // En la planilla del día el personal es opcional.
+    if (empleados.length) await trx('parte_empleados').insert(empleados.map((e) => ({ parte_id: parte.id, empleado_id: e })));
     const filas = [...consumos].filter(([, c]) => c.teorico > 0 || c.real > 0);
     if (filas.length) {
       await trx('parte_consumos').insert(filas.map(([mp, c]) => ({ parte_id: parte.id, materia_prima_id: mp, teorico: c.teorico, real: c.real })));
@@ -47,7 +53,7 @@ export async function crearParte(db: Knex, usuarioId: string, i: ParteInput): Pr
     }
     await auditar(trx, { usuarioId, accion: 'crear', entidad: 'parte', entidadId: parte.id, despues: { ...i, consumos: Object.fromEntries(consumos) } });
     return parte;
-  });
+  }
 }
 
 export async function anularParte(db: Knex, usuarioId: string, parteId: string, motivo: string): Promise<void> {
@@ -65,7 +71,7 @@ export async function anularParte(db: Knex, usuarioId: string, parteId: string, 
 }
 
 /** Paquetes de cada parte vigente que todavía no están en un palet vigente, del más viejo al más nuevo. */
-function lotesLibres(q: Knex | Knex.Transaction, varianteId: string) {
+export function lotesLibres(q: Knex | Knex.Transaction, varianteId: string) {
   return q('partes as p')
     .where({ 'p.variante_id': varianteId })
     .whereNull('p.anulado_at')
