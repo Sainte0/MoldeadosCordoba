@@ -5,7 +5,7 @@ import { AJUSTES, AREAS, enArea, registrarRuta, TAREAS, type Area } from './nave
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
 import { useCola } from './cola';
-import { AreaActual, Dialogo } from './ui';
+import { Dialogo } from './ui';
 import { precargar } from './persistencia';
 import { useQueryClient } from '@tanstack/react-query';
 import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
@@ -179,7 +179,6 @@ export function App() {
           <X size={18} aria-hidden />
         </button>
       )}
-      <AreaActual.Provider value={areaActual}>
       <main className="contenido">
         <div className="barra-arriba" aria-label="Avisos">
           <BotonAtencion />
@@ -238,7 +237,6 @@ export function App() {
         </Routes>
         </Suspense>
       </main>
-      </AreaActual.Provider>
       <BarraInferior pathname={pathname} puede={p} onMas={() => setAbierto(true)} onBuscar={() => setBuscando(true)} />
     </div>
   );

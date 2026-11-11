@@ -821,10 +821,6 @@ a.fila:active, button.fila:active { background: #ececf0; }
 .boton.secundario:hover:not(:disabled) { background: var(--accion-suave); filter: brightness(0.97); }
 .entrada:focus { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accion) 16%, transparent); }
 
-/* Ícono de la sección junto al título (cuadradito de color, como Ajustes del iPhone). */
-.area-ico { display: inline-grid; place-items: center; width: 1.25em; height: 1.25em; margin-right: 0.35em; border-radius: 0.3em; background: var(--accion); color: #fff; vertical-align: -0.16em; }
-.area-ico svg { width: 0.62em; height: 0.62em; }
-
 /* Menú lateral: cada sección con su ícono de color; la activa, llena con su color. */
 .nav-link[data-area='Planta'] { --accion: #c2560a; }
 .nav-link[data-area='Ventas'] { --accion: #004fbc; }
