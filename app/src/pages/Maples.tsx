@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
-import { aMili, formatCantidad, formatPesos, LABEL_TAMANO } from '@moldeados/shared/base';
+import { aCentavos, aMili, formatCantidad, formatPesos, LABEL_TAMANO } from '@moldeados/shared/base';
 import { api, hoy, useSesion, verFecha } from '../api';
 import { useMaquinas, useMaterias, useVariantes, type Maquina, type Variante } from '../datos';
 import { MapleVista, Muestra } from '../MapleVista';
@@ -36,8 +36,10 @@ export function Maples() {
       <section style={{ display: 'grid', gap: 12 }}>
         <div className="titulo-seccion">
           <h2>Códigos de maple</h2>
-          {precios && <Link to="/precios" className="chico">Cambiar precios</Link>}
-          {edita && <button className="boton primario" onClick={() => setEditando({ tamano: 'grande', maplesPorPaquete: 60, maplesPorHora: 0, activo: true, receta: [], colorHex: null })}><Plus size={18} aria-hidden /> Nuevo código</button>}
+          <div className="acciones-titulo">
+            {precios && <Link to="/precios" className="boton secundario">Lista de precios</Link>}
+            {edita && <button className="boton primario" onClick={() => setEditando({ tamano: 'grande', maplesPorPaquete: 60, maplesPorHora: 0, activo: true, receta: [], colorHex: null })}><Plus size={18} aria-hidden /> Nuevo código</button>}
+          </div>
         </div>
         {isLoading ? <Cargando /> : (
           <div className="hoja filas">
@@ -78,7 +80,7 @@ export function Maples() {
         </div>
       </section>
 
-      {editando && <EditarVariante inicial={editando} editable={edita} onCerrar={() => setEditando(null)} />}
+      {editando && <EditarVariante precio={editando?.id ? precioDe(editando.id) : 0} editaPrecio={puede('ventas', 3)} inicial={editando} editable={edita} onCerrar={() => setEditando(null)} />}
       {maquina && <EditarMaquina inicial={maquina} onCerrar={() => setMaquina(null)} />}
     </div>
   );
@@ -92,7 +94,7 @@ export const codigoSugerido = (tamano: 'chico' | 'grande', color: string | null)
   `M${tamano === 'chico' ? 'CH' : 'GR'}-${color?.trim() ? sinAcentos(color.trim()).replace(/[^a-z]/gi, '').slice(0, 3).toUpperCase() : 'NAT'}`;
 export const nombreSugerido = (tamano: 'chico' | 'grande', color: string | null) => `Maple ${tamano} ${color?.trim() ? color.trim().toLowerCase() : 'natural'}`;
 
-function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Variante>; editable: boolean; onCerrar: () => void }) {
+function EditarVariante({ inicial, editable, onCerrar, precio = 0, editaPrecio = false }: { inicial: Partial<Variante>; editable: boolean; onCerrar: () => void; precio?: number; editaPrecio?: boolean }) {
   const qc = useQueryClient();
   const { data: maquinas } = useMaquinas();
   const { data: materias } = useMaterias();
@@ -103,6 +105,9 @@ function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Vari
   });
   const [receta, setReceta] = useState((inicial.receta ?? []).map((r) => ({ materiaPrimaId: r.materiaPrimaId, cantidad: aTexto(r.cantidadPorHora) })));
   const [error, setError] = useState<string | null>(null);
+  // El precio de lista se carga acá mismo, con el producto (también desde Ajustes › Precios).
+  const precioInicial = precio ? String(precio / 100).replace('.', ',') : '';
+  const [precioTexto, setPrecioTexto] = useState(precioInicial);
   // Al cambiar tamaño o color, el código y el nombre los acompañan, salvo que alguien los haya escrito a mano
   // (si ya no coinciden con lo que sale del tamaño y el color de antes, se respetan).
   const set = (c: Partial<typeof v>) => {
@@ -121,13 +126,18 @@ function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Vari
     setError(null);
     const items = receta.map((r) => ({ materiaPrimaId: r.materiaPrimaId, cantidadPorHora: aMili(r.cantidad) }));
     if (items.some((i) => i.cantidadPorHora === null || i.cantidadPorHora <= 0)) return setError('Revisá las cantidades de la receta');
+    const nuevoPrecio = precioTexto.trim() ? aCentavos(precioTexto) : null;
+    if (precioTexto.trim() && (nuevoPrecio === null || nuevoPrecio < 0)) return setError('Revisá el precio por maple');
     try {
       const body = {
         codigo: v.codigo, nombre: v.nombre, tamano: v.tamano, color: v.colorHex ? v.color || undefined : undefined, colorHex: v.colorHex,
         maquinaId: v.maquinaId, maplesPorPaquete: Number(v.maplesPorPaquete), maplesPorHora: Number(v.maplesPorHora || 0), activo: v.activo, receta: items,
       };
-      await api(inicial.id ? `/variantes/${inicial.id}` : '/variantes', { method: inicial.id ? 'PUT' : 'POST', body });
-      await qc.invalidateQueries({ queryKey: ['variantes'] });
+      const { id } = await api<{ id: string }>(inicial.id ? `/variantes/${inicial.id}` : '/variantes', { method: inicial.id ? 'PUT' : 'POST', body });
+      if (editaPrecio && nuevoPrecio !== null && precioTexto !== precioInicial) {
+        await api('/precios', { method: 'PUT', body: { varianteId: id, clienteId: null, precioMaple: nuevoPrecio } });
+      }
+      await Promise.all([qc.invalidateQueries({ queryKey: ['variantes'] }), qc.invalidateQueries({ queryKey: ['precios'] })]);
       onCerrar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
@@ -158,6 +168,11 @@ function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Vari
         <Campo etiqueta="Máquina">
           <Opciones columnas valor={v.maquinaId} onChange={(maquinaId) => set({ maquinaId })} opciones={(maquinas ?? []).filter((m) => m.activo || m.id === v.maquinaId).map((m) => ({ valor: m.id, titulo: m.codigo, detalle: m.nombre }))} />
         </Campo>
+        {(editaPrecio || precio > 0) && (
+          <Campo etiqueta="Precio por maple" ayuda={`Sin IVA. Precio de lista; si un cliente paga otro, se carga en su ficha.${Number(v.maplesPorPaquete) && aCentavos(precioTexto) ? ` El paquete queda en ${formatPesos((aCentavos(precioTexto) ?? 0) * Number(v.maplesPorPaquete))}.` : ''}`}>
+            <EntradaNumero unidad="$" value={precioTexto} disabled={!editaPrecio} onChange={(e) => setPrecioTexto(e.target.value.replace(/[^\d,]/g, ''))} aria-label="Precio por maple" />
+          </Campo>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Campo etiqueta="Maples por paquete"><EntradaNumero value={v.maplesPorPaquete} onChange={(e) => set({ maplesPorPaquete: e.target.value.replace(/\D/g, '') })} /></Campo>
           <Campo etiqueta="Maples por hora" ayuda="Lo que hace la máquina"><EntradaNumero value={v.maplesPorHora} onChange={(e) => set({ maplesPorHora: e.target.value.replace(/\D/g, '') })} /></Campo>
@@ -178,9 +193,10 @@ function EditarVariante({ inicial, editable, onCerrar }: { inicial: Partial<Vari
             );
           })}
           {libres.length > 0 && (
-            <div className="colores">
+            <div className="chips-agregar">
+              <span className="chico tenue">Agregar a la receta:</span>
               {libres.map((m) => (
-                <button key={m.id} type="button" className="boton secundario" style={{ width: 'auto', height: 'auto', borderRadius: 8, border: 0 }} onClick={() => setReceta([...receta, { materiaPrimaId: m.id, cantidad: '' }])}>
+                <button key={m.id} type="button" className="boton secundario" onClick={() => setReceta([...receta, { materiaPrimaId: m.id, cantidad: '' }])}>
                   <Plus size={16} aria-hidden /> {m.nombre}
                 </button>
               ))}

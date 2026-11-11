@@ -621,3 +621,6 @@ h2 { font-size: 1.2rem; }
 /* Que el texto de la izquierda se acomode y nunca quede debajo de las marcas o cifras de la derecha. */
 .fila > *, .con-muestra > * { min-width: 0; }
 .fila .derecha { justify-self: end; }
+.acciones-titulo { display: flex; gap: 8px; flex-wrap: wrap; }
+.chips-agregar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chips-agregar .boton { min-height: 38px; padding: 0 12px; }
