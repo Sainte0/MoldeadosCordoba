@@ -211,6 +211,9 @@ export function App() {
           {p('produccion') && <Route path="/palets" element={<Palets />} />}
           {p('produccion', 2) && <Route path="/palets/nuevo" element={<NuevoPalet />} />}
           {/* El QR del palet: cualquiera con usuario lo abre; lo que ve depende de sus permisos. */}
+          {/* Sin permiso para cargar, "…/nuevo" no tiene que caer en la ficha de detalle (pediría el registro "nuevo"). */}
+          {([['/compras/nueva', 'compras'], ['/ventas/nueva', 'ventas'], ['/pedidos/nuevo', 'ventas'], ['/produccion/nuevo', 'produccion'], ['/palets/nuevo', 'produccion']] as const)
+            .filter(([, m]) => !p(m, 2)).map(([r]) => <Route key={r} path={r} element={<Navigate to="/" replace />} />)}
           <Route path="/palets/:id" element={<PaletDetalle />} />
           {p('productos') && <Route path="/maples" element={<Maples />} />}
           {p('materias') && <Route path="/materia-prima" element={<Materias />} />}

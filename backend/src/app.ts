@@ -29,11 +29,20 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(rateLimit, { max: 600, timeWindow: '1 minute' });
 
+  const CAMPOS: Record<string, string> = {
+    patente: 'La patente', cuit: 'El CUIT', nroFactura: 'El número de factura', telefono: 'El teléfono', chequeNumero: 'El número de cheque',
+    codigo: 'El código', color: 'El color', referencia: 'La referencia', nombre: 'El nombre', email: 'El mail', destino: 'El destino',
+    retira: 'Quién retira', beneficiario: 'El beneficiario', titulo: 'El título', direccion: 'La dirección', notas: 'Las notas', detalle: 'El detalle',
+  };
   app.setErrorHandler((err: FastifyError | Error, req, reply) => {
     if (err instanceof ZodError) {
       // Solo mensajes propios en castellano; lo que genera Zod solo ("Expected string") nunca llega al usuario.
       const propio = err.issues.find((i) => /^[A-ZÁÉÍÓÚÑ¿¡]/.test(i.message) && !/^(Expected|Invalid|Required|String|Number|Array)\b/.test(i.message));
-      return reply.code(400).send({ error: { code: 'VALIDATION', message: propio?.message ?? 'Revisá los datos ingresados' } });
+      // Texto más largo de lo permitido: decir cuál (si no, "Revisá los datos" no dice qué tocar).
+      const largo = err.issues.find((i) => i.code === 'too_big' && i.type === 'string');
+      const campo = largo && CAMPOS[String(largo.path.at(-1))];
+      const porLargo = largo && `${campo ?? 'Un texto'} tiene más de ${String((largo as { maximum: number | bigint }).maximum)} letras: acortalo`;
+      return reply.code(400).send({ error: { code: 'VALIDATION', message: propio?.message ?? porLargo ?? 'Revisá los datos ingresados' } });
     }
     if (err instanceof AppError) return reply.code(err.statusCode).send({ error: { code: err.code, message: err.message } });
     if ('statusCode' in err && err.statusCode === 429) return reply.code(429).send({ error: { code: 'RATE_LIMIT', message: 'Demasiados intentos, esperá un minuto' } });

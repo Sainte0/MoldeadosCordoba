@@ -75,7 +75,7 @@ export function Pesaje() {
             <div className="lectura"><span>Cartón neto</span><span className="cifra">{formatCantidad(netoG, 'kg')}</span></div>
           )}
           <Campo etiqueta="Patente" ayuda="Opcional">
-            <Entrada value={patente} onChange={(e) => setPatente(e.target.value)} autoCapitalize="characters" />
+            <Entrada value={patente} onChange={(e) => setPatente(e.target.value)} autoCapitalize="characters" maxLength={15} />
           </Campo>
         </>
       ),

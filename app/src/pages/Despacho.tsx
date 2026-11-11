@@ -163,9 +163,9 @@ export function Despacho() {
             <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
               <b>Paquetes sueltos (sin palet)</b>
               <Opciones columnas valor={formSuelto.varianteId} onChange={(varianteId) => setFormSuelto({ ...formSuelto, varianteId })}
-                opciones={(stock ?? []).filter((v) => sueltosLibres(v.id) > 0).map((v) => ({ valor: v.id, titulo: v.codigo, detalle: `${sueltosLibres(v.id)} sueltos` }))} />
+                opciones={(stock ?? []).filter((v) => sueltosLibres(v.id) > 0).map((v) => ({ valor: v.id, titulo: v.codigo, detalle: `${sueltosLibres(v.id).toLocaleString('es-AR')} sueltos` }))} />
               {formSuelto.varianteId && <EntradaNumero unidad="paq." value={formSuelto.cantidad} onChange={(e) => setFormSuelto({ ...formSuelto, cantidad: e.target.value.replace(/\D/g, '') })} aria-label="Cantidad de paquetes" autoFocus />}
-              {formSuelto.varianteId && Number(formSuelto.cantidad) > sueltosLibres(formSuelto.varianteId) && <Aviso>Hay {sueltosLibres(formSuelto.varianteId)} paquetes sueltos de ese maple.</Aviso>}
+              {formSuelto.varianteId && Number(formSuelto.cantidad) > sueltosLibres(formSuelto.varianteId) && <Aviso>Hay {sueltosLibres(formSuelto.varianteId).toLocaleString('es-AR')} paquetes sueltos de ese maple.</Aviso>}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" className="boton primario" disabled={!formSuelto.varianteId || !Number(formSuelto.cantidad) || Number(formSuelto.cantidad) > sueltosLibres(formSuelto.varianteId)} onClick={agregarSuelto}>Agregar</button>
                 <button type="button" className="boton fantasma" onClick={() => setFormSuelto(null)}>Cancelar</button>
@@ -204,7 +204,7 @@ export function Despacho() {
         <>
           <Campo etiqueta="Nombre de quien retira"><Entrada value={retira} onChange={(e) => setRetira(e.target.value)} autoFocus placeholder="Ej.: Juan Pérez, chofer" /></Campo>
           <Campo etiqueta="Vehículo"><Opciones columnas valor={vehiculo} onChange={setVehiculo} opciones={VEHICULOS.map((v) => ({ valor: v, titulo: LABEL_VEHICULO[v] }))} /></Campo>
-          <Campo etiqueta="Patente" ayuda="Opcional"><Entrada value={patente} onChange={(e) => setPatente(e.target.value)} autoCapitalize="characters" /></Campo>
+          <Campo etiqueta="Patente" ayuda="Opcional"><Entrada value={patente} onChange={(e) => setPatente(e.target.value)} autoCapitalize="characters" maxLength={15} /></Campo>
         </>
       ),
       listo: retira.trim().length < 2 ? 'Anotá quién se lo lleva' : true,

@@ -43,7 +43,7 @@ export function NuevoPalet() {
   const lectura = s && (
     <div className="lectura">
       <span>{paquetes} paquetes · {(paquetes * s.maplesPorPaquete).toLocaleString('es-AR')} maples</span>
-      <span className="cifra" style={{ fontSize: '1.4rem', color: paquetes > sueltos ? '#ff8a7a' : undefined }}>{sueltos} sueltos</span>
+      <span className="cifra" style={{ fontSize: '1.4rem', color: paquetes > sueltos ? '#ff8a7a' : undefined }}>{sueltos.toLocaleString('es-AR')} sueltos</span>
     </div>
   );
 
@@ -81,7 +81,7 @@ export function NuevoPalet() {
           {lectura}
         </>
       ),
-      listo: paquetes > sueltos ? `Hay ${sueltos} paquetes sueltos y este armado lleva ${paquetes}. Bajá la altura o cargá el parte que falta.` : true,
+      listo: paquetes > sueltos ? `Hay ${sueltos.toLocaleString('es-AR')} paquetes sueltos y este armado lleva ${paquetes}. Bajá la altura o cargá el parte que falta.` : true,
     },
     {
       titulo: '¿Para quién es?',

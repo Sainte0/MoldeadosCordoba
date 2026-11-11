@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { aMili, aMinutos, consumoTeorico, formatCantidad, formatMinutos, LABEL_TURNO, paquetesTeoricos, TURNOS, type Turno } from '@moldeados/shared/base';
 import { hoy, verFecha } from '../api';
@@ -98,7 +98,7 @@ export function NuevoParte() {
               <span className="marca-op" aria-hidden /><span><b>{e.nombre}</b>{e.turnoHabitual && <small>Turno {LABEL_TURNO[e.turnoHabitual].toLowerCase()}</small>}</span>
             </button>
           ))}
-          {!empleados?.length && <p className="tenue">No hay personal de planta cargado. Se agrega en Equipo.</p>}
+          {!empleados?.length && <p className="tenue">No hay personal de planta cargado. <Link to="/equipo?ver=planta">Agregalo en Ajustes › Equipo y permisos › Planta</Link>.</p>}
         </div>
       ),
       listo: personal.length ? true : 'Marcá al menos una persona',

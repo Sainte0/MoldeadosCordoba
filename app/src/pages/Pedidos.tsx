@@ -49,7 +49,7 @@ export function Pedidos() {
               </div>
               <div className="derecha">
                 {p.estado === 'abierto'
-                  ? <><div className={vencido(p.fechaEntrega) ? 'saldo-mas' : ''} style={{ fontWeight: 600 }}>{p.fechaEntrega ? verFecha(p.fechaEntrega) : 'Sin fecha'}</div><div className="chico tenue">{p.despachado} de {p.paquetes} paq.</div></>
+                  ? <><div className={vencido(p.fechaEntrega) ? 'saldo-mas' : ''} style={{ fontWeight: 600 }}>{p.fechaEntrega ? verFecha(p.fechaEntrega) : 'Sin fecha'}</div><div className="chico tenue">{p.despachado.toLocaleString('es-AR')} de {p.paquetes.toLocaleString('es-AR')} paq.</div></>
                   : <span className={`marca-texto ${p.estado === 'entregado' ? 'ok' : ''}`}>{ESTADO[p.estado]}</span>}
               </div>
             </Link>
@@ -89,8 +89,8 @@ export function NuevoPedido() {
         return (
           <div className="fila" key={i.varianteId} style={{ gridTemplateColumns: 'auto 1fr auto' }}>
             <Muestra color={v?.colorHex ?? null} />
-            <div><div className="principal">{v?.codigo} · {i.paquetes} paquetes</div>
-              <div className="chico tenue">{(i.paquetes * (v?.maplesPorPaquete ?? 60)).toLocaleString('es-AR')} maples · {disponible >= i.paquetes ? `hay stock (${disponible} paq. libres)` : `faltan producir ${i.paquetes - Math.max(0, disponible)} paq.`}</div></div>
+            <div><div className="principal">{v?.codigo} · {i.paquetes.toLocaleString('es-AR')} paquetes</div>
+              <div className="chico tenue">{(i.paquetes * (v?.maplesPorPaquete ?? 60)).toLocaleString('es-AR')} maples · {disponible >= i.paquetes ? `hay stock (${disponible.toLocaleString('es-AR')} paq. libres)` : `faltan producir ${(i.paquetes - Math.max(0, disponible)).toLocaleString('es-AR')} paq.`}</div></div>
             <button type="button" className="boton icono" aria-label={`Quitar ${v?.codigo}`} onClick={() => setItems(items.filter((x) => x.varianteId !== i.varianteId))}><Trash2 size={18} /></button>
           </div>
         );

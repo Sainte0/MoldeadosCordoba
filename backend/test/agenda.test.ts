@@ -92,5 +92,7 @@ describe('agenda (moldeados_test)', () => {
   it('valida para quién es y la hora', async () => {
     expect((await pedir('dueno', 'POST', '/agenda', { titulo: 'Sin nadie', fecha: hoy })).error.message).toBe('Elegí para quién es');
     expect((await pedir('dueno', 'POST', '/agenda', { titulo: 'Hora rara', fecha: hoy, hora: '25:00', paraTodos: true })).status).toBe(400);
+    // Texto de más: dice qué campo acortar, no "Revisá los datos".
+    expect((await pedir('dueno', 'POST', '/agenda', { titulo: 'x'.repeat(200), fecha: hoy, paraTodos: true })).error.message).toBe('El título tiene más de 140 letras: acortalo');
   });
 });

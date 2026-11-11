@@ -329,7 +329,7 @@ export const GUIAS: Guia[] = [
       'El gráfico muestra entradas y salidas por día o semana; tocá una barra para ver los montos.',
       '"Costo y margen" dice cuánto cuesta en materia prima cada maple y cuánto deja cada cliente.',
       '"Descargar el período" baja todo en un .zip para el contador.',
-      '"Resumen del día" arma un resumen de ventas, producción, plata y avisos para mandar por WhatsApp. Para recibirlo solo cada noche por mail, cargá los mails en Ajustes › Equipo › Datos de la empresa.',
+      '"Resumen del día" arma un resumen de ventas, producción, plata y avisos para mandar por WhatsApp. Para recibirlo solo cada noche por mail, cargá los mails en Ajustes › Equipo y permisos › Empresa.',
     ],
   },
   {
@@ -359,7 +359,7 @@ export const GUIAS: Guia[] = [
     pasos: [
       'En Planta › Producción elegí el período (por ejemplo la quincena).',
       '"Horas por persona" suma las horas de máquina de cada parte en que figura cada uno, por turno.',
-      'Si cargás el valor de la hora de cada persona (Ajustes › Equipo › Personal de planta), te muestra el estimado a pagar.',
+      'Si cargás el valor de la hora de cada persona (Ajustes › Equipo y permisos › Planta), te muestra el estimado a pagar.',
       'Con "Exportar" lo bajás a Excel para liquidar.',
     ],
   },
@@ -400,7 +400,7 @@ export const GUIAS: Guia[] = [
     pasos: [
       'Egresos: en Ajustes › Importar planillas elegí "Egresos" y subí la hoja EGRESOS tal cual. Las columnas se reconocen solas; probá primero y después importá. Los "Pendiente" quedan para pagar.',
       'Lo que deben los clientes al empezar: "Saldos iniciales de clientes" (cliente y saldo). Lo mismo con proveedores.',
-      'Remitos: en Ajustes › Equipo › Datos de la empresa poné el próximo número de remito para seguir con la numeración de papel.',
+      'Remitos: en Ajustes › Equipo y permisos › Empresa poné el próximo número de remito para seguir con la numeración de papel.',
       'Desde ahí, las ventas se cargan con "Despachar palets" (con lo que pagó en el momento) y los egresos con "Cargar egreso".',
     ],
   },

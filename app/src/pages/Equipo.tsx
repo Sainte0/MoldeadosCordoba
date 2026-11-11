@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react';
 import { aCentavos, LABEL_ROL, LABEL_TURNO, MODULOS, NIVELES, ROLES, TURNOS, type MatrizPermisos, type Rol, type Turno } from '@moldeados/shared/base';
 import { useEmpleados, useEmpresa, type Empleado } from '../datos';
 import { api, useSesion, type Usuario } from '../api';
+import { useFiltros } from '../filtros';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';
 
 export function Equipo() {
@@ -14,6 +15,12 @@ export function Equipo() {
   const [editando, setEditando] = useState<Partial<Usuario> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const edita = puede('usuarios', 3);
+  // Una sección por vez (antes era todo seguido y se scrolleaba mucho); la pestaña queda en la dirección.
+  const [f, setF] = useFiltros({ ver: 'personas', rol: 'administracion' });
+  const secciones = ([['personas', 'Personas'], ['permisos', 'Permisos'], ['planta', 'Planta'], ['empresa', 'Empresa']] as const)
+    .filter(([k]) => k !== 'planta' || puede('produccion', 1) || edita);
+  const ver = secciones.some(([k]) => k === f.ver) ? f.ver : 'personas';
+  const rolPermisos = (ROLES as readonly string[]).includes(f.rol) && f.rol !== 'dueno' ? (f.rol as Rol) : 'administracion';
 
   const cambiarNivel = async (rol: Rol, modulo: string, nivel: number) => {
     setError(null);
@@ -25,8 +32,11 @@ export function Equipo() {
   };
 
   return (
-    <div className="ancho" style={{ display: 'grid', gap: 32 }}>
-      <section>
+    <div className="ancho" style={{ display: 'grid', gap: 20 }}>
+      <div className="pestanas" role="group" aria-label="Sección">
+        {secciones.map(([k, l]) => <button key={k} type="button" aria-pressed={ver === k} onClick={() => setF({ ver: k })}>{l}</button>)}
+      </div>
+      {ver === 'personas' && <section>
         <Cabecera titulo="Equipo" bajada="Cada persona entra con su usuario. Todo lo que carga queda a su nombre.">
           {edita && <button className="boton primario" onClick={() => setEditando({ rol: 'operario', activo: true })}><Plus size={18} aria-hidden /> Agregar persona</button>}
         </Cabecera>
@@ -40,16 +50,19 @@ export function Equipo() {
             ))}
           </div>
         )}
-      </section>
+      </section>}
 
-      {matriz && (
+      {ver === 'permisos' && matriz && (
         <section>
           <Cabecera titulo="Qué puede hacer cada rol" bajada="El dueño ve y hace todo, siempre. Los cambios aplican al instante." />
           <Aviso>{error}</Aviso>
+          {/* Un rol por vez: con los tres seguidos, el nombre del rol se confundía con el de cada módulo. */}
+          <div className="pestanas" role="group" aria-label="Rol" style={{ marginBottom: 12 }}>
+            {ROLES.filter((r) => r !== 'dueno').map((r) => <button key={r} type="button" aria-pressed={rolPermisos === r} onClick={() => setF({ rol: r })}>{LABEL_ROL[r].split(' ')[0]}</button>)}
+          </div>
           <div className="hoja relleno" style={{ overflowX: 'auto' }}>
-            {ROLES.filter((r) => r !== 'dueno').map((rol) => (
-              <div key={rol} style={{ marginBottom: 24 }}>
-                <h3 style={{ marginBottom: 8 }}>{LABEL_ROL[rol]}</h3>
+            {[rolPermisos].map((rol) => (
+              <div key={rol} style={{ marginBottom: 16 }}>
                 <table className="permisos">
                   <tbody>
                     {MODULOS.map((m) => (
@@ -74,8 +87,8 @@ export function Equipo() {
           </div>
         </section>
       )}
-      {(puede('produccion', 1) || edita) && <PersonalPlanta />}
-      <DatosEmpresa editable={edita} />
+      {ver === 'planta' && <PersonalPlanta />}
+      {ver === 'empresa' && <DatosEmpresa editable={edita} />}
       {editando && <EditarUsuario inicial={editando} onCerrar={() => setEditando(null)} />}
     </div>
   );
