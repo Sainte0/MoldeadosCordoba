@@ -263,7 +263,7 @@ function BarraInferior({ pathname, puede, onMas, onBuscar }: { pathname: string;
     <nav className="barra-inferior" aria-label="Accesos rápidos">
       <NavLink to="/" end className={({ isActive }) => (isActive ? 'activo' : '')}><Home size={22} aria-hidden /><span>Inicio</span></NavLink>
       {tarea && <NavLink to={tarea.a} className={enTarea ? 'activo' : ''}><tarea.icono size={22} aria-hidden /><span>{tarea.corto}</span></NavLink>}
-      <NavLink to="/escanear" className={({ isActive }) => `central${isActive ? ' activo' : ''}`}><span className="disco"><QrCode size={24} aria-hidden /></span><span>Escanear</span></NavLink>
+      <NavLink to="/escanear" className={({ isActive }) => `central${isActive ? ' activo' : ''}`}><span className="disco"><QrCode size={22} aria-hidden /></span><span>Escanear</span></NavLink>
       <button type="button" onClick={onBuscar}><Search size={22} aria-hidden /><span>Buscar</span></button>
       <button type="button" onClick={onMas}><Menu size={22} aria-hidden /><span>Más</span></button>
     </nav>

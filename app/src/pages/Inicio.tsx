@@ -47,8 +47,8 @@ export function Inicio() {
       <AgendaHoy />
 
       <div className="tareas">
-        {TAREAS.filter((t) => puede(t.modulo, 2)).slice(0, 4).map((t, i) => (
-          <Link key={t.a} to={t.a} className={`tarea${i < 2 ? '' : ' clara'}`}>
+        {TAREAS.filter((t) => puede(t.modulo, 2)).slice(0, 4).map((t) => (
+          <Link key={t.a} to={t.a} className="tarea" data-tarea={t.corto}>
             <span className="ico"><t.icono size={24} aria-hidden /></span>
             <span><b>{t.titulo}</b><small>{t.detalle}</small></span>
             <ChevronRight aria-hidden />

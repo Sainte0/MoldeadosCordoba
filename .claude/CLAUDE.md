@@ -34,9 +34,12 @@ en el **mismo VPS que Centrolab y Hassuru**.
   Tablero — más Ajustes (configuración). Lo de adentro va en pestañas del área (`AREAS` en `app/src/App.tsx`).
   **Una función nueva entra en un área existente; nunca se agrega un ítem al menú.** El inicio muestra solo las 4
   tareas más frecuentes del rol.
-- **Sistema visual prolijo:** fondo `#F3F4F6`, superficies blancas con borde fino y sombra mínima, un solo color de
-  acción (azul del logo). Estado activo = fondo suave (pastilla), **nunca rayas de color a un costado**. Pestañas como
-  control segmentado. El navy queda para login y visor 3D.
+- **Estilo Apple (pedido del cliente, 2026-11-11):** moderno y profesional como iOS/iPadOS. Tipografía del sistema
+  (San Francisco), fondo agrupado `#F2F2F7`, listas y tarjetas blancas **sin borde ni sombra** (radio 14), separadores
+  finos con sangría, barras de material translúcido, títulos grandes, botón secundario "tintado" (fondo azul suave),
+  control segmentado de iOS, barra de pestañas de iOS en el iPhone (sin botones flotantes). Un solo color de acción
+  (azul del logo). Estado activo = fondo (pastilla), **nunca rayas de color a un costado**. Todo en la capa "Estilo
+  Apple" al final de `app/src/styles.css`. El navy queda para el login y el visor 3D.
 - **Ayuda:** toda función nueva lleva su guía en `app/src/guias.ts` (y, si es un proceso, su recorrido "Mostrame cómo" en `app/src/recorridos.ts`) (pasos cortos, `pantallas` donde aplica,
   `palabras` con las que la buscaría alguien de planta). Los procedimientos de la fábrica los escribe el cliente
   (tabla `procedimientos`). Todo listado nuevo con datos se suma a `CONJUNTOS` en `backend/src/features/exportar.ts`.
@@ -51,7 +54,7 @@ en el **mismo VPS que Centrolab y Hassuru**.
 - **Instructivos:** cada paso de asistente tiene su ayuda; el dueño la edita ahí mismo con el lápiz (`instructivos`,
   clave `proceso:título del paso`). Todo `<Asistente>` lleva `proceso`.
 - **Marca del cliente:** logo (`app/public/logo.png`) y azul `#004FBC` de moldeadoscordoba.com.ar, azul marino
-  `#0E1A30`, kraft `#A87B45` para material/stock, amarillo `#F2C230` para "paso actual / atención". Tipografía Archivo.
+  `#0E1A30`, kraft `#A87B45` para material/stock, amarillo `#F2C230` para "paso actual / atención". Tipografía del sistema (Archivo solo en el login).
 - El maple 3D (`app/src/Maple3D.tsx`) toma el `color_hex` de cada código de maple; sin color = cartón natural.
 - **Identidad propia**, nada de componentes genéricos ni estética "hecha con IA". Componentes de UI propios
   (sin MUI/Bootstrap/shadcn). Usar el skill `frontend-design` al construir pantallas.
