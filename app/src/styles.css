@@ -372,7 +372,7 @@ a.tile-link:hover { border-color: var(--linea-fuerte); }
   .aviso-cliente { grid-template-columns: 1fr; }
   .acciones-aviso .boton.primario { flex: 1; }
 }
-.con-muestra .principal { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.con-muestra .principal { overflow-wrap: anywhere; }
 
 /* Ayuda */
 .guia summary { list-style: none; cursor: pointer; padding: 14px 18px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
@@ -648,3 +648,12 @@ h2 { font-size: 1.2rem; }
   .toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
 }
 @media print { .barra-inferior { display: none !important; } }
+
+/* Aire en el iPhone: el ajuste de densidad dejó filas y tarjetas demasiado juntas. */
+@media (max-width: 760px) {
+  .fila { padding: 12px 14px; gap: 4px 12px; }
+  .fila .chico { line-height: 1.4; }
+  .cifras .cifra { font-size: clamp(1.15rem, 5vw, 1.45rem); }
+  .cifras small { font-size: 0.8rem; line-height: 1.35; }
+  .cabecera { margin-bottom: 14px; }
+}

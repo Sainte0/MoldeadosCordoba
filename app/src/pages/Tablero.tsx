@@ -66,8 +66,10 @@ export function Tablero() {
         <div className="pestanas" role="group" aria-label="Período">
           {PERIODOS.map(([k, l]) => <button key={k} aria-pressed={clave === k} onClick={() => setF({ periodo: k })}>{l}</button>)}
         </div>
-        <BotonExportar que="todo" desde={desde} hasta={hasta} texto="Descargar el período (.zip)" />
-        <button className="boton secundario" onClick={() => setResumen(true)}><MessageCircle size={18} aria-hidden /> Resumen del día</button>
+        <div className="acciones-titulo">
+          <BotonExportar que="todo" desde={desde} hasta={hasta} texto="Descargar (.zip)" />
+          <button className="boton secundario" onClick={() => setResumen(true)}><MessageCircle size={18} aria-hidden /> Resumen del día</button>
+        </div>
       </Cabecera>
       {resumen && <ResumenDelDia onCerrar={() => setResumen(false)} />}
       {isLoading || !t ? <Cargando /> : (

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { aCentavos, formatPesos, LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
@@ -28,8 +28,9 @@ export function Clientes() {
         <div className="hoja filas">
           {data.map((c) => (
             <button key={c.id} className="fila" onClick={() => setEditando(c)}>
-              <div><div className="principal">{c.nombre}</div><div className="chico tenue">{[c.telefono, c.vehiculoHabitual && LABEL_VEHICULO[c.vehiculoHabitual]].filter(Boolean).join(' · ') || 'Sin datos de contacto'}</div></div>
-              <span className="chico tenue">{c.ultimaVenta ? `Última compra ${verFecha(c.ultimaVenta)}` : 'Sin compras'}</span>
+              {/* Todo a la izquierda: con la fecha a la derecha, el nombre quedaba en tres renglones en el iPhone. */}
+              <div><div className="principal">{c.nombre}</div><div className="chico tenue">{[c.ultimaVenta ? `Última compra ${verFecha(c.ultimaVenta)}` : 'Sin compras', c.telefono, c.vehiculoHabitual && LABEL_VEHICULO[c.vehiculoHabitual]].filter(Boolean).join(' · ')}</div></div>
+              <ChevronRight size={18} aria-hidden className="tenue" />
             </button>
           ))}
         </div>
