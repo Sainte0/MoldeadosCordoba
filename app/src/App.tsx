@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { BellRing, CircleHelp, Home, LogOut, Menu, Search, X } from 'lucide-react';
-import { AJUSTES, AREAS, enArea, type Area } from './navegacion';
+import { BellRing, CircleHelp, Home, LogOut, Menu, QrCode, Search, X } from 'lucide-react';
+import { AJUSTES, AREAS, enArea, TAREAS, type Area } from './navegacion';
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
 import { useCola } from './cola';
@@ -34,6 +34,7 @@ const NuevoParte = lazy(() => import('./pages/NuevoParte').then((m) => ({ defaul
 const ParteDetalle = lazy(() => import('./pages/ParteDetalle').then((m) => ({ default: m.ParteDetalle })));
 const Palets = lazy(() => import('./pages/Palets').then((m) => ({ default: m.Palets })));
 const NuevoPalet = lazy(() => import('./pages/NuevoPalet').then((m) => ({ default: m.NuevoPalet })));
+const Escanear = lazy(() => import('./pages/Escanear').then((m) => ({ default: m.Escanear })));
 const PaletDetalle = lazy(() => import('./pages/PaletDetalle').then((m) => ({ default: m.PaletDetalle })));
 const Maples = lazy(() => import('./pages/Maples').then((m) => ({ default: m.Maples })));
 const Despacho = lazy(() => import('./pages/Despacho').then((m) => ({ default: m.Despacho })));
@@ -123,8 +124,7 @@ export function App() {
           <Reloj />
           <BotonAtencion />
           <Campana alAbrir={() => setAsoma(null)} />
-          {/* En el teléfono, arriba solo lo que avisa; el buscador y la ayuda están en el menú. */}
-          <button className="boton icono" onClick={() => setAbierto(true)} aria-label="Abrir menú"><Menu size={26} /></button>
+          {/* En el teléfono, arriba solo lo que avisa; navegar es abajo, al alcance del pulgar (BarraInferior). */}
         </div>
       </div>
       <nav className={`lateral${abierto ? ' abierto' : ''}`} aria-label="Secciones">
@@ -214,6 +214,7 @@ export function App() {
           {/* Sin permiso para cargar, "…/nuevo" no tiene que caer en la ficha de detalle (pediría el registro "nuevo"). */}
           {([['/compras/nueva', 'compras'], ['/ventas/nueva', 'ventas'], ['/pedidos/nuevo', 'ventas'], ['/produccion/nuevo', 'produccion'], ['/palets/nuevo', 'produccion']] as const)
             .filter(([, m]) => !p(m, 2)).map(([r]) => <Route key={r} path={r} element={<Navigate to="/" replace />} />)}
+          <Route path="/escanear" element={<Escanear />} />
           <Route path="/palets/:id" element={<PaletDetalle />} />
           {p('productos') && <Route path="/maples" element={<Maples />} />}
           {p('materias') && <Route path="/materia-prima" element={<Materias />} />}
@@ -230,6 +231,7 @@ export function App() {
         </Routes>
         </Suspense>
       </main>
+      <BarraInferior pathname={pathname} puede={p} onMas={() => setAbierto(true)} onBuscar={() => setBuscando(true)} />
     </div>
   );
 }
@@ -242,6 +244,26 @@ function Pestanas({ path, puede }: { path: string; puede: (m: Modulo) => boolean
   return (
     <nav className="pestanas subnav" aria-label={area!.texto}>
       {visibles.map((t) => <NavLink key={t.a} to={t.a} className={({ isActive }) => (isActive ? 'activa' : '')}>{t.texto}</NavLink>)}
+    </nav>
+  );
+}
+
+/**
+ * iPhone: la navegación abajo, al alcance del pulgar (en planta se usa con una mano). Inicio, la tarea principal del
+ * rol, escanear un palet, buscar y "Más" (el menú completo). En iPad y computadora no aparece: ahí está el menú lateral.
+ * Se esconde dentro de los asistentes, que tienen sus propios botones abajo.
+ */
+function BarraInferior({ pathname, puede, onMas, onBuscar }: { pathname: string; puede: (m: Modulo, n?: 1 | 2 | 3) => boolean; onMas: () => void; onBuscar: () => void }) {
+  if (/\/(nuevo|nueva)$|^\/pesaje|^\/dinero\/nuevo/.test(pathname)) return null;
+  const tarea = TAREAS.find((t) => puede(t.modulo, 2));
+  const enTarea = !!tarea && pathname === tarea.a.split('?')[0];
+  return (
+    <nav className="barra-inferior" aria-label="Accesos rápidos">
+      <NavLink to="/" end className={({ isActive }) => (isActive ? 'activo' : '')}><Home size={22} aria-hidden /><span>Inicio</span></NavLink>
+      {tarea && <NavLink to={tarea.a} className={enTarea ? 'activo' : ''}><tarea.icono size={22} aria-hidden /><span>{tarea.corto}</span></NavLink>}
+      <NavLink to="/escanear" className={({ isActive }) => `central${isActive ? ' activo' : ''}`}><span className="disco"><QrCode size={24} aria-hidden /></span><span>Escanear</span></NavLink>
+      <button type="button" onClick={onBuscar}><Search size={22} aria-hidden /><span>Buscar</span></button>
+      <button type="button" onClick={onMas}><Menu size={22} aria-hidden /><span>Más</span></button>
     </nav>
   );
 }

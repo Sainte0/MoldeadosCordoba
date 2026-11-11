@@ -28,7 +28,7 @@ export const GUIAS: Guia[] = [
     palabras: 'login usuario contraseña clave olvidé olvide recuperar codigo mail sesión cerrar',
     pasos: [
       'Entrá con tu usuario y tu contraseña. El sistema recuerda el último usuario que entró en ese teléfono.',
-      'Para salir, abrí el menú y tocá "Salir" abajo de todo.',
+      'Para salir, abrí el menú (en el iPhone, "Más" abajo a la derecha) y tocá "Salir" abajo de todo.',
       '¿Te olvidaste la contraseña? En la pantalla de entrada tocá "¿Olvidaste tu contraseña?", escribí tu usuario o tu mail y te llega un código de 6 números. Con el código elegís una contraseña nueva y entrás.',
       'Para que funcione, tu usuario tiene que tener un mail cargado (Ajustes › Equipo y permisos). Si no tiene, quien administra el sistema te puede poner una contraseña nueva desde ahí.',
       'La sesión dura una semana y se renueva sola cada vez que abrís el sistema: si lo usás seguido, no te vuelve a pedir la contraseña.',
@@ -49,7 +49,7 @@ export const GUIAS: Guia[] = [
     id: 'buscar', area: 'Primeros pasos', titulo: 'Buscar cualquier cosa', pantallas: ['/'],
     palabras: 'buscar buscador encontrar lupa atajo comando cliente remito numero',
     pasos: [
-      'Tocá "Buscar" arriba de todo en el menú (en el celular, abrí el menú con las tres rayitas). En la computadora también abre con ⌘K o Ctrl+K.',
+      'En el iPhone tocá "Buscar" en la barra de abajo. En el iPad y la computadora está arriba de todo en el menú, y también abre con ⌘K o Ctrl+K.',
       'Escribí lo que necesitás: una sección ("caja chica"), algo que querés hacer ("cargar gasto"), un cliente, un proveedor o un número de remito, ticket, palet o parte.',
       'Elegí el resultado y te lleva directo. Con el teclado: flechas para moverte y Enter para abrir.',
       'Cada listado tiene además su propio buscador arriba: busca sin importar acentos y también por número.',
@@ -165,10 +165,10 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
-    id: 'qr', area: 'Planta', titulo: 'Ver la historia de un palet escaneando su QR', pantallas: ['/palets/'],
-    palabras: 'qr escanear camara trazabilidad historia lote origen',
+    id: 'qr', area: 'Planta', titulo: 'Ver la historia de un palet escaneando su QR', pantallas: ['/palets/', '/escanear'],
+    palabras: 'qr escanear camara trazabilidad historia lote origen etiqueta',
     pasos: [
-      'Abrí la cámara del iPhone y apuntá a la etiqueta del palet; tocá el aviso que aparece.',
+      'En el iPhone tocá "Escanear" (el botón azul del medio, abajo) y apuntá a la etiqueta del palet. También sirve la cámara del iPhone: tocá el aviso que aparece. Si la etiqueta no se lee, escribí el número del palet.',
       'Ves qué maple es, cuándo y quién lo produjo, con qué máquina, qué materia prima se usó y de qué proveedor vino.',
       'Si ya se vendió, ves a quién, quién lo retiró y en qué vehículo.',
       'Si todavía está en planta, tenés el botón "Despachar este palet".',

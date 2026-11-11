@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ClipboardList, Factory, Layers } from 'lucide-react';
+import { ClipboardList, Factory, Layers, QrCode } from 'lucide-react';
 import { LABEL_VEHICULO, type Vehiculo } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verMomento } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
@@ -23,7 +23,10 @@ export function Palets() {
   return (
     <div className="ancho" style={{ display: 'grid', gap: 18 }}>
       <Cabecera titulo="Stock y palets" bajada="Paquetes de 60 hechos, cuántos ya están en palets y cuántos quedan sueltos.">
-        {puede('produccion', 2) && <Link to="/palets/nuevo" className="boton primario"><Layers size={18} aria-hidden /> Armar palet</Link>}
+        <div className="acciones-titulo">
+          <Link to="/escanear" className="boton secundario"><QrCode size={18} aria-hidden /> Escanear</Link>
+          {puede('produccion', 2) && <Link to="/palets/nuevo" className="boton primario"><Layers size={18} aria-hidden /> Armar palet</Link>}
+        </div>
       </Cabecera>
 
       <StockMaples stock={stock} />

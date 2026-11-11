@@ -7,7 +7,7 @@ import { Camera } from 'lucide-react';
  * se decodifica cada cuadro con jsQR. Necesita HTTPS (o localhost) para que el navegador dé la cámara.
  * Llama a `onCodigo` una vez por código: el mismo QR frente a la cámara no se repite hasta pasado un rato.
  */
-export function Escaner({ onCodigo, mensaje }: { onCodigo: (texto: string) => void; mensaje: string }) {
+export function Escaner({ onCodigo, mensaje, alternativa = 'elegí los palets de la lista' }: { onCodigo: (texto: string) => void; mensaje: string; alternativa?: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [leyo, setLeyo] = useState(false);
@@ -54,7 +54,7 @@ export function Escaner({ onCodigo, mensaje }: { onCodigo: (texto: string) => vo
         }
         raf = requestAnimationFrame(leer);
       })
-      .catch(() => setError('No pudimos usar la cámara. Revisá que el navegador tenga permiso (en el iPhone: Ajustes, Safari, Cámara) o elegí los palets de la lista.'));
+      .catch(() => setError(`No pudimos usar la cámara. Revisá que el navegador tenga permiso (en el iPhone: Ajustes, Safari, Cámara) o ${alternativa}.`));
     if (!navigator.mediaDevices) setError('Este navegador no deja usar la cámara. Elegí los palets de la lista.');
 
     return () => {

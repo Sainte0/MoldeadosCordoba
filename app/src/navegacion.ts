@@ -8,7 +8,7 @@ import type { Modulo } from '@moldeados/shared/base';
 export interface Pestana { a: string; texto: string; modulo: Modulo }
 export interface Area { texto: string; icono: typeof Home; pestanas: Pestana[]; /** rutas que también pertenecen al área */ tambien?: string[] }
 export const AREAS: Area[] = [
-  { texto: 'Planta', icono: Factory, pestanas: [
+  { texto: 'Planta', icono: Factory, tambien: ['/escanear'], pestanas: [
     { a: '/produccion', texto: 'Producción', modulo: 'produccion' },
     { a: '/palets', texto: 'Stock y palets', modulo: 'produccion' },
     { a: '/materia-prima', texto: 'Materia prima', modulo: 'materias' },
@@ -41,14 +41,14 @@ export const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
 export const enArea = (area: Area, path: string) => [...area.pestanas.map((x) => x.a), ...(area.tambien ?? [])].some((r) => path === r || path.startsWith(r + '/'));
 
 // Las 4 primeras que el rol puede hacer, en orden de frecuencia en planta. El resto está en su área del menú.
-export const TAREAS: { a: string; titulo: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
-  { a: '/ventas/nueva', titulo: 'Despachar palets', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
-  { a: '/produccion/nuevo', titulo: 'Parte de producción', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
-  { a: '/palets/nuevo', titulo: 'Armar palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
-  { a: '/pesaje', titulo: 'Pesaje de cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
-  { a: '/dinero/nuevo?tipo=cobro', titulo: 'Pago a cuenta', detalle: 'Un cliente paga: efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
-  { a: '/egresos/nuevo', titulo: 'Cargar egreso', detalle: 'Pagado o pendiente, con foto del comprobante', icono: Coins, modulo: 'gastos' },
-  { a: '/pedidos/nuevo', titulo: 'Nuevo pedido', detalle: 'Un cliente encarga maples', icono: ClipboardList, modulo: 'ventas' },
-  { a: '/compras/nueva', titulo: 'Compra de insumos', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
+export const TAREAS: { a: string; titulo: string; corto: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
+  { a: '/ventas/nueva', titulo: 'Despachar palets', corto: 'Despachar', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
+  { a: '/produccion/nuevo', titulo: 'Parte de producción', corto: 'Parte', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
+  { a: '/palets/nuevo', titulo: 'Armar palet', corto: 'Palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
+  { a: '/pesaje', titulo: 'Pesaje de cartón', corto: 'Pesaje', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
+  { a: '/dinero/nuevo?tipo=cobro', titulo: 'Pago a cuenta', corto: 'Cobro', detalle: 'Un cliente paga: efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
+  { a: '/egresos/nuevo', titulo: 'Cargar egreso', corto: 'Egreso', detalle: 'Pagado o pendiente, con foto del comprobante', icono: Coins, modulo: 'gastos' },
+  { a: '/pedidos/nuevo', titulo: 'Nuevo pedido', corto: 'Pedido', detalle: 'Un cliente encarga maples', icono: ClipboardList, modulo: 'ventas' },
+  { a: '/compras/nueva', titulo: 'Compra de insumos', corto: 'Compra', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
 ];
 

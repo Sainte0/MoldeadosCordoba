@@ -10,10 +10,10 @@ export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
     { ruta: '/', en: '.tareas', texto: 'Las tareas que más hacés. Tocá una y el sistema te lleva paso a paso, una pregunta por pantalla.' },
     { en: '[data-guia="atencion"]', texto: 'Atención: lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos). El número en rojo es lo urgente; adentro, cada cosa trae su botón para resolverla.' },
     { en: '.campana', texto: 'La campana: recordatorios de la agenda, lo que te agendaron y los pedidos nuevos. El número rojo es lo que no leíste.' },
-    { en: '.lateral, .barra-movil [aria-label="Abrir menú"]', texto: 'El menú: Planta, Ventas, Compras, Plata y Tablero (adentro de cada uno, pestañas). Arriba de todo, "Buscar": un cliente, un n.º de remito o "cómo cargo un egreso". Abajo, Ajustes y Ayuda, con las guías de la pantalla donde estás.' },
+    { en: '.barra-inferior, .lateral', texto: 'Para moverte: en el iPhone, la barra de abajo (Inicio, tu tarea principal, Escanear un palet, Buscar y "Más" con todas las secciones). En el iPad y la computadora, el menú del costado: Planta, Ventas, Compras, Plata y Tablero, con Buscar arriba y Ajustes y Ayuda abajo.' },
   ],
   buscar: [
-    { en: '.abrir-buscador, .barra-movil [aria-label="Abrir menú"]', texto: 'Buscar está arriba de todo en el menú (en el celular, abrí el menú con las tres rayitas; en la computadora, también ⌘K). Escribí lo que buscás: secciones, acciones, guías, clientes, remitos, palets. Sin acentos también funciona.' },
+    { en: '.abrir-buscador, .barra-inferior button:first-of-type', texto: 'Buscar: en el iPhone está abajo; en el iPad y la computadora, arriba de todo en el menú (también ⌘K). Escribí lo que buscás: secciones, acciones, guías, clientes, remitos, palets. Sin acentos también funciona.' },
   ],
   avisos: [
     { en: '.campana', texto: 'Tocá la campana para ver tus avisos. Adentro, "Activar avisos" hace que te lleguen al teléfono aunque la app esté cerrada.' },
