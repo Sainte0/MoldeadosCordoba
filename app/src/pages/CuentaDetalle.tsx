@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDownLeft, ArrowLeft, ArrowUpRight, Ban } from 'lucide-react';
 import { formatPesos, LABEL_MEDIO, type Medio } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha } from '../api';
-import { Aviso, Campo, Cargando, Dialogo } from '../ui';
+import { Aviso, Campo, Cargando, Dialogo, Volver } from '../ui';
 
 interface Mov {
   id: string; numero: number; fecha: string; monto: number; tipo: string; signo: 1 | -1; saldo: number; anuladoAt: string | null;
@@ -39,7 +39,7 @@ export function CuentaDetalle() {
 
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Link to="/cuentas" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Saldos</Link>
+      <Volver a="/cuentas" texto="Saldos" />
       <header>
         <h1>{data.nombre}</h1>
         <p className="tenue" style={{ marginTop: 6 }}>Cuenta corriente de {esCliente ? 'cliente' : 'proveedor'}</p>

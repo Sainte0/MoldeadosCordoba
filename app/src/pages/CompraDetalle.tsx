@@ -5,7 +5,7 @@ import { ArrowLeft, Ban, CheckCircle2, Printer, Scale, ShoppingCart } from 'luci
 import { formatCantidad, formatIva, formatPesos, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useUrlConNumero } from '../filtros';
-import { Aviso, Campo, Cargando, Dialogo } from '../ui';
+import { Aviso, Campo, Cargando, Dialogo, Volver } from '../ui';
 import { useEmpresa } from '../datos';
 import { Estado } from '../Estado';
 
@@ -46,7 +46,7 @@ export function CompraDetalle() {
 
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Link to="/compras" className="boton fantasma no-imprimir" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Compras</Link>
+      <Volver a="/compras" texto="Compras" className="no-imprimir" />
       {params.get('nuevo') && !c.anuladaAt && (
         <div className="aviso ok no-imprimir" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <CheckCircle2 size={22} aria-hidden /> {pesaje ? 'Ticket guardado. El cartón ya está sumado al stock.' : 'Compra guardada. Ya está sumada al stock.'}

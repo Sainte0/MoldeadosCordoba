@@ -2,7 +2,9 @@ import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { ArrowLeft, Check, Info, Pencil, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, useSesion } from './api';
+import { nombreDeRuta, rutaAnterior } from './navegacion';
 
 // Componentes propios. Sin librerías de UI: todo lo de acá se pensó para tocar con el dedo en planta.
 
@@ -248,4 +250,16 @@ function Instructivo({ clave, original }: { clave: string; original: string }) {
       {puede('usuarios', 3) && <button type="button" className="boton icono" aria-label="Editar instructivo" onClick={() => setEditando(actual)} style={{ minHeight: 32, width: 32 }}><Pencil size={16} /></button>}
     </div>
   );
+}
+
+/**
+ * Volver como en iOS: a la pantalla de la que se vino, con su nombre ("← Cuenta"). Si se entró directo (QR, link) o
+ * se venía de una carga ya guardada, a la sección (`a`, `texto`).
+ */
+export function Volver({ a, texto, className = '' }: { a: string; texto: string; className?: string }) {
+  const ir = useNavigate();
+  const anterior = rutaAnterior();
+  const clase = `boton fantasma volver ${className}`.trim();
+  if (anterior) return <button type="button" className={clase} onClick={() => ir(-1)}><ArrowLeft size={18} aria-hidden /> {nombreDeRuta(anterior)}</button>;
+  return <Link to={a} className={clase}><ArrowLeft size={18} aria-hidden /> {texto}</Link>;
 }

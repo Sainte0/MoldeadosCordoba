@@ -9,7 +9,7 @@ import { Firma } from '../Firma';
 import { useEmpresa } from '../datos';
 import { Muestra } from '../MapleVista';
 import { Estado } from '../Estado';
-import { Aviso, Campo, Cargando, Dialogo } from '../ui';
+import { Aviso, Campo, Cargando, Dialogo, Volver } from '../ui';
 
 interface Detalle {
   id: string; numero: number; fecha: string; conFactura: boolean; nroFactura: string | null; ivaBp: number; neto: number; iva: number; total: number;
@@ -59,7 +59,7 @@ export function VentaDetalle() {
 
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Link to="/ventas" className="boton fantasma no-imprimir" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Ventas</Link>
+      <Volver a="/ventas" texto="Ventas" className="no-imprimir" />
       {params.get('nuevo') && !v.anuladoAt && <div className="aviso ok no-imprimir" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Despacho confirmado: la carga quedó vendida{v.firmaId ? ' y el remito firmado' : '. Imprimí el remito para que lo firme quien retira'}.</div>}
 
       <header className="cabeza-detalle no-imprimir">

@@ -8,7 +8,7 @@ import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useUrlConNumero } from '../filtros';
 import { useEmpresa } from '../datos';
 import { MapleVista, Muestra } from '../MapleVista';
-import { Aviso, Campo, Cargando, Dialogo } from '../ui';
+import { Aviso, Campo, Cargando, Dialogo, Volver } from '../ui';
 import { Estado } from '../Estado';
 
 interface Traza {
@@ -89,7 +89,7 @@ export function PaletDetalle() {
     <div className="columna solo-etiqueta detalle-palet" style={{ display: 'grid', gap: 20 }}>
       {/* Tamaño de hoja solo para esta página: el ticket y el remito imprimen en A4. */}
       <style>{'@media print { @page { size: 100mm 150mm; margin: 4mm; } }'}</style>
-      <Link to="/palets" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Stock y palets</Link>
+      <Volver a="/palets" texto="Stock y palets" />
       {recien && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Palet armado. Imprimí la etiqueta y pegala en el film.</div>}
       {p.anuladoAt && <Aviso>Palet desarmado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
 

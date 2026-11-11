@@ -807,3 +807,5 @@ a.fila:active, button.fila:active { background: #ececf0; }
   /* Montos de las tarjetas sin partirse: tamaño según el ancho del teléfono. */
   .cifras .cifra { white-space: nowrap; overflow-wrap: normal; font-size: clamp(0.98rem, 4.2vw, 1.35rem); }
 }
+.volver { justify-self: start; padding-left: 4px; color: var(--accion); font-weight: 500; }
+.volver:hover { color: var(--accion-hover); }

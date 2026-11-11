@@ -52,3 +52,32 @@ export const TAREAS: { a: string; titulo: string; corto: string; detalle: string
   { a: '/compras/nueva', titulo: 'Compra de insumos', corto: 'Compra', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
 ];
 
+
+// ---------- Volver a donde estaba ----------
+// Cada entrada del historial del navegador tiene un índice (history.state.idx, de react-router). Se guarda qué
+// pantalla hubo en cada índice para que "Volver" sepa adónde va y lo diga ("← Cuenta", "← Inicio").
+const CLAVE_HIST = 'moldeados:historial';
+const leerHist = (): Record<string, string> => { try { return JSON.parse(sessionStorage.getItem(CLAVE_HIST) ?? '{}') as Record<string, string>; } catch { return {}; } };
+const indice = (): number => (window.history.state as { idx?: number } | null)?.idx ?? 0;
+export function registrarRuta(ruta: string): void {
+  try { sessionStorage.setItem(CLAVE_HIST, JSON.stringify({ ...leerHist(), [indice()]: ruta })); } catch { /* sin almacenamiento: Volver usa la sección */ }
+}
+/** La pantalla anterior dentro de la app, o null si se entró directo (QR, link) o venía de una carga ya terminada. */
+export function rutaAnterior(): string | null {
+  const i = indice();
+  if (i <= 0) return null;
+  const r = leerHist()[i - 1];
+  return r && !/\/(nuevo|nueva)(\?|$)|^\/pesaje|^\/dinero\/nuevo/.test(r) ? r : null;
+}
+const DETALLES: [RegExp, string][] = [
+  [/^\/ventas\/[^/]+/, 'Venta'], [/^\/compras\/[^/]+/, 'Compra'], [/^\/palets\/[^/]+/, 'Palet'], [/^\/produccion\/[^/]+/, 'Parte'],
+  [/^\/pedidos\/[^/]+/, 'Pedido'], [/^\/cuentas\/[^/]+/, 'Cuenta'], [/^\/agenda/, 'Agenda'], [/^\/ayuda/, 'Ayuda'], [/^\/escanear/, 'Escanear'],
+];
+/** Nombre corto de una pantalla, para el botón Volver. */
+export function nombreDeRuta(ruta: string): string {
+  const path = ruta.split('?')[0]!;
+  if (path === '/') return 'Inicio';
+  const pestana = [...AREAS, AJUSTES].flatMap((a) => a.pestanas).find((p) => p.a === path);
+  if (pestana) return pestana.texto;
+  return DETALLES.find(([re]) => re.test(path))?.[1] ?? 'Volver';
+}

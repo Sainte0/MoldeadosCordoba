@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BellRing, CircleHelp, Home, LogOut, Menu, QrCode, Search, X } from 'lucide-react';
-import { AJUSTES, AREAS, enArea, TAREAS, type Area } from './navegacion';
+import { AJUSTES, AREAS, enArea, registrarRuta, TAREAS, type Area } from './navegacion';
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
 import { useCola } from './cola';
@@ -95,6 +95,8 @@ export function App() {
     return () => window.removeEventListener('keydown', tecla);
   }, []);
   const location = useLocation();
+  // Para que "Volver" sepa de qué pantalla se vino (ver Volver en ui.tsx).
+  useEffect(() => registrarRuta(location.pathname + location.search), [location.pathname, location.search]);
   const { pathname } = location;
   useEffect(() => setAbierto(false), [pathname]);
   const ir = useNavigate();

@@ -7,7 +7,7 @@ import { api, hoy, nroTicket, useSesion, verFecha } from '../api';
 import { useStockMaples, type Cliente } from '../datos';
 import { useDemorado, useFiltros, useUrlConNumero } from '../filtros';
 import { Muestra } from '../MapleVista';
-import { Asistente, Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
+import { Asistente, Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones, Volver, type Paso } from '../ui';
 import { ElegirCliente, asegurarCliente } from './ElegirCliente';
 
 interface PedidoFila { id: string; numero: number; estado: 'abierto' | 'entregado' | 'cancelado'; fechaEntrega: string | null; vehiculo: Vehiculo | null; clienteId: string; cliente: string; paquetes: number; despachado: number; resumen: string }
@@ -172,7 +172,7 @@ export function PedidoDetalleVista() {
   };
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Link to="/pedidos" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Pedidos</Link>
+      <Volver a="/pedidos" texto="Pedidos" />
       {params.get('nuevo') && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Pedido guardado.</div>}
       <header>
         <h1>{p.cliente}</h1>

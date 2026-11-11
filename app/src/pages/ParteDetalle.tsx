@@ -7,7 +7,7 @@ import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useUrlConNumero } from '../filtros';
 import { MapleVista, Muestra } from '../MapleVista';
 import { Estado } from '../Estado';
-import { Aviso, Campo, Cargando, Dialogo } from '../ui';
+import { Aviso, Campo, Cargando, Dialogo, Volver } from '../ui';
 
 interface Detalle {
   id: string; numero: number; fecha: string; turno: Turno; minutos: number; pulpeadas: number; paquetes: number; maplesPorHora: number; maplesPorPaquete: number;
@@ -45,7 +45,7 @@ export function ParteDetalle() {
   const rinde = esperado ? Math.round((p.paquetes / esperado) * 100) : null;
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
-      <Link to="/produccion" className="boton fantasma" style={{ justifySelf: 'start' }}><ArrowLeft size={18} aria-hidden /> Producción</Link>
+      <Volver a="/produccion" texto="Producción" />
       {params.get('nuevo') && !p.anuladoAt && (
         <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Parte guardado. Los paquetes ya están en stock y la materia prima descontada.</div>
       )}
