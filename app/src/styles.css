@@ -686,7 +686,7 @@ h2 { font-size: 1.2rem; }
   letter-spacing: -0.01em;
 }
 /* San Francisco no lleva el ancho condensado de la tipografía anterior. */
-body *:not(.login, .login *) { font-variation-settings: normal !important; }
+body * { font-variation-settings: normal !important; }
 h1, h2, h3, .titulo { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif; }
 h1 { font-size: clamp(1.75rem, 3vw, 2.1rem); font-weight: 700; letter-spacing: -0.025em; line-height: 1.1; }
 h2 { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
@@ -797,7 +797,6 @@ a.fila:active, button.fila:active { background: #ececf0; }
   .barra-inferior .central .disco { width: auto; height: auto; margin: 0; border-radius: 0; background: none; color: inherit; box-shadow: none; display: block; }
   .barra-inferior .central.activo { color: var(--accion); }
 }
-.login .nombre { font-family: 'Archivo', system-ui, sans-serif; }
 .marca-trazo { display: none; }
 .barra-inferior .central .disco { display: contents !important; }
 .fila, button.fila { padding-left: 16px; padding-right: 16px; }
@@ -828,3 +827,35 @@ a.fila:active, button.fila:active { background: #ececf0; }
 .nav-link[data-area='Plata'] { --accion: #1d7a45; }
 .nav-link[data-area='Tablero'] { --accion: #4f46c8; }
 .nav-link[data-area='Ajustes'] { --accion: #4f5866; }
+
+/* ---------- Login con el mismo estilo ----------
+   Fondo agrupado gris claro; la foto de la planta con el maple 3D como tarjeta redondeada (no de borde a borde);
+   el nombre con la tipografía del sistema; el formulario en una tarjeta blanca. */
+.login { background: var(--fondo); padding: 16px; gap: 16px; }
+.login-escena {
+  border-radius: 28px; padding: 28px clamp(24px, 3vw, 40px) 32px;
+  background:
+    linear-gradient(to top, rgba(10, 18, 32, 0.92) 0%, rgba(10, 18, 32, 0.6) 38%, rgba(10, 18, 32, 0.12) 75%, rgba(10, 18, 32, 0.05) 100%),
+    url('/fachada-1600.webp') 30% 35% / cover no-repeat, #1c1c1e;
+}
+.login-marca { color: rgba(255, 255, 255, 0.85); font-weight: 500; }
+.login-marca img { border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); }
+.login-escena .nombre { font-weight: 700; font-size: clamp(2.6rem, 4.6vw, 4.2rem); line-height: 1; letter-spacing: -0.035em; }
+.login-escena .nombre span { display: block; color: #fff; }
+.login-escena .bajada { color: rgba(255, 255, 255, 0.78); }
+.login-maple-etiqueta { background: rgba(255, 255, 255, 0.16) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 0 !important; }
+.login-form { background: transparent; }
+.login-form form { background: #fff; border-radius: 22px; padding: 32px 28px; width: min(420px, 100%); }
+.login-form h1 { font-size: 1.9rem; letter-spacing: -0.03em; }
+.login-form .enlace { color: var(--accion); text-decoration: none; font-weight: 500; }
+.login-contacto { color: var(--tinta-3); }
+@media (max-width: 900px) {
+  .login { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); gap: 12px; }
+  .login-escena { border-radius: 22px; padding: 18px 20px 20px; min-height: clamp(240px, 32vh, 420px);
+    background:
+      linear-gradient(to top, rgba(10, 18, 32, 0.9) 0%, rgba(10, 18, 32, 0.5) 50%, rgba(10, 18, 32, 0.1) 100%),
+      url('/fachada-900.webp') 25% 30% / cover no-repeat, #1c1c1e; }
+  .login-escena .nombre { font-size: clamp(2rem, 8vw, 2.8rem); }
+  .login-form { padding: 0; }
+  .login-form form { padding: 24px 20px; border-radius: 20px; width: 100%; max-width: 520px; }
+}

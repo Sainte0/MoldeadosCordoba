@@ -39,7 +39,7 @@ en el **mismo VPS que Centrolab y Hassuru**.
   finos con sangría, barras de material translúcido, títulos grandes, botón secundario "tintado" (fondo azul suave),
   control segmentado de iOS, barra de pestañas de iOS en el iPhone (sin botones flotantes). Un solo color de acción
   (azul del logo). Estado activo = fondo (pastilla), **nunca rayas de color a un costado**. Todo en la capa "Estilo
-  Apple" al final de `app/src/styles.css`. El navy queda para el login y el visor 3D.
+  Apple" al final de `app/src/styles.css`. El login usa el mismo estilo: la foto de la planta con el maple 3D como tarjeta redondeada y el formulario en una tarjeta blanca.
 - **Ayuda:** toda función nueva lleva su guía en `app/src/guias.ts` (y, si es un proceso, su recorrido "Mostrame cómo" en `app/src/recorridos.ts`) (pasos cortos, `pantallas` donde aplica,
   `palabras` con las que la buscaría alguien de planta). Los procedimientos de la fábrica los escribe el cliente
   (tabla `procedimientos`). Todo listado nuevo con datos se suma a `CONJUNTOS` en `backend/src/features/exportar.ts`.
@@ -54,7 +54,7 @@ en el **mismo VPS que Centrolab y Hassuru**.
 - **Instructivos:** cada paso de asistente tiene su ayuda; el dueño la edita ahí mismo con el lápiz (`instructivos`,
   clave `proceso:título del paso`). Todo `<Asistente>` lleva `proceso`.
 - **Marca del cliente:** logo (`app/public/logo.png`) y azul `#004FBC` de moldeadoscordoba.com.ar, azul marino
-  `#0E1A30`, kraft `#A87B45` para material/stock, amarillo `#F2C230` para "paso actual / atención". Tipografía del sistema (Archivo solo en el login).
+  `#0E1A30`, kraft `#A87B45` para material/stock, amarillo `#F2C230` para "paso actual / atención". Tipografía del sistema (San Francisco; Inter de respaldo fuera de Apple).
 - El maple 3D (`app/src/Maple3D.tsx`) toma el `color_hex` de cada código de maple; sin color = cartón natural.
 - **Identidad propia**, nada de componentes genéricos ni estética "hecha con IA". Componentes de UI propios
   (sin MUI/Bootstrap/shadcn). Usar el skill `frontend-design` al construir pantallas.
