@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
-import { ArrowLeft, Check, Info, Pencil, Search, SlidersHorizontal } from 'lucide-react';
+import { ArrowLeft, Check, Info, Pencil, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, useSesion } from './api';
 
@@ -108,6 +108,9 @@ export function Asistente({ proceso, pasos, onTerminar, textoTerminar, guardando
   // pantalla), pasa solo al siguiente. Se espera a que el paso esté listo porque el toque llega antes que la elección.
   const [esperando, setEsperando] = useState(false);
   useEffect(() => setEsperando(false), [i]);
+  // Salir desde cualquier paso (antes había que volver de a uno). Si ya avanzó, pregunta: lo cargado se pierde.
+  const [confirmarSalir, setConfirmarSalir] = useState(false);
+  const salir = () => (i === 0 ? onCancelar() : setConfirmarSalir(true));
   useEffect(() => {
     if (!esperando || !paso.rapido || paso.listo !== true || ultimo) return;
     const t = setTimeout(() => { setEsperando(false); setI((x) => x + 1); }, 200); // un instante para que se vea la opción marcada
@@ -122,7 +125,19 @@ export function Asistente({ proceso, pasos, onTerminar, textoTerminar, guardando
 
   return (
     <form className="asistente columna" onSubmit={(e) => { e.preventDefault(); seguir(); }}>
-      <Alveolos total={pasos.length} actual={i} />
+      <div className="asistente-cabeza">
+        <Alveolos total={pasos.length} actual={i} />
+        <button type="button" className="boton fantasma salir-asistente" onClick={salir} aria-label="Salir de la carga"><X size={18} aria-hidden /> Salir</button>
+      </div>
+      {confirmarSalir && (
+        <Dialogo titulo="¿Salir sin guardar?" onCerrar={() => setConfirmarSalir(false)}>
+          <p>Lo que cargaste en estos pasos no se guarda.</p>
+          <div className="acciones">
+            <button type="button" className="boton secundario" onClick={() => setConfirmarSalir(false)}>Seguir cargando</button>
+            <button type="button" className="boton peligro" onClick={() => { setConfirmarSalir(false); onCancelar(); }}>Salir sin guardar</button>
+          </div>
+        </Dialogo>
+      )}
       <div className="paso-cuerpo" key={i} onClickCapture={(e) => { if ((e.target as HTMLElement).closest('.opcion, [data-elige]')) setEsperando(true); }}>
         <h1 ref={titulo} tabIndex={-1}>{paso.titulo}</h1>
         <Instructivo clave={`${proceso}:${paso.titulo}`} original={paso.ayuda} />

@@ -69,6 +69,7 @@ export const GUIAS: Guia[] = [
     palabras: 'inicio tareas avisos para vender hay que comprar',
     pasos: [
       'Arriba están las tareas que más hacés según tu rol: tocá una y el sistema te guía paso a paso.',
+      'En cualquier carga paso a paso, "Salir" (arriba a la derecha) te saca desde el paso en que estés, sin guardar. Te pregunta antes, para que no se pierda nada por un toque sin querer.',
       'Arriba a la derecha: el triángulo de Atención (lo urgente: stock agotado, pedidos atrasados, cheques, vencimientos; el número rojo cuenta lo urgente) y la campana con tus avisos.',
       'Cuando a un cliente le toca comprar (o dejó de comprar) te llega una notificación a la campana, una vez por día a partir de las 9. Tocala: te lleva a Ventas › Clientes, donde "Para vender" tiene el botón de WhatsApp con el mensaje armado.',
       '"Hay que comprar" avisa qué materia prima se acaba pronto según lo que se viene usando.',

@@ -657,3 +657,6 @@ h2 { font-size: 1.2rem; }
   .cifras small { font-size: 0.8rem; line-height: 1.35; }
   .cabecera { margin-bottom: 14px; }
 }
+.asistente-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.asistente-cabeza .alveolos { min-width: 0; }
+.salir-asistente { flex: none; min-height: 40px; }
