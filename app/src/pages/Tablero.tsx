@@ -61,8 +61,8 @@ export function Tablero() {
   const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : 0);
 
   return (
-    <div className="ancho" style={{ display: 'grid', gap: 24 }}>
-      <Cabecera titulo="Tablero" bajada={`Del ${verFecha(desde)} al ${verFecha(hasta)}`}>
+    <div className="ancho" style={{ display: 'grid', gap: 16 }}>
+      <Cabecera titulo="Tablero" dato bajada={`Del ${verFecha(desde)} al ${verFecha(hasta)}`}>
         <div className="pestanas" role="group" aria-label="Período">
           {PERIODOS.map(([k, l]) => <button key={k} aria-pressed={clave === k} onClick={() => setF({ periodo: k })}>{l}</button>)}
         </div>

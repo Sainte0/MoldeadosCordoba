@@ -17,7 +17,6 @@ export const AREAS: Area[] = [
     { a: '/ventas', texto: 'Ventas', modulo: 'ventas' },
     { a: '/pedidos', texto: 'Pedidos', modulo: 'ventas' },
     { a: '/clientes', texto: 'Clientes', modulo: 'ventas' },
-    { a: '/precios', texto: 'Precios', modulo: 'ventas' },
   ] },
   { texto: 'Compras', icono: ShoppingCart, tambien: ['/pesaje'], pestanas: [
     { a: '/compras', texto: 'Compras y pesajes', modulo: 'compras' },
@@ -32,6 +31,8 @@ export const AREAS: Area[] = [
 ];
 export const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
   { a: '/maples', texto: 'Maples y máquinas', modulo: 'productos' },
+  // El precio es del producto: va al lado de los maples (el precio especial de un cliente sigue en su ficha).
+  { a: '/precios', texto: 'Precios', modulo: 'ventas' },
   { a: '/equipo', texto: 'Equipo y permisos', modulo: 'usuarios' },
   { a: '/registro', texto: 'Registro de cambios', modulo: 'auditoria' },
   { a: '/importar', texto: 'Importar planillas', modulo: 'tablero' },

@@ -257,10 +257,10 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
-    id: 'precios', area: 'Ventas', titulo: 'Cambiar la lista de precios', pantallas: ['/precios'],
+    id: 'precios', area: 'Ajustes', titulo: 'Cambiar la lista de precios', pantallas: ['/precios'],
     palabras: 'precio lista aumento actualizar maple paquete',
     pasos: [
-      'En Ventas › Precios tocá el precio del maple que querés cambiar.',
+      'En Ajustes › Precios (al lado de Maples y máquinas) tocá el precio del maple que querés cambiar.',
       'Escribí el precio por maple sin IVA y tocá "Guardar". Debajo ves cuánto queda el paquete.',
       'Los clientes con precio especial siguen con el suyo.',
     ],
@@ -269,7 +269,7 @@ export const GUIAS: Guia[] = [
     id: 'cobro', area: 'Plata', titulo: 'Pago a cuenta de un cliente (cobro)', pantallas: ['/cuentas', '/dinero'],
     palabras: 'cobrar cobro pago a cuenta cliente efectivo transferencia mercado pago echeq cheque deuda saldo',
     pasos: [
-      'Desde Inicio "Pago a cuenta", o en Plata › Saldos, "Pago a cuenta de un cliente". La lista pone primero a los que deben.',
+      'Desde Inicio "Pago a cuenta", o en Plata › Saldos, "Pago a cuenta". La lista pone primero a los que deben.',
       'Elegí el cliente y anotá el monto. Podés tocar "Todo el saldo".',
       'Elegí cómo pagó: efectivo, transferencia, Mercado Pago, e-Cheq o cheque.',
       'Si es cheque o e-Cheq: banco, número y fecha de cobro. Así aparece en la lista de cheques.',
@@ -280,7 +280,7 @@ export const GUIAS: Guia[] = [
     id: 'pago', area: 'Plata', titulo: 'Registrar un pago a un proveedor', pantallas: ['/cuentas', '/dinero'],
     palabras: 'pagar pago proveedor transferencia cheque deuda',
     pasos: [
-      'En Plata › Saldos tocá "Registrar pago", o entrá al saldo del proveedor.',
+      'En Plata › Saldos tocá "Pagar a proveedor", o entrá al saldo del proveedor.',
       'Elegí el proveedor, el monto y el medio. Si es cheque, completá banco, número y fecha.',
       'Guardá: se descuenta de lo que le debemos.',
     ],
@@ -293,7 +293,7 @@ export const GUIAS: Guia[] = [
       'Tocá uno para ver todos los movimientos con el saldo después de cada uno.',
       'Si un cheque vino rechazado, anulá ese cobro con el motivo: vuelve a sumar a la deuda.',
       'Abajo están los cheques: los que te dieron los clientes quedan "en cartera" hasta que los depositás (botón "Depositado") o se los das a un proveedor.',
-      'Para pagarle a un proveedor con un cheque de un cliente: Registrar pago › Cheque de terceros › elegí el cheque. Si después vuelve rechazado, anulá ese pago y el cheque vuelve a la cartera.',
+      'Para pagarle a un proveedor con un cheque de un cliente: Pagar a proveedor › Cheque de terceros › elegí el cheque. Si después vuelve rechazado, anulá ese pago y el cheque vuelve a la cartera.',
     ],
   },
   {

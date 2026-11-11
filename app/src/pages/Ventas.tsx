@@ -5,7 +5,7 @@ import { formatPesos, plural } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { BotonExportar } from './Exportar';
-import { Buscador, Cabecera, Cargando, Entrada } from '../ui';
+import { Buscador, Cabecera, Cargando, Entrada, MasFiltros } from '../ui';
 
 interface VentaFila { id: string; numero: number; fecha: string; total: number; conFactura: boolean; retira: string | null; anuladoAt: string | null; cliente: string; palets: number; maples: number; segunda: boolean; cobro: { cobrado: number; debe: number } | null; firmado: boolean }
 
@@ -27,10 +27,12 @@ export function Ventas() {
         <button aria-pressed={f.cobro === 'pendientes'} onClick={() => setF({ cobro: 'pendientes' })}>Pendientes de cobro</button>
       </div>
       <div style={{ marginBottom: 12 }}><Buscador placeholder="Buscar cliente, n.º de remito, quién retiró o patente" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar ventas" /></div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-        <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value })} /></label>
-        <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value })} /></label>
-        <div style={{ alignSelf: 'end' }}><BotonExportar que="ventas" desde={desde} hasta={hasta} /></div>
+      <div style={{ marginBottom: 12 }}>
+        <MasFiltros activos={[desde, hasta].filter(Boolean).length}>
+          <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value })} /></label>
+          <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value })} /></label>
+          <div style={{ alignSelf: 'end' }}><BotonExportar que="ventas" desde={desde} hasta={hasta} /></div>
+        </MasFiltros>
       </div>
       {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{f.cobro === 'pendientes' ? 'No hay ventas pendientes de cobro.' : `No hay ventas ${desde || hasta || q ? 'con estos filtros' : 'todavía'}.`}</p></div> : (
         <>

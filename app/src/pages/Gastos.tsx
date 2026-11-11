@@ -8,7 +8,7 @@ import { useDemorado, useFiltros } from '../filtros';
 import { useBancos, useCategoriasGasto } from '../datos';
 import { Estado } from '../Estado';
 import { BotonExportar } from './Exportar';
-import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
+import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, MasFiltros, Opciones } from '../ui';
 
 interface GastoFila { id: string; numero: number; fecha: string; descripcion: string; monto: number; medio: MedioGasto | null; conFactura: boolean; beneficiario: string | null; aPagar: boolean; vencimiento: string | null; montoUsd: number | null; comprobanteId: string | null; anuladoAt: string | null; categoria: string; empleado: string | null; cargadoPor: string }
 
@@ -40,17 +40,18 @@ export function Gastos() {
         <button aria-pressed={pendientes} onClick={() => setF({ estado: 'pendientes' })}>Pendientes de pago</button>
       </div>
 
-      <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+      <div style={{ display: 'grid', gap: 10 }}>
         <Buscador placeholder="Buscar concepto, proveedor / beneficiario, categoría o comprobante" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar egresos" />
-        {!pendientes && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
-          <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value })} /></label>
-          <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value })} /></label>
-          <div style={{ alignSelf: 'end' }}><BotonExportar que="gastos" desde={desde} hasta={hasta} /></div>
-        </div>}
-        <Campo etiqueta="Categoría"><select className="entrada" value={categoriaId} onChange={(e) => setF({ categoria: e.target.value })}><option value="">Todas</option>{(categorias ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Campo>
+        {/* Por defecto muestra el mes en curso: eso no cuenta como filtro puesto. */}
+        <MasFiltros activos={[desde !== inicioMes() && desde, hasta, categoriaId].filter(Boolean).length} resumen={pendientes ? undefined : desde === inicioMes() && !hasta ? 'Este mes' : !desde && !hasta ? 'Todos' : undefined}>
+          {!pendientes && <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value })} /></label>}
+          {!pendientes && <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value })} /></label>}
+          <Campo etiqueta="Categoría"><select className="entrada" value={categoriaId} onChange={(e) => setF({ categoria: e.target.value })}><option value="">Todas</option>{(categorias ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}</select></Campo>
+          {!pendientes && <div style={{ alignSelf: 'end' }}><BotonExportar que="gastos" desde={desde} hasta={hasta} /></div>}
+        </MasFiltros>
       </div>
 
-      {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{pendientes ? 'No hay egresos pendientes de pago.' : 'No hay egresos con estos filtros.'}</p></div> : (
+      {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{pendientes ? 'No hay egresos pendientes de pago.' : desde === inicioMes() && !hasta && !categoriaId && !f.q ? 'Todavía no hay egresos cargados este mes.' : 'No hay egresos con estos filtros.'}</p>{!pendientes && desde === inicioMes() && !hasta && <button className="boton secundario" onClick={() => setF({ desde: '' })}>Ver todos los egresos</button>}</div> : (
         <>
           <div className="lectura"><span>{plural(vigentes.length, 'egreso', 'egresos')}{pendientes ? ' pendientes' : ''}</span><span className="cifra">{formatPesos(vigentes.reduce((a, g) => a + g.monto, 0))}</span></div>
           <div className="hoja filas">

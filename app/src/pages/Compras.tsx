@@ -6,7 +6,7 @@ import { api, nroTicket, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import type { CompraFila } from '../datos';
 import { BotonExportar } from './Exportar';
-import { Buscador, Cabecera, Cargando, Entrada } from '../ui';
+import { Buscador, Cabecera, Cargando, Entrada, MasFiltros } from '../ui';
 
 export function Compras() {
   const { puede } = useSesion();
@@ -32,16 +32,16 @@ export function Compras() {
         )}
       </Cabecera>
 
-      <div className="hoja relleno" style={{ display: 'grid', gap: 14, marginBottom: 16 }}>
+      <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
         <Buscador placeholder="Buscar proveedor, n.º de ticket, factura o patente" value={f.q} onChange={(e) => setF({ q: e.target.value, pagina: '0' })} aria-label="Buscar compras" />
         <div className="pestanas" role="group" aria-label="Qué mostrar">
           {([['', 'Todo'], ['pesaje', 'Pesajes de cartón'], ['compra', 'Otras compras']] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tipo === k} onClick={() => setF({ tipo: k, pagina: '0' })}>{l}</button>)}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+        <MasFiltros activos={[desde, hasta].filter(Boolean).length}>
           <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value, pagina: '0' })} /></label>
           <label className="campo"><span>Hasta</span><Entrada type="date" value={hasta} onChange={(e) => setF({ hasta: e.target.value, pagina: '0' })} /></label>
           <div style={{ alignSelf: 'end' }}><BotonExportar que="compras" desde={desde} hasta={hasta} /></div>
-        </div>
+        </MasFiltros>
       </div>
 
       {isLoading ? <Cargando /> : !data?.length ? (

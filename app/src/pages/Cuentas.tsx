@@ -28,12 +28,12 @@ export function Cuentas() {
   const total = filas.reduce((a, s) => a + s.saldo, 0);
 
   return (
-    <div className="ancho" style={{ display: 'grid', gap: 24 }}>
+    <div className="ancho" style={{ display: 'grid', gap: 16 }}>
       <Cabecera titulo="Saldos" bajada="Saldos de clientes y de proveedores: lo vendido o comprado, lo pagado y lo que queda.">
         {puede('cuentas', 2) && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link to="/dinero/nuevo?tipo=cobro" className="boton primario"><ArrowDownLeft size={18} aria-hidden /> Pago a cuenta de un cliente</Link>
-            <Link to="/dinero/nuevo?tipo=pago" className="boton secundario"><ArrowUpRight size={18} aria-hidden /> Registrar pago</Link>
+            <Link to="/dinero/nuevo?tipo=cobro" className="boton primario"><ArrowDownLeft size={18} aria-hidden /> Pago a cuenta</Link>
+            <Link to="/dinero/nuevo?tipo=pago" className="boton secundario"><ArrowUpRight size={18} aria-hidden /> Pagar a proveedor</Link>
           </div>
         )}
       </Cabecera>
@@ -43,7 +43,7 @@ export function Cuentas() {
           <button aria-pressed={de === 'cliente'} onClick={() => setF({ de: 'cliente' })}>Clientes</button>
           <button aria-pressed={de === 'proveedor'} onClick={() => setF({ de: 'proveedor' })}>Proveedores</button>
         </div>
-        <BotonExportar que="cuentas" texto="Exportar saldos" />
+        <BotonExportar que="cuentas" texto="Exportar" />
         <div style={{ flex: 1, minWidth: 200 }}><Buscador placeholder="Buscar" value={q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar cuenta" /></div>
       </div>
 

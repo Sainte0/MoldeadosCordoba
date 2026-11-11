@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react';
-import { ArrowLeft, Check, Info, Pencil, Search } from 'lucide-react';
+import { ArrowLeft, Check, Info, Pencil, Search, SlidersHorizontal } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, useSesion } from './api';
 
@@ -162,12 +162,28 @@ export function Dialogo({ titulo, children, onCerrar }: { titulo: string; childr
   );
 }
 
-export function Cabecera({ titulo, bajada, children }: { titulo: string; bajada?: ReactNode; children?: ReactNode }) {
+/**
+ * Filtros de un listado que no se usan a diario (fechas, categoría, exportar): plegados para que los datos aparezcan
+ * arriba. Se abren solos si hay alguno puesto, y de entrada en pantallas anchas.
+ */
+/** `resumen`: lo que se está mostrando sin filtros puestos (ej. "Este mes"), para que no quede escondido. */
+export function MasFiltros({ activos, resumen, children }: { activos: number; resumen?: string; children: ReactNode }) {
+  const [abierto] = useState(() => activos > 0 || (typeof window !== 'undefined' && window.innerWidth >= 1000));
+  return (
+    <details className="mas-filtros" open={abierto}>
+      <summary><SlidersHorizontal size={16} aria-hidden /> {activos ? `Filtros (${activos})` : resumen ? `${resumen} · cambiar` : 'Fechas y más filtros'}</summary>
+      <div className="mas-filtros-cuerpo">{children}</div>
+    </details>
+  );
+}
+
+/** `dato`: la bajada es información (ej. el período), no una explicación: se ve también en el iPhone. */
+export function Cabecera({ titulo, bajada, dato, children }: { titulo: string; bajada?: ReactNode; dato?: boolean; children?: ReactNode }) {
   return (
     <header className="cabecera">
       <div>
         <h1>{titulo}</h1>
-        {bajada && <p className="tenue">{bajada}</p>}
+        {bajada && <p className={dato ? 'tenue' : 'tenue explicacion'}>{bajada}</p>}
       </div>
       {children}
     </header>

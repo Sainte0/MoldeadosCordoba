@@ -2,7 +2,7 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api, verMomento } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
-import { Buscador, Cabecera, Campo, Cargando, Entrada } from '../ui';
+import { Buscador, Cabecera, Campo, Cargando, Entrada, MasFiltros } from '../ui';
 
 interface Evento { id: string; accion: string; entidad: string; entidadId: string | null; motivo: string | null; fecha: string; usuario: string | null; despues: Record<string, unknown> | null }
 
@@ -49,9 +49,9 @@ export function Registro() {
   return (
     <div className="columna" style={{ display: 'grid', gap: 16 }}>
       <Cabecera titulo="Registro de cambios" bajada="Todo lo que se cargó, editó o anuló, con quién y cuándo." />
-      <div className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+      <div style={{ display: 'grid', gap: 10 }}>
         <Buscador placeholder="Buscar un nombre, concepto, monto, comprobante o motivo" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar en el registro" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+        <MasFiltros activos={[f.que, f.quien, f.accion, f.desde, f.hasta].filter(Boolean).length}>
           <Campo etiqueta="Qué">
             <select className="entrada" value={f.que} onChange={(e) => setF({ que: e.target.value })}>{QUE.map((x) => <option key={x.valor} value={x.valor}>{x.texto}</option>)}</select>
           </Campo>
@@ -65,7 +65,7 @@ export function Registro() {
           </Campo>
           <label className="campo"><span>Desde</span><Entrada type="date" value={f.desde} onChange={(e) => setF({ desde: e.target.value })} /></label>
           <label className="campo"><span>Hasta</span><Entrada type="date" value={f.hasta} onChange={(e) => setF({ hasta: e.target.value })} /></label>
-        </div>
+        </MasFiltros>
         {hayFiltro && <button className="boton fantasma" style={{ justifySelf: 'start' }} onClick={() => setF({ que: '', quien: '', accion: '', desde: '', hasta: '', q: '' })}>Sacar los filtros</button>}
       </div>
       {isLoading ? <Cargando /> : !eventos.length ? <div className="hoja vacio"><p>{hayFiltro ? 'No hay cambios con estos filtros.' : 'Todavía no hay cambios registrados.'}</p></div> : (

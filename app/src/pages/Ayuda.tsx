@@ -46,8 +46,8 @@ export function Ayuda() {
   const deEstaPantalla = desde ? GUIAS.filter((g) => aplica(g, desde) && g.id !== 'instructivos' && (desde === '/' || g.pantallas[0] !== '/')) : [];
 
   return (
-    <div className="columna" style={{ display: 'grid', gap: 24 }}>
-      <div className="ayuda-pantalla" style={{ display: 'grid', gap: 24 }}>
+    <div className="columna" style={{ display: 'grid', gap: 16 }}>
+      <div className="ayuda-pantalla" style={{ display: 'grid', gap: 16 }}>
         <Cabecera titulo="Ayuda" bajada="Cómo hacer cada cosa en el sistema, y los procedimientos de la planta.">
           <button className="boton secundario" onClick={() => setImprimir({ guias: GUIAS, procedimientos: procs ?? [], titulo: 'Manual de uso' })}>
             <FileDown size={18} aria-hidden /> Manual completo (PDF)

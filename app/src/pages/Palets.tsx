@@ -21,7 +21,7 @@ export function Palets() {
   const { data: palets, isLoading } = useQuery({ queryKey: ['palets', f.estado, q], queryFn: () => api<PaletFila[]>(`/palets?estado=${f.estado}&q=${encodeURIComponent(q)}`) });
 
   return (
-    <div className="ancho" style={{ display: 'grid', gap: 28 }}>
+    <div className="ancho" style={{ display: 'grid', gap: 18 }}>
       <Cabecera titulo="Stock y palets" bajada="Paquetes de 60 hechos, cuántos ya están en palets y cuántos quedan sueltos.">
         {puede('produccion', 2) && <Link to="/palets/nuevo" className="boton primario"><Layers size={18} aria-hidden /> Armar palet</Link>}
       </Cabecera>

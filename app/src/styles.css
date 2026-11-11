@@ -372,7 +372,7 @@ a.tile-link:hover { border-color: var(--linea-fuerte); }
   .aviso-cliente { grid-template-columns: 1fr; }
   .acciones-aviso .boton.primario { flex: 1; }
 }
-.con-muestra .principal { white-space: nowrap; }
+.con-muestra .principal { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Ayuda */
 .guia summary { list-style: none; cursor: pointer; padding: 14px 18px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
@@ -579,3 +579,45 @@ select.entrada { appearance: none; -webkit-appearance: none; font-size: 16px; ba
 .acciones-stock { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .acciones-stock:empty { display: none; }
 .boton.chico-boton { min-height: 36px; padding: 6px 12px; font-size: 0.88rem; }
+
+/* ---------- Densidad: más datos por pantalla (pedido del cliente) ----------
+   Listados y fichas más compactos. Los asistentes de planta (.asistente) conservan los botones grandes. */
+.contenido { padding-top: 22px; }
+h1 { font-size: clamp(1.45rem, 3vw, 1.85rem); }
+h2 { font-size: 1.2rem; }
+.asistente h1 { font-size: clamp(1.6rem, 4vw, 2.1rem); }
+.cabecera { margin-bottom: 14px; gap: 10px 16px; align-items: center; }
+.cabecera p { margin-top: 3px; }
+.cabecera .boton.grande { min-height: 44px; font-size: 1rem; padding: 0 16px; }
+.fila { padding: 10px 14px; gap: 2px 12px; min-height: 48px; }
+.hoja.relleno { padding: 16px; }
+.tarea { padding: 12px 14px; min-height: 68px; gap: 12px; }
+.tarea .ico { width: 40px; height: 40px; }
+.tarea b { font-size: 1.02rem; }
+.lectura { padding-top: 10px; padding-bottom: 10px; }
+.mas-filtros { border: 1px solid var(--linea); border-radius: var(--radio-s); background: var(--superficie); }
+.mas-filtros > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 14px; font-weight: 600; font-size: 0.925rem; color: var(--tinta-2); }
+.mas-filtros > summary::-webkit-details-marker { display: none; }
+.mas-filtros[open] > summary { border-bottom: 1px solid var(--linea); }
+.mas-filtros-cuerpo { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; padding: 12px 14px 14px; }
+@media (max-width: 760px) {
+  .contenido { padding-top: 14px; }
+  /* En el iPhone la explicación de cada pantalla está en Ayuda: arriba, primero los datos. */
+  .cabecera p.explicacion { display: none; }
+  .cabecera { margin-bottom: 12px; }
+  .cabecera > div { flex: 1 1 auto; }
+  .cabecera > div { min-width: 0; }
+  .cabecera .boton { padding: 0 12px; }
+  .fila { padding: 9px 12px; }
+  .hoja.relleno { padding: 14px; }
+  .tareas { gap: 8px; }
+}
+.cifras { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); gap: 10px; }
+.cifras > * { padding: 12px 14px; }
+@media (max-width: 760px) {
+  .cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cifras .cifra { font-size: clamp(1.05rem, 4.6vw, 1.5rem); white-space: normal; overflow-wrap: anywhere; }
+}
+/* Que el texto de la izquierda se acomode y nunca quede debajo de las marcas o cifras de la derecha. */
+.fila > *, .con-muestra > * { min-width: 0; }
+.fila .derecha { justify-self: end; }

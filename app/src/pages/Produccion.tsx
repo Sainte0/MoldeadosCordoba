@@ -32,7 +32,7 @@ export function Produccion() {
   const tot = (r?.produccion ?? []).reduce((a, p) => ({ paquetes: a.paquetes + p.paquetes, minutos: a.minutos + p.minutos, maples: a.maples + p.maples, partes: a.partes + p.partes }), { paquetes: 0, minutos: 0, maples: 0, partes: 0 });
 
   return (
-    <div className="ancho" style={{ display: 'grid', gap: 28 }}>
+    <div className="ancho" style={{ display: 'grid', gap: 18 }}>
       <Cabecera titulo="Producción" bajada="Lo que hizo cada máquina, cuánto rindió y qué se gastó.">
         {puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton primario"><Plus size={18} aria-hidden /> Cargar parte</Link>}
       </Cabecera>

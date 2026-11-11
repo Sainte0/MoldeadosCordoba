@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
-import { aMili, formatCantidad, LABEL_TAMANO } from '@moldeados/shared/base';
+import { aMili, formatCantidad, formatPesos, LABEL_TAMANO } from '@moldeados/shared/base';
 import { api, hoy, useSesion, verFecha } from '../api';
 import { useMaquinas, useMaterias, useVariantes, type Maquina, type Variante } from '../datos';
 import { MapleVista, Muestra } from '../MapleVista';
@@ -25,13 +26,17 @@ export function Maples() {
   const [editando, setEditando] = useState<Partial<Variante> | null>(null);
   const [maquina, setMaquina] = useState<Partial<Maquina> | null>(null);
   const edita = puede('productos', 3);
+  // El precio de lista de cada maple, a la vista con el producto (se cambia en Ajustes › Precios).
+  const { data: precios } = useQuery({ queryKey: ['precios'], queryFn: () => api<{ id: string; precioMaple: number }[]>('/precios'), enabled: puede('ventas') });
+  const precioDe = (id: string) => precios?.find((x) => x.id === id)?.precioMaple ?? 0;
 
   return (
-    <div className="ancho" style={{ display: 'grid', gap: 32 }}>
+    <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       <Cabecera titulo="Maples y máquinas" bajada="Los códigos de maple con su color y su receta (cuánto consume por hora), y las máquinas con su service. Con esto se calcula cada parte." />
       <section style={{ display: 'grid', gap: 12 }}>
         <div className="titulo-seccion">
           <h2>Códigos de maple</h2>
+          {precios && <Link to="/precios" className="chico">Cambiar precios</Link>}
           {edita && <button className="boton primario" onClick={() => setEditando({ tamano: 'grande', maplesPorPaquete: 60, maplesPorHora: 0, activo: true, receta: [], colorHex: null })}><Plus size={18} aria-hidden /> Nuevo código</button>}
         </div>
         {isLoading ? <Cargando /> : (
@@ -45,7 +50,10 @@ export function Maples() {
                     <div className="chico tenue">{v.maquina} · {v.maplesPorHora ? `${v.maplesPorHora} maples/h` : 'Sin dato de maples/h'} · {v.receta.length ? v.receta.map((r) => `${r.nombre} ${formatCantidad(r.cantidadPorHora, r.unidad)}/h`).join(', ') : 'Sin receta'}</div>
                   </div>
                 </div>
-                {!v.receta.length && v.activo && <span className="marca-texto alerta">Falta la receta</span>}
+                <span className="derecha" style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>
+                  {precios && (precioDe(v.id) ? <span className="cifra">{formatPesos(precioDe(v.id))}<small className="tenue" style={{ fontWeight: 400 }}> /maple</small></span> : <span className="marca-texto alerta">Sin precio</span>)}
+                  {!v.receta.length && v.activo && <span className="marca-texto alerta">Falta la receta</span>}
+                </span>
               </button>
             ))}
           </div>

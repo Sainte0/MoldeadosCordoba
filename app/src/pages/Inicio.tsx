@@ -29,7 +29,7 @@ export function Inicio() {
 
   const aviso = (useLocation().state as { aviso?: string } | null)?.aviso;
   return (
-    <div className="ancho" style={{ display: 'grid', gap: 32 }}>
+    <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       {aviso && <div className="aviso ok" role="status">{aviso}</div>}
       <header>
         <h1>{saludo()}, {sesion?.usuario.nombre.split(' ')[0]}</h1>

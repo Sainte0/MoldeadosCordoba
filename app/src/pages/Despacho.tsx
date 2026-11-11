@@ -238,7 +238,7 @@ export function Despacho() {
         </>
       ),
       // Sin señal y sin precio guardado: se sigue igual; al subirse, el sistema usa el precio del cliente o el de lista.
-      listo: faltaSegunda ? `Escribí el precio de segunda del ${faltaSegunda.codigo}` : faltaPrecio && navigator.onLine ? (cambiaPrecios ? `Falta el precio del ${faltaPrecio.codigo}` : `El ${faltaPrecio.codigo} no tiene precio cargado: pedile a administración que lo cargue en Precios.`) : true,
+      listo: faltaSegunda ? `Escribí el precio de segunda del ${faltaSegunda.codigo}` : faltaPrecio && navigator.onLine ? (cambiaPrecios ? `Falta el precio del ${faltaPrecio.codigo}` : `El ${faltaPrecio.codigo} no tiene precio cargado: pedile a administración que lo cargue en Ajustes › Precios.`) : true,
     },
     {
       titulo: '¿Lleva factura?',
