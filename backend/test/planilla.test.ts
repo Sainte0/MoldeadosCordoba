@@ -38,6 +38,13 @@ describe('planilla del día (moldeados_test)', () => {
     const r = await resumenDelDia(db, fecha);
     expect(r.stock.find((s) => s.codigo === 'MGR-NAT')?.paquetes).toBe(36);
     expect(r.ventas[0]).toMatchObject({ palets: 1, maples: 2160 });
+    // Cobrado del día: solo cobros de esa fecha y sin anular.
+    await db('movimientos_dinero').insert([
+      { tipo: 'cobro', cliente_id: cliente, fecha, monto_centavos: 5_000_000, medio: 'efectivo', usuario_id: u },
+      { tipo: 'cobro', cliente_id: cliente, fecha, monto_centavos: 9_999, medio: 'efectivo', usuario_id: u, anulado_at: db.fn.now() },
+      { tipo: 'cobro', cliente_id: cliente, fecha: '2026-11-10', monto_centavos: 7_777, medio: 'efectivo', usuario_id: u },
+    ]);
+    expect((await resumenDelDia(db, fecha)).cobrado).toBe(5_000_000);
   });
 
   it('si hace falta, desarma un palet ya armado (8 de alto para entregar 6: quedan 2 de alto libres)', async () => {

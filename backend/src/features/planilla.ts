@@ -80,7 +80,7 @@ export async function cargarVenta(k: Knex, usuarioId: string, i: PlanillaVentaIn
 
 /** Lo del día: fabricado, vendido/retirado, cartón que entró y lo que queda en la fábrica. */
 export async function resumenDelDia(k: Knex, fecha: string) {
-  const [produccion, ventas, carton, stock] = await Promise.all([
+  const [produccion, ventas, carton, stock, cobros] = await Promise.all([
     k('partes as p').join('variantes as v', 'v.id', 'p.variante_id').join('maquinas as m', 'm.id', 'p.maquina_id')
       .where('p.fecha', fecha).whereNull('p.anulado_at').orderBy('p.numero')
       .select('p.id', 'p.numero', 'p.turno', 'p.minutos', 'p.paquetes', 'p.notas', 'v.codigo', 'v.color_hex as colorHex', 'm.codigo as maquina',
@@ -96,8 +96,10 @@ export async function resumenDelDia(k: Knex, fecha: string) {
     k('variantes as v').whereNull('v.deleted_at').where('v.activo', true).orderBy('v.codigo')
       .select('v.id', 'v.codigo', 'v.nombre', 'v.color_hex as colorHex',
         k.raw('(coalesce((select sum(p.paquetes) from partes p where p.variante_id = v.id and p.anulado_at is null), 0) - coalesce((select sum(pa.paquetes) from palets pa join ventas ve on ve.id = pa.venta_id where pa.variante_id = v.id and pa.anulado_at is null and ve.anulado_at is null), 0))::int as paquetes')),
+    // Lo que entró de plata en el día (cobros a clientes).
+    k('movimientos_dinero').where({ tipo: 'cobro', fecha }).whereNull('anulado_at').sum<{ s: string | null }>('monto_centavos as s').first(),
   ]);
-  return { fecha, paquetesPorNivel: PAQUETES_POR_NIVEL, produccion, ventas, carton, stock };
+  return { fecha, paquetesPorNivel: PAQUETES_POR_NIVEL, produccion, ventas, carton, stock, cobrado: Number(cobros?.s ?? 0) };
 }
 
 export async function planillaRoutes(app: FastifyInstance): Promise<void> {

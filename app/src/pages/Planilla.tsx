@@ -17,6 +17,7 @@ interface Dia {
   ventas: { id: string; numero: number; cliente: string; total: number; palets: number; codigos: string | null; maples: number }[];
   carton: { id: string; numero: number; proveedor: string; gramos: number; total: number }[];
   stock: { id: string; codigo: string; nombre: string; colorHex: string | null; paquetes: number }[];
+  cobrado: number;
 }
 
 const ALTO = PALET_DEFAULT.alto;
@@ -29,6 +30,13 @@ function enPalets(paquetes: number, porNivel: number): string {
   const sueltos = paquetes % porNivel;
   const partes = [palets ? `${palets} ${palets === 1 ? 'palet' : 'palets'} de ${ALTO}` : '', resto ? `${resto} de alto` : '', sueltos ? `${sueltos} paq.` : ''].filter(Boolean);
   return partes.join(' y ');
+}
+/** Para las tarjetas: el número grande (palets de 6) y lo que sobra, aparte y chico. */
+function paletsYResto(paquetes: number, porNivel: number): { palets: number; resto: string } {
+  const p = Math.max(0, paquetes);
+  const niveles = Math.floor(p / porNivel);
+  const resto = [niveles % ALTO ? `${niveles % ALTO} de alto` : '', p % porNivel ? `${p % porNivel} paq.` : ''].filter(Boolean).join(' y ');
+  return { palets: Math.floor(niveles / ALTO), resto };
 }
 const turnoAhora = (): Turno => (Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())) < 14 ? 'manana' : 'tarde');
 const HORARIO: Record<Turno, [string, string]> = { manana: ['06:00', '14:00'], tarde: ['14:00', '22:00'] };
@@ -43,15 +51,16 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
   const fabricado = dia.produccion.reduce((a, p) => a + p.paquetes, 0);
   const retirados = dia.ventas.reduce((a, v) => a + v.palets, 0);
   const enFabrica = dia.stock.reduce((a, s) => a + Math.max(0, s.paquetes), 0);
-  const kilos = dia.carton.reduce((a, c) => a + c.gramos, 0) / 1000;
+  const vendido = dia.ventas.reduce((a, v) => a + v.total, 0);
   const esHoy = fecha === hoy();
   return (
     <div className="planilla" style={{ display: 'grid', gap: 16 }}>
-      <div className="cifras">
-        <div><span className="cifra">{enPalets(fabricado, ppn)}</span><small>fabricado {esHoy ? 'hoy' : `el ${verFecha(fecha)}`}</small></div>
-        <div><span className="cifra">{retirados} {retirados === 1 ? 'palet' : 'palets'}</span><small>vendidos y retirados</small></div>
-        <div><span className="cifra">{enPalets(enFabrica, ppn)}</span><small>en la fábrica ahora</small></div>
-        <div><span className="cifra">{kilos.toLocaleString('es-AR')} kg</span><small>de cartón que entró</small></div>
+      {/* Lo más importante del día, en cifras cortas: lo detallado está abajo en cada bloque. */}
+      <div className="cifras resumen-dia">
+        <Tarjeta titulo={esHoy ? 'Fabricado hoy' : `Fabricado el ${verFecha(fecha)}`} {...enTarjeta(fabricado, ppn)} />
+        <div><small>Vendido</small><span className="cifra">{formatPesos(vendido)}</span><small>{retirados} {retirados === 1 ? 'palet retirado' : 'palets retirados'}</small></div>
+        <div><small>Cobrado</small><span className="cifra">{formatPesos(dia.cobrado)}</span><small>lo que entró de plata</small></div>
+        <Tarjeta titulo="En la fábrica" {...enTarjeta(enFabrica, ppn)} />
       </div>
       {puede('produccion') && <Fabricado dia={dia} edita={puede('produccion', 2)} />}
       {puede('ventas') && <Vendido dia={dia} edita={puede('ventas', 2)} />}
@@ -67,6 +76,14 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
       </section>
     </div>
   );
+}
+
+const enTarjeta = (paquetes: number, porNivel: number) => {
+  const { palets, resto } = paletsYResto(paquetes, porNivel);
+  return { numero: `${palets} ${palets === 1 ? 'palet' : 'palets'}`, detalle: resto ? `+ ${resto}` : paquetes > 0 ? `de ${ALTO} de alto` : 'nada' };
+};
+function Tarjeta({ titulo, numero, detalle }: { titulo: string; numero: string; detalle: string }) {
+  return <div><small>{titulo}</small><span className="cifra">{numero}</span><small>{detalle}</small></div>;
 }
 
 /** Encabezado de cada bloque: el título y "Agregar", que abre el renglón para cargar. */
@@ -232,7 +249,7 @@ function Carton({ dia, edita }: { dia: Dia; edita: boolean }) {
   };
   return (
     <section className="hoja">
-      <Cabeza titulo="Cartón que entró" edita={edita} abierto={abierto} onAbrir={() => setAbierto(true)} />
+      <Cabeza titulo="Cartón que entró" detalle={dia.carton.length ? `${(dia.carton.reduce((a, c) => a + c.gramos, 0) / 1000).toLocaleString('es-AR')} kg` : undefined} edita={edita} abierto={abierto} onAbrir={() => setAbierto(true)} />
       {dia.carton.map((c) => (
         <Link to={`/compras/${c.numero}`} className="fila" key={c.id}>
           <span><span className="principal">{c.proveedor}</span><br /><span className="chico tenue">{(c.gramos / 1000).toLocaleString('es-AR')} kg</span></span>
