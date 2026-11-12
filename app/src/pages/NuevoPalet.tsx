@@ -64,7 +64,7 @@ export function NuevoPalet() {
           ))}
         </div>
       ),
-      listo: !varianteId ? 'Elegí el maple' : sueltos <= 0 ? 'No hay paquetes sueltos de este maple: primero cargá el producción del turno' : true,
+      listo: !varianteId ? 'Elegí el maple' : sueltos <= 0 ? 'No hay paquetes sueltos de este maple: primero cargá la producción del turno' : true,
       rapido: true,
     },
     {

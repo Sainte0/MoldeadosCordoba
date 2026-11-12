@@ -135,5 +135,7 @@ function diaYTurno(): string {
   const ahora = new Date();
   const dia = new Intl.DateTimeFormat('es-AR', { ...z, weekday: 'long', day: 'numeric', month: 'long' }).format(ahora).replace(',', '');
   const h = Number(new Intl.DateTimeFormat('es-AR', { ...z, hour: 'numeric', hour12: false }).format(ahora));
-  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} · turno ${h < 14 ? 'mañana' : 'tarde'}`;
+  // El turno solo en horario de planta (mañana 6 a 14, tarde 14 a 22); de noche, solo el día.
+  const turno = h >= 6 && h < 14 ? ' · turno mañana' : h >= 14 && h < 22 ? ' · turno tarde' : '';
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)}${turno}`;
 }

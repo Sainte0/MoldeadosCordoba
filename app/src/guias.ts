@@ -362,7 +362,7 @@ export const GUIAS: Guia[] = [
     palabras: 'service mantenimiento maquina horas aviso mp-1 mp-2 reparacion',
     pasos: [
       'En Ajustes › Maples y máquinas, en Máquinas, tocá la máquina y poné cada cuántas horas le toca service.',
-      'Las horas se cuentan solas con los producciones de cada turno. Cuando falta poco, aparece el aviso en el Inicio.',
+      'Las horas se cuentan solas con la producción de cada turno. Cuando falta poco, aparece el aviso en el Inicio.',
       'Cuando se hace el service, tocá "Registrar service", la fecha y qué se hizo: el contador vuelve a cero.',
     ],
   },

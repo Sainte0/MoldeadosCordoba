@@ -9,7 +9,7 @@ interface Evento { id: string; accion: string; entidad: string; entidadId: strin
 const ACCION: Record<string, string> = { crear: 'cargó', editar: 'editó', anular: 'anuló', borrar: 'dio de baja', ajustar: 'corrigió el stock de', login: 'entró al sistema' };
 const ENTIDAD: Record<string, string> = {
   compra: 'una compra', proveedor: 'un proveedor', materia_prima: 'una materia prima', usuario: 'un usuario', permiso: 'un permiso',
-  maquina: 'una máquina', variante: 'un código de maple', empleado: 'una persona del personal', parte: 'un producción del turno', palet: 'un palet',
+  maquina: 'una máquina', variante: 'un código de maple', empleado: 'una persona del personal', parte: 'una producción', palet: 'un palet',
   empresa: 'los datos de la empresa', cliente: 'un cliente', venta: 'una venta', cobro: 'un cobro', pago: 'un pago', precio: 'un precio',
   banco: 'un banco', gasto: 'un egreso', categoria_gasto: 'una categoría de egresos', caja: 'la caja chica', instructivo: 'un instructivo',
   procedimiento: 'un procedimiento', importacion: 'una importación', pedido: 'un pedido', recordatorio: 'un recordatorio',
