@@ -64,7 +64,7 @@ export function Inicio() {
           <div className="fila"><h3>Maples en stock</h3><Link to="/palets" className="chico">Ver palets</Link></div>
           {maples.filter((m) => m.producido - m.vendido > 0).map((m) => (
             <div className="fila" key={m.id}>
-              <span className="con-muestra"><Muestra color={m.colorHex} /> <span><span className="principal">{m.codigo}</span><br /><span className="chico tenue">{m.enPalets - m.vendido > 0 ? `${plural(m.enPalets - m.vendido, 'paquete', 'paquetes')} en palets listos` : 'Todavía sin paletizar'}</span></span></span>
+              <span className="con-muestra"><Muestra color={m.colorHex} /> <span><span className="principal">{m.codigo}</span><br /><span className="chico tenue">{m.enPalets - m.vendido > 0 ? `${plural(m.enPalets - m.vendido, 'paquete', 'paquetes')} en palets listos` : 'Todavía sin armar en palets'}</span></span></span>
               <span className="derecha"><span className="cifra">{(m.producido - m.vendido).toLocaleString('es-AR')}</span><br /><span className="chico tenue">paquetes</span></span>
             </div>
           ))}
@@ -80,8 +80,8 @@ export function Inicio() {
             </div>
             {/* Nunca se cargó nada (todo en cero y sin consumo): no es una alarma, es el arranque. */}
             {materias.length > 0 && materias.filter((m) => m.activo).every((m) => m.stock === 0 && m.dias === null) ? (
-              <div className="fila"><div><div className="principal">Todavía no hay stock cargado</div><div className="chico tenue">Se suma solo con cada pesaje de cartón o compra de tinta y aglutinante.</div></div>
-                {puede('compras', 2) && <Link to="/pesaje" className="boton secundario">Cargar pesaje</Link>}</div>
+              <div className="fila"><div><div className="principal">Todavía no hay stock cargado</div><div className="chico tenue">Se suma solo con cada entrada de cartón o compra de tinta y aglutinante.</div></div>
+                {puede('compras', 2) && <Link to="/pesaje" className="boton secundario">Cargar cartón</Link>}</div>
             ) : materias.filter((m) => m.activo)
               .map((m) => ({ m, e: estadoStock(m) }))
               .sort((x, y) => ORDEN_NIVEL[x.e.nivel] - ORDEN_NIVEL[y.e.nivel])
@@ -97,7 +97,7 @@ export function Inicio() {
         )}
         {puede('compras') && (
           <section className="hoja">
-            <div className="fila"><div><h3>Compras y pesajes de hoy</h3>{validas.length > 0 && <p className="chico tenue">{plural(validas.length, 'carga', 'cargas')}</p>}</div>{validas.length > 0 && <span className="cifra">{formatPesos(validas.reduce((a, c) => a + c.total, 0))}</span>}</div>
+            <div className="fila"><div><h3>Compras y cartón de hoy</h3>{validas.length > 0 && <p className="chico tenue">{plural(validas.length, 'carga', 'cargas')}</p>}</div>{validas.length > 0 && <span className="cifra">{formatPesos(validas.reduce((a, c) => a + c.total, 0))}</span>}</div>
             {validas.length === 0 ? <p className="tenue" style={{ padding: '0 18px 18px' }}>Todavía no se cargó nada hoy.</p> : validas.map((c) => (
               <Link to={`/compras/${c.numero}`} className="fila" key={c.id}>
                 <div><div className="principal">{c.proveedor}</div><div className="chico tenue">{c.resumen}</div></div>

@@ -9,7 +9,7 @@ import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '.
 import { ElegirProveedor, asegurarProveedor } from './ElegirProveedor';
 import { PasoFactura, facturaBody, facturaLista, type DatosFactura } from './Factura';
 
-/** Ticket de pesaje: el camión entra cargado, se pesa, descarga, se pesa vacío. Neto = bruto − tara. */
+/** Ticket de cartón: el camión entra cargado, se pesa, descarga, se pesa vacío. Neto = bruto − tara. */
 export function Pesaje() {
   const navegar = useNavigate();
   const qc = useQueryClient();
@@ -65,10 +65,10 @@ export function Pesaje() {
       ayuda: 'Pesá el camión cargado (bruto). Cuando descarga, pesalo vacío (tara). El sistema calcula los kilos de cartón.',
       contenido: (
         <>
-          <Campo etiqueta="Peso bruto (camión cargado)">
+          <Campo etiqueta="Camión cargado">
             <EntradaNumero enorme unidad="kg" value={bruto} onChange={(e) => setBruto(e.target.value)} autoFocus />
           </Campo>
-          <Campo etiqueta="Tara (camión vacío)">
+          <Campo etiqueta="Camión vacío">
             <EntradaNumero enorme unidad="kg" value={tara} onChange={(e) => setTara(e.target.value)} />
           </Campo>
           {netoG !== null && netoG > 0 && carton && (
@@ -133,8 +133,8 @@ export function Pesaje() {
       const prov = await asegurarProveedor(proveedor!);
       setProveedor(prov);
       const body = { proveedorId: prov.id, materiaPrimaId: materiaId, fecha, brutoG, taraG, precioPorKg: precioC, patente: patente || undefined, notas: notas || undefined, ...facturaBody(factura) };
-      const r = await enviarOGuardar<{ id: string }>('/compras/pesaje', body, `pesaje de ${proveedor!.nombre}`);
-      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Pesaje guardado en el teléfono: se sube solo cuando vuelva la señal (el ticket se imprime después).' } }); return; }
+      const r = await enviarOGuardar<{ id: string }>('/compras/pesaje', body, `cartón de ${proveedor!.nombre}`);
+      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Entrada de cartón guardada en el teléfono: se sube solo cuando vuelva la señal (el ticket se imprime después).' } }); return; }
       await qc.invalidateQueries();
       navegar(`/compras/${r.data.id}?nuevo=1`, { replace: true });
     } catch (e) {

@@ -34,7 +34,7 @@ export function Produccion() {
   return (
     <div className="ancho" style={{ display: 'grid', gap: 18 }}>
       <Cabecera titulo="Producción" bajada="Lo que hizo cada máquina, cuánto rindió y qué se gastó.">
-        {puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton primario"><Plus size={18} aria-hidden /> Cargar parte</Link>}
+        {puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton primario"><Plus size={18} aria-hidden /> Cargar producción</Link>}
       </Cabecera>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
@@ -99,7 +99,7 @@ export function Produccion() {
 
       {horas && horas.some((h) => h.minutos > 0) && (
         <section className="hoja">
-          <div className="fila"><div><h3>Horas por persona</h3><p className="chico tenue">Las horas de máquina de los partes en que figura cada uno.</p></div><BotonExportar que="horas" desde={desde} hasta={hasta} texto="Exportar" /></div>
+          <div className="fila"><div><h3>Horas por persona</h3><p className="chico tenue">Las horas de máquina de los turnos en que figura cada uno.</p></div><BotonExportar que="horas" desde={desde} hasta={hasta} texto="Exportar" /></div>
           {horas.filter((h) => h.minutos > 0).map((h) => (
             <div className="fila" key={h.id}>
               <div><div className="principal">{h.nombre}</div><div className="chico tenue">{plural(h.dias, 'día', 'días')} · {plural(h.partes, 'parte', 'partes')}{h.manana && h.tarde ? ` · mañana ${formatMinutos(h.manana)}, tarde ${formatMinutos(h.tarde)}` : h.manana ? ' · turno mañana' : ' · turno tarde'}</div></div>
@@ -112,9 +112,9 @@ export function Produccion() {
       <section>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
           <h3>Partes</h3>
-          <div style={{ flex: 1, minWidth: 220 }}><Buscador placeholder="Buscar código, máquina o n.º de parte" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar partes" /></div>
+          <div style={{ flex: 1, minWidth: 220 }}><Buscador placeholder="Buscar código, máquina o número" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar producción" /></div>
         </div>
-        {isLoading ? <Cargando /> : !partes?.length ? <div className="hoja vacio"><p>No hay partes cargados en estas fechas.</p></div> : (
+        {isLoading ? <Cargando /> : !partes?.length ? <div className="hoja vacio"><p>No hay producción cargada en estas fechas.</p></div> : (
           <div className="hoja filas">
             {partes.map((p) => (
               <Link key={p.id} to={`/produccion/${p.numero}`} className={`fila${p.anuladoAt ? ' anulada' : ''}`}>

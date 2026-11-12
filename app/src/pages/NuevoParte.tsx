@@ -10,7 +10,7 @@ import { Asistente, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '.
 
 const turnoActual = (): Turno => (Number(new Intl.DateTimeFormat('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date())) < 14 ? 'manana' : 'tarde');
 
-/** Parte de producción: lo que hizo una máquina en un turno. Descuenta la materia prima según la receta. */
+/** Producción del turno: lo que hizo una máquina en un turno. Descuenta la materia prima según la receta. */
 export function NuevoParte() {
   const navegar = useNavigate();
   const qc = useQueryClient();
@@ -56,7 +56,7 @@ export function NuevoParte() {
   const pasos: Paso[] = [
     {
       titulo: '¿Qué turno es?',
-      ayuda: 'Un parte por máquina y por turno. Si cargás un turno de otro día, cambiá la fecha.',
+      ayuda: 'Una carga por máquina y por turno. Si cargás un turno de otro día, cambiá la fecha.',
       contenido: (
         <>
           <Opciones columnas valor={turno} onChange={setTurno} opciones={TURNOS.map((t) => ({ valor: t, titulo: LABEL_TURNO[t] }))} />
@@ -67,14 +67,14 @@ export function NuevoParte() {
     },
     {
       titulo: '¿Qué máquina?',
-      ayuda: 'La papelera de la que es este parte.',
+      ayuda: 'La máquina en la que se hizo.',
       contenido: <Opciones valor={maquinaId} onChange={(id) => { setMaquinaId(id); setVarianteId(null); }} opciones={activas.map((m) => ({ valor: m.id, titulo: m.codigo, detalle: m.nombre }))} />,
       listo: maquinaId ? true : 'Elegí la máquina',
       rapido: true,
     },
     {
       titulo: '¿Qué maple se hizo?',
-      ayuda: 'Si en el turno se cambió de color, cargá un parte por cada código.',
+      ayuda: 'Si en el turno se cambió de color, cargá la producción de cada código por separado.',
       contenido: deLaMaquina.length ? (
         <div className="opciones">
           {deLaMaquina.map((v) => (
@@ -176,8 +176,8 @@ export function NuevoParte() {
     try {
       const consumoReal = consumos.filter((c) => c.real !== c.teorico).map((c) => ({ materiaPrimaId: c.materiaPrimaId, cantidad: c.real }));
       const body = { fecha, turno, maquinaId, varianteId, empleadoIds: personal, minutos, pulpeadas: Number(pulpeadas || 0), paquetes: nPaquetes, consumoReal, notas: notas || undefined };
-      const r = await enviarOGuardar<{ id: string }>('/partes', body, `parte ${maquinas?.find((m) => m.id === maquinaId)?.codigo ?? ''} ${LABEL_TURNO[turno].toLowerCase()}`);
-      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Parte guardado en el teléfono: se sube solo cuando vuelva la señal.' } }); return; }
+      const r = await enviarOGuardar<{ id: string }>('/partes', body, `producción ${maquinas?.find((m) => m.id === maquinaId)?.codigo ?? ''} ${LABEL_TURNO[turno].toLowerCase()}`);
+      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Producción guardada en el teléfono: se sube solo cuando vuelva la señal.' } }); return; }
       await qc.invalidateQueries();
       navegar(`/produccion/${r.data.id}?nuevo=1`, { replace: true });
     } catch (e) {
@@ -186,5 +186,5 @@ export function NuevoParte() {
     }
   };
 
-  return <Asistente proceso="parte" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar parte" guardando={guardando} error={error} onCancelar={() => navegar('/produccion')} />;
+  return <Asistente proceso="parte" pasos={pasos} onTerminar={guardar} textoTerminar="Guardar producción" guardando={guardando} error={error} onCancelar={() => navegar('/produccion')} />;
 }

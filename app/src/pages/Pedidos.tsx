@@ -27,7 +27,7 @@ export function Pedidos() {
   const { data, isLoading } = useQuery({ queryKey: ['pedidos', f.estado, q], queryFn: () => api<PedidoFila[]>(`/pedidos?estado=${f.estado}&q=${encodeURIComponent(q)}`) });
   return (
     <div className="ancho" style={{ display: 'grid', gap: 16 }}>
-      <Cabecera titulo="Pedidos" bajada="Lo que encargan los clientes y para cuándo. Se cierran solos cuando se despacha todo.">
+      <Cabecera titulo="Pedidos" bajada="Lo que encargan los clientes y para cuándo. Se cierran solos cuando se entrega todo.">
         {puede('ventas', 2) && <Link to="/pedidos/nuevo" className="boton primario"><Plus size={18} aria-hidden /> Nuevo pedido</Link>}
       </Cabecera>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -196,13 +196,13 @@ export function PedidoDetalleVista() {
       )}
       <p className="chico tenue">Registrado por {p.cargadoPor}</p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        {p.estado === 'abierto' && puede('ventas', 2) && <Link to={`/ventas/nueva?pedido=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Despachar</Link>}
+        {p.estado === 'abierto' && puede('ventas', 2) && <Link to={`/ventas/nueva?pedido=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Vender</Link>}
         {p.estado === 'abierto' && puede('ventas', 2) && <button className="boton secundario" onClick={() => setCancelando(true)}><Ban size={18} aria-hidden /> Cancelar pedido</button>}
         {p.estado === 'cancelado' && puede('ventas', 2) && <button className="boton secundario" onClick={() => estado(false)}><RotateCcw size={18} aria-hidden /> Reabrir</button>}
       </div>
       {cancelando && (
         <Dialogo titulo={`Cancelar pedido ${nroTicket(p.numero)}`} onCerrar={() => setCancelando(false)}>
-          <p className="tenue">Lo ya despachado queda como está. El pedido deja de aparecer como pendiente.</p>
+          <p className="tenue">Lo ya entregado queda como está. El pedido deja de aparecer como pendiente.</p>
           <Campo etiqueta="Motivo" ayuda="Opcional"><textarea className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} /></Campo>
           <Aviso>{null}</Aviso>
           <div className="acciones"><button className="boton secundario" onClick={() => setCancelando(false)}>Volver</button><button className="boton peligro" onClick={() => estado(true)}>Cancelar pedido</button></div>

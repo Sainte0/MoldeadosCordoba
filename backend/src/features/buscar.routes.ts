@@ -27,13 +27,13 @@ export async function buscarRoutes(app: FastifyInstance): Promise<void> {
       (r) => ({ tipo: 'Remito', id: String(r.id), titulo: `Remito ${n6(Number(r.numero))} · ${r.nombre}`, detalle: `${String(r.fecha)}${r.anulado_at ? ' · anulado' : ''}`, ruta: `/ventas/${r.numero}` }));
     de(m.compras >= 1, () => db('compras as c').join('proveedores as p', 'p.id', 'c.proveedor_id').modify(buscar(q, ['p.nombre', 'c.patente', 'c.nro_factura'], 'c.numero')).orderBy('c.fecha', 'desc')
       .select('c.id', 'c.numero', 'c.tipo', 'c.fecha', 'p.nombre'),
-      (r) => ({ tipo: r.tipo === 'pesaje' ? 'Ticket de pesaje' : 'Compra', id: String(r.id), titulo: `${r.tipo === 'pesaje' ? 'Ticket' : 'Compra'} ${n6(Number(r.numero))} · ${r.nombre}`, detalle: String(r.fecha), ruta: `/compras/${r.numero}` }));
+      (r) => ({ tipo: r.tipo === 'pesaje' ? 'Ticket de cartón' : 'Compra', id: String(r.id), titulo: `${r.tipo === 'pesaje' ? 'Ticket' : 'Compra'} ${n6(Number(r.numero))} · ${r.nombre}`, detalle: String(r.fecha), ruta: `/compras/${r.numero}` }));
     de(m.produccion >= 1, () => db('palets as pa').join('variantes as v', 'v.id', 'pa.variante_id').modify(buscar(q, ['v.codigo', 'pa.destino'], 'pa.numero')).orderBy('pa.numero', 'desc')
       .select('pa.id', 'pa.numero', 'v.codigo', 'pa.paquetes', 'pa.venta_id'),
       (r) => ({ tipo: 'Palet', id: String(r.id), titulo: `Palet ${n6(Number(r.numero))} · ${r.codigo}`, detalle: `${r.paquetes} paquetes${r.venta_id ? ' · vendido' : ''}`, ruta: `/palets/${r.numero}` }));
     de(m.produccion >= 1, () => db('partes as p').join('variantes as v', 'v.id', 'p.variante_id').join('maquinas as mq', 'mq.id', 'p.maquina_id').modify(buscar(q, ['v.codigo', 'mq.codigo'], 'p.numero')).orderBy('p.fecha', 'desc')
       .select('p.id', 'p.numero', 'p.fecha', 'v.codigo', 'mq.codigo as maquina'),
-      (r) => ({ tipo: 'Parte', id: String(r.id), titulo: `Parte ${n6(Number(r.numero))} · ${r.maquina} ${r.codigo}`, detalle: String(r.fecha), ruta: `/produccion/${r.numero}` }));
+      (r) => ({ tipo: 'Parte', id: String(r.id), titulo: `Producción ${n6(Number(r.numero))} · ${r.maquina} ${r.codigo}`, detalle: String(r.fecha), ruta: `/produccion/${r.numero}` }));
     return { data: (await Promise.all(tareas)).flat() };
   });
 }

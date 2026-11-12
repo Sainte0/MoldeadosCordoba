@@ -32,7 +32,7 @@ export function Maples() {
 
   return (
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>
-      <Cabecera titulo="Maples y máquinas" bajada="Los códigos de maple con su color y su receta (cuánto consume por hora), y las máquinas con su service. Con esto se calcula cada parte." />
+      <Cabecera titulo="Maples y máquinas" bajada="Los códigos de maple con su color y su receta (cuánto consume por hora), y las máquinas con su service. Con esto se calcula cada producción." />
       <section style={{ display: 'grid', gap: 12 }}>
         <div className="titulo-seccion">
           <h2>Códigos de maple</h2>
@@ -180,7 +180,7 @@ function EditarVariante({ inicial, editable, onCerrar, precio = 0, editaPrecio =
 
         <div style={{ display: 'grid', gap: 10 }}>
           <b>Receta: consumo por hora de máquina</b>
-          <p className="chico tenue">Con esto se calcula cuánto se gastó en cada parte. El operario solo corrige si fue distinto.</p>
+          <p className="chico tenue">Con esto se calcula cuánto se gastó en cada turno. El operario solo corrige si fue distinto.</p>
           {receta.map((r, i) => {
             const m = materias?.find((x) => x.id === r.materiaPrimaId);
             return (
@@ -251,7 +251,7 @@ function EditarMaquina({ inicial, onCerrar }: { inicial: Partial<Maquina>; onCer
       )}
       <fieldset disabled={!edita} style={{ border: 0, padding: 0, margin: 0, display: 'grid', gap: 14 }}>
         <Campo etiqueta="Nombre"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Papelera mediana" /></Campo>
-        <Campo etiqueta="Service cada" ayuda="Horas de trabajo según los partes. Vacío = sin aviso."><EntradaNumero unidad="h" value={cada} onChange={(e) => setCada(e.target.value.replace(/\D/g, ''))} /></Campo>
+        <Campo etiqueta="Service cada" ayuda="Horas de trabajo según la producción cargada. Vacío = sin aviso."><EntradaNumero unidad="h" value={cada} onChange={(e) => setCada(e.target.value.replace(/\D/g, ''))} /></Campo>
         {inicial.id && <Opciones columnas valor={activo} onChange={setActivo} opciones={[{ valor: true, titulo: 'En uso' }, { valor: false, titulo: 'Fuera de uso' }]} />}
       </fieldset>
       {inicial.id && registraService && (service ? (

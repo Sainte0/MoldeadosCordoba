@@ -23,10 +23,10 @@ export function Compras() {
 
   return (
     <div className="ancho">
-      <Cabecera titulo="Compras" bajada="Pesajes de cartón y compras de tinta, aglutinante y otros.">
+      <Cabecera titulo="Compras" bajada="El cartón que entró y las compras de tinta, aglutinante y otros.">
         {puede('compras', 2) && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <Link to="/pesaje" className="boton secundario"><Scale size={18} aria-hidden /> Pesaje de cartón</Link>
+            <Link to="/pesaje" className="boton secundario"><Scale size={18} aria-hidden /> Entrada de cartón</Link>
             <Link to="/compras/nueva" className="boton primario"><Plus size={18} aria-hidden /> Nueva compra</Link>
           </div>
         )}
@@ -35,7 +35,7 @@ export function Compras() {
       <div style={{ display: 'grid', gap: 10, marginBottom: 12 }}>
         <Buscador placeholder="Buscar proveedor, n.º de ticket, factura o patente" value={f.q} onChange={(e) => setF({ q: e.target.value, pagina: '0' })} aria-label="Buscar compras" />
         <div className="pestanas" role="group" aria-label="Qué mostrar">
-          {([['', 'Todo'], ['pesaje', 'Pesajes de cartón'], ['compra', 'Otras compras']] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tipo === k} onClick={() => setF({ tipo: k, pagina: '0' })}>{l}</button>)}
+          {([['', 'Todo'], ['pesaje', 'Entradas de cartón'], ['compra', 'Otras compras']] as const).map(([k, l]) => <button key={k} type="button" aria-pressed={tipo === k} onClick={() => setF({ tipo: k, pagina: '0' })}>{l}</button>)}
         </div>
         <MasFiltros activos={[desde, hasta].filter(Boolean).length}>
           <label className="campo"><span>Desde</span><Entrada type="date" value={desde} onChange={(e) => setF({ desde: e.target.value, pagina: '0' })} /></label>

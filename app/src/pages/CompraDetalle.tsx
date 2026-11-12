@@ -73,7 +73,7 @@ export function CompraDetalle() {
               <b>{empresa?.razonSocial ?? 'Moldeados Córdoba'}</b>
             </div>
             <div className="chico tenue">{[empresa?.direccion, empresa?.telefono].filter(Boolean).join(' · ')}</div>
-            <div className="chico tenue">{pesaje ? 'Ticket de pesaje' : 'Compra de materia prima'}</div>
+            <div className="chico tenue">{pesaje ? 'Ticket de cartón' : 'Compra de materia prima'}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div className="cifra numero">{nroTicket(c.numero)}</div>

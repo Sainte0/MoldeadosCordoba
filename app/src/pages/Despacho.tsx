@@ -312,8 +312,8 @@ export function Despacho() {
         // Solo los precios conocidos: si alguno falta (sin señal), el sistema usa el del cliente o el de lista.
         precios: codigos.filter((c) => cambiaPrecios || segunda.includes(c.varianteId)).map((c) => ({ varianteId: c.varianteId, precioMaple: precioDe(c.varianteId) })).filter((x) => x.precioMaple > 0),
         segunda, pagos: pagosLista,
-      }, `despacho a ${cliente!.nombre}`);
-      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Despacho guardado en el teléfono: se sube solo cuando vuelva la señal. El remito se imprime después desde Ventas.' } }); return; }
+      }, `venta a ${cliente!.nombre}`);
+      if (r.guardado) { navegar('/', { replace: true, state: { aviso: 'Venta guardada en el teléfono: se sube solo cuando vuelva la señal. El remito se imprime después desde Ventas.' } }); return; }
       await qc.invalidateQueries();
       navegar(`/ventas/${r.data.id}?nuevo=1`, { replace: true });
     } catch (e) {
@@ -322,5 +322,5 @@ export function Despacho() {
     }
   };
 
-  return <Asistente proceso="despacho" pasos={pasos} onTerminar={guardar} textoTerminar="Confirmar despacho" guardando={guardando} error={error} onCancelar={() => navegar('/ventas')} />;
+  return <Asistente proceso="despacho" pasos={pasos} onTerminar={guardar} textoTerminar="Confirmar venta" guardando={guardando} error={error} onCancelar={() => navegar('/ventas')} />;
 }

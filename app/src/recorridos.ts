@@ -38,12 +38,12 @@ export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
     { en: SIGUIENTE, texto: 'Después: máquina, maple, quiénes trabajaron (ya vienen marcados los del turno), horas, paquetes y lo que se usó.' },
   ],
   palet: [
-    { ruta: '/palets/nuevo', en: '.paso-cuerpo .opciones', texto: 'Elegí el maple. A la derecha ves cuántos paquetes hay producidos sin paletizar.' },
+    { ruta: '/palets/nuevo', en: '.paso-cuerpo .opciones', texto: 'Elegí el maple. A la derecha ves cuántos paquetes hay producidos sin armar en palets.' },
     { en: SIGUIENTE, texto: 'Después: cómo se arma (en qué vehículo va, ancho × largo × alto), para quién es, y al confirmar se imprime la etiqueta con el QR.' },
   ],
   pesaje: [
     { ruta: '/pesaje', en: '.paso-cuerpo .opciones, .paso-cuerpo .tenue', texto: 'Elegí el proveedor del camión que está en la báscula. Tocándolo pasa solo al paso siguiente.' },
-    { en: '[data-guia="nuevo"]', texto: 'Si es la primera vez que viene, "Es un proveedor nuevo": con el nombre alcanza. Se guarda recién al terminar el pesaje.' },
+    { en: '[data-guia="nuevo"]', texto: 'Si es la primera vez que viene, "Es un proveedor nuevo": con el nombre alcanza. Se guarda recién al terminar la carga.' },
     { en: SIGUIENTE, texto: 'Después: bruto y tara del camión (el sistema calcula los kilos), precio por kilo, si viene con factura, y se imprime el ticket.' },
   ],
   cobro: [

@@ -24,7 +24,7 @@ export function Clientes() {
       </Cabecera>
       <div style={{ marginBottom: 20 }}><ParaVender /></div>
       <div style={{ marginBottom: 16 }}><Buscador placeholder="Buscar por nombre" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar cliente" /></div>
-      {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay clientes. Se agregan acá o al despachar.'}</p></div> : (
+      {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay clientes. Se agregan acá o al vender.'}</p></div> : (
         <div className="hoja filas">
           {data.map((c) => (
             <button key={c.id} className="fila" onClick={() => setEditando(c)}>
@@ -90,7 +90,7 @@ function FichaCliente({ inicial, onCerrar }: { inicial: Partial<Cliente>; onCerr
       {campo('telefono', 'Teléfono', { type: 'tel' })}
       {campo('email', 'Email', { type: 'email' })}
       {campo('direccion', 'Dirección')}
-      <Campo etiqueta="Suele retirar en" ayuda="Se propone al despachar">
+      <Campo etiqueta="Suele retirar en" ayuda="Se propone al vender">
         <Opciones<Vehiculo | null> columnas valor={c.vehiculoHabitual} onChange={(v) => editable && setC({ ...c, vehiculoHabitual: v })} opciones={[{ valor: null, titulo: 'Varía' }, ...VEHICULOS.map((v) => ({ valor: v, titulo: LABEL_VEHICULO[v] }))]} />
       </Campo>
       <Campo etiqueta="Observaciones"><textarea className="entrada" value={c.notas ?? ''} disabled={!editable} onChange={(e) => setC({ ...c, notas: e.target.value })} /></Campo>

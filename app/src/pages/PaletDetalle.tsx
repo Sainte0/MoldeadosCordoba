@@ -103,7 +103,7 @@ export function PaletDetalle() {
       </header>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        {!p.anuladoAt && !vendido && p.puedeDespachar && !recien && <Link to={`/ventas/nueva?palet=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Despachar este palet</Link>}
+        {!p.anuladoAt && !vendido && p.puedeDespachar && !recien && <Link to={`/ventas/nueva?palet=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Vender este palet</Link>}
         <button className={`boton ${recien || (!vendido && !p.anuladoAt && !p.puedeDespachar) ? 'primario grande' : 'secundario'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir etiqueta</button>
         {!p.anuladoAt && !vendido && puede('produccion', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Desarmar</button>}
       </div>

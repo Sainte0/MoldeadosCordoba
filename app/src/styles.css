@@ -765,7 +765,7 @@ a.fila:active, button.fila:active { background: #ececf0; }
 .tarea .ico { background: var(--accion); }
 .tarea[data-tarea='Parte'] .ico { background: #ff9500; }
 .tarea[data-tarea='Palet'] .ico { background: var(--kraft); }
-.tarea[data-tarea='Pesaje'] .ico { background: #34c759; }
+.tarea[data-tarea='Cartón'] .ico { background: #34c759; }
 .tarea[data-tarea='Cobro'] .ico { background: #30b0c7; }
 .tarea[data-tarea='Egreso'] .ico { background: #ff3b30; }
 .tarea[data-tarea='Pedido'] .ico { background: #5856d6; }

@@ -59,10 +59,10 @@ export async function insertarParte(trx: Knex.Transaction, usuarioId: string, i:
 export async function anularParte(db: Knex, usuarioId: string, parteId: string, motivo: string): Promise<void> {
   await db.transaction(async (trx) => {
     const p = await trx('partes').where({ id: parteId }).forUpdate().first('id', 'anulado_at');
-    if (!p) throw new NotFoundError('No encontramos ese parte');
-    if (p.anulado_at) throw new ConflictError('Este parte ya estaba anulado');
+    if (!p) throw new NotFoundError('No encontramos esa producción');
+    if (p.anulado_at) throw new ConflictError('Esta producción ya estaba anulada');
     const enPalet = await trx('palet_lotes as l').join('palets as pa', 'pa.id', 'l.palet_id').where('l.parte_id', p.id).whereNull('pa.anulado_at').first('pa.numero');
-    if (enPalet) throw new ConflictError(`Hay paquetes de este parte en el palet ${String(enPalet.numero).padStart(6, '0')}. Anulá ese palet primero.`);
+    if (enPalet) throw new ConflictError(`Hay paquetes de esta producción en el palet ${String(enPalet.numero).padStart(6, '0')}. Anulá ese palet primero.`);
     await trx('partes').where({ id: p.id }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: motivo, updated_at: trx.fn.now() });
     const consumos = await trx('parte_consumos').where({ parte_id: p.id }).where('real', '>', 0).select('materia_prima_id', 'real');
     if (consumos.length) await trx('movimientos_stock').insert(consumos.map((c) => ({ materia_prima_id: c.materia_prima_id, cantidad: c.real, motivo: 'anulacion_consumo', parte_id: p.id, nota: motivo, usuario_id: usuarioId })));
@@ -95,7 +95,7 @@ export async function armarPalet(trx: Knex.Transaction, usuarioId: string, i: Pa
     const paquetes = i.ancho * i.largo * i.alto;
     const lotes = (await lotesLibres(trx, v.id)).filter((l: { libres: number }) => l.libres > 0) as { id: string; libres: number }[];
     const disponibles = lotes.reduce((a, l) => a + l.libres, 0);
-    if (disponibles < paquetes) throw new ConflictError(`${suelto ? 'Se piden' : 'Para este palet hacen falta'} ${paquetes} paquetes de ${v.nombre} y hay ${disponibles} sueltos (sin paletizar).`);
+    if (disponibles < paquetes) throw new ConflictError(`${suelto ? 'Se piden' : 'Para este palet hacen falta'} ${paquetes} paquetes de ${v.nombre} y hay ${disponibles} sueltos (sin armar en palets).`);
 
     const [palet] = await trx('palets')
       .insert({ variante_id: v.id, ancho: i.ancho, largo: i.largo, alto: i.alto, paquetes, vehiculo: i.vehiculo, destino: i.destino, notas: i.notas, usuario_id: usuarioId, suelto })

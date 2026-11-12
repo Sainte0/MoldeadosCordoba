@@ -210,13 +210,13 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>('/partes/:id', async (req) => {
     await requerir(db, req, 'produccion', 1);
     req.params.id = await idPorNumero(db, 'partes', req.params.id);
-    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese parte');
+    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos esa producción');
     const p = await db('partes as p').join('variantes as v', 'v.id', 'p.variante_id').join('maquinas as m', 'm.id', 'p.maquina_id')
       .join('usuarios as u', 'u.id', 'p.usuario_id').leftJoin('usuarios as ua', 'ua.id', 'p.anulado_por').where('p.id', req.params.id)
       .first('p.id', 'p.numero', 'p.fecha', 'p.turno', 'p.minutos', 'p.pulpeadas', 'p.paquetes', 'p.maples_por_hora as maplesPorHora', 'p.maples_por_paquete as maplesPorPaquete',
         'p.notas', 'p.created_at as cargadoAt', 'p.anulado_at as anuladoAt', 'p.motivo_anulacion as motivoAnulacion', 'ua.nombre as anuladoPor', 'u.nombre as cargadoPor',
         'v.codigo', 'v.nombre as variante', 'v.color_hex as colorHex', 'm.codigo as maquina', 'm.nombre as maquinaNombre');
-    if (!p) throw new NotFoundError('No encontramos ese parte');
+    if (!p) throw new NotFoundError('No encontramos esa producción');
     const [personal, consumos, palets] = await Promise.all([
       db('parte_empleados as pe').join('empleados as e', 'e.id', 'pe.empleado_id').where('pe.parte_id', p.id).orderBy('e.nombre').pluck('e.nombre'),
       db('parte_consumos as c').join('materias_primas as mp', 'mp.id', 'c.materia_prima_id').where('c.parte_id', p.id).select('mp.nombre', 'mp.unidad', 'c.teorico', 'c.real').orderBy('mp.nombre'),
@@ -231,7 +231,7 @@ export async function produccionRoutes(app: FastifyInstance): Promise<void> {
   });
   app.post<{ Params: { id: string } }>('/partes/:id/anular', async (req) => {
     const s = await requerir(db, req, 'produccion', 3);
-    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos ese parte');
+    if (!uuidOk(req.params.id)) throw new NotFoundError('No encontramos esa producción');
     await anularParte(db, s.usuarioId, req.params.id, anularSchema.parse(req.body).motivo);
     return { data: { ok: true } };
   });

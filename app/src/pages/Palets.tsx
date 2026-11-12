@@ -65,7 +65,7 @@ export function Palets() {
 type Fila = NonNullable<ReturnType<typeof useStockMaples>['data']>[number];
 
 /**
- * Stock por código, con lo que significa y qué hacer: cuánto hay (listo en palets y sin paletizar), cuánto piden los
+ * Stock por código, con lo que significa y qué hacer: cuánto hay (listo en palets y sin armar en palets), cuánto piden los
  * pedidos sin entregar y si alcanza. Lo urgente primero: lo que falta para pedidos, en rojo.
  */
 function StockMaples({ stock }: { stock: Fila[] | undefined }) {
@@ -76,7 +76,7 @@ function StockMaples({ stock }: { stock: Fila[] | undefined }) {
     const listos = s.enPalets - s.vendido;
     const sueltos = s.producido - s.enPalets;
     const falta = Math.max(0, s.comprometido - enPlanta);
-    // Orden: falta para pedidos > sin stock con pedidos > hay para paletizar > hay stock > sin stock y sin pedidos.
+    // Orden: falta para pedidos > sin stock con pedidos > hay para armar en palets > hay stock > sin stock y sin pedidos.
     const orden = falta > 0 ? 0 : enPlanta <= 0 && s.comprometido > 0 ? 1 : sueltos > 0 ? 2 : enPlanta > 0 ? 3 : 4;
     return { ...s, enPlanta, listos, sueltos, falta, orden };
   }).sort((a, b) => a.orden - b.orden || b.falta - a.falta || b.enPlanta - a.enPlanta);
@@ -90,7 +90,7 @@ function StockMaples({ stock }: { stock: Fila[] | undefined }) {
           <h3>Stock de maples</h3>
           <p className="chico tenue">En paquetes de 60. {faltan ? `${faltan === 1 ? '1 código no alcanza' : `${faltan} códigos no alcanzan`} para los pedidos.` : sinStock ? `${sinStock === 1 ? '1 código' : `${sinStock} códigos`} sin stock, sin pedidos pendientes.` : 'Todo con stock.'}</p>
         </div>
-        {sinStock > 0 && !faltan && puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton secundario chico-boton"><Factory size={16} aria-hidden /> Cargar parte</Link>}
+        {sinStock > 0 && !faltan && puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton secundario chico-boton"><Factory size={16} aria-hidden /> Cargar producción</Link>}
       </div>
       {filas.map((s) => (
         <div className="fila stock-maple" key={s.id}>
@@ -99,11 +99,11 @@ function StockMaples({ stock }: { stock: Fila[] | undefined }) {
             <div>
               <div className="principal">{s.codigo} <span className="tenue" style={{ fontWeight: 400 }}>{s.nombre}</span></div>
               <div className="chico tenue">
-                {s.enPlanta > 0 ? `${s.listos.toLocaleString('es-AR')} listos en palets · ${s.sueltos.toLocaleString('es-AR')} sin paletizar` : 'No hay paquetes en planta'}
+                {s.enPlanta > 0 ? `${s.listos.toLocaleString('es-AR')} listos en palets · ${s.sueltos.toLocaleString('es-AR')} sin armar en palets` : 'No hay paquetes en planta'}
                 {s.comprometido > 0 && ` · pedidos sin entregar: ${s.comprometido.toLocaleString('es-AR')}`}
               </div>
               <div className="acciones-stock">
-                {s.falta > 0 && puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton secundario chico-boton"><Factory size={16} aria-hidden /> Cargar parte</Link>}
+                {s.falta > 0 && puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton secundario chico-boton"><Factory size={16} aria-hidden /> Cargar producción</Link>}
                 {s.sueltos > 0 && puede('produccion', 2) && <Link to="/palets/nuevo" className="boton secundario chico-boton"><Layers size={16} aria-hidden /> Armar palet</Link>}
                 {s.comprometido > 0 && puede('ventas') && <Link to="/pedidos" className="boton fantasma chico-boton"><ClipboardList size={16} aria-hidden /> Ver pedidos</Link>}
               </div>
@@ -113,8 +113,8 @@ function StockMaples({ stock }: { stock: Fila[] | undefined }) {
             <div className="cifra" style={{ fontSize: '1.5rem' }}>{Math.max(0, s.enPlanta).toLocaleString('es-AR')}</div>
             {s.falta > 0 ? <Estado nivel="critico">Faltan {s.falta.toLocaleString('es-AR')} para pedidos</Estado>
               : s.enPlanta <= 0 ? (s.comprometido > 0 ? <Estado nivel="critico">Sin stock</Estado> : <span className="marca-texto">Sin stock</span>)
-              : s.sueltos > 0 ? <Estado nivel="atencion">{s.sueltos.toLocaleString('es-AR')} para paletizar</Estado>
-              : <Estado nivel="ok">Listo para despachar</Estado>}
+              : s.sueltos > 0 ? <Estado nivel="atencion">{s.sueltos.toLocaleString('es-AR')} para armar en palets</Estado>
+              : <Estado nivel="ok">Listo para vender</Estado>}
           </div>
         </div>
       ))}

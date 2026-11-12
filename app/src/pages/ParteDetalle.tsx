@@ -28,7 +28,7 @@ export function ParteDetalle() {
   const [err, setErr] = useState<string | null>(null);
 
   if (isLoading) return <Cargando />;
-  if (!p) return <Aviso>{error instanceof Error ? error.message : 'No encontramos ese parte'}</Aviso>;
+  if (!p) return <Aviso>{error instanceof Error ? error.message : 'No encontramos esa producción'}</Aviso>;
   const esperado = paquetesTeoricos(p.maplesPorHora, p.minutos, p.maplesPorPaquete);
 
   const anular = async () => {
@@ -47,7 +47,7 @@ export function ParteDetalle() {
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
       <Volver a="/produccion" texto="Producción" />
       {params.get('nuevo') && !p.anuladoAt && (
-        <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Parte guardado. Los paquetes ya están en stock y la materia prima descontada.</div>
+        <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Producción guardada. Los paquetes ya están en stock y la materia prima descontada.</div>
       )}
       {/* El maple 3D solo como confirmación al guardar; al consultar un parte, primero los datos. */}
       {params.get('nuevo') && !p.anuladoAt && <MapleVista color={p.colorHex} alto={180} />}
@@ -97,7 +97,7 @@ export function ParteDetalle() {
 
 
       {anulando && (
-        <Dialogo titulo={`Anular parte ${nroTicket(p.numero)}`} onCerrar={() => setAnulando(false)}>
+        <Dialogo titulo={`Anular producción ${nroTicket(p.numero)}`} onCerrar={() => setAnulando(false)}>
           <p className="tenue">Se sacan los paquetes del stock y se devuelve la materia prima. Queda registrado como anulado, con tu nombre y el motivo.</p>
           <Campo etiqueta="Motivo"><textarea className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus /></Campo>
           <Aviso>{err}</Aviso>

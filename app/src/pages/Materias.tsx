@@ -21,7 +21,7 @@ export function Materias() {
       <Cabecera titulo="Materia prima" bajada="Lo que hay en planta. Sube con cada compra y baja con la producción.">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {puede('compras', 2) && <Link to="/compras/nueva" className="boton primario"><ShoppingCart size={18} aria-hidden /> Cargar compra</Link>}
-          {puede('compras', 2) && <Link to="/pesaje" className="boton secundario"><Scale size={18} aria-hidden /> Pesaje de cartón</Link>}
+          {puede('compras', 2) && <Link to="/pesaje" className="boton secundario"><Scale size={18} aria-hidden /> Entrada de cartón</Link>}
           {puede('materias', 3) && <button className="boton fantasma" onClick={() => setEditando({ tipo: 'tinta', unidad: 'l', activo: true, stockMinimo: 0 })}><Plus size={18} aria-hidden /> Nueva materia prima</button>}
         </div>
       </Cabecera>

@@ -42,15 +42,15 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
     [['Fecha', 'fecha', fecha], ['Remito', 'numero', nro], ['Cliente', 'cliente'], ['CUIT', 'cuit'], ['Retiró', 'retira'], ['Vehículo', 'vehiculo', vehiculo], ['Patente', 'patente'], ['Palet', 'palet', nro],
       ['Código', 'codigo'], ['Calidad', 'calidad', (v) => (v === 'segunda' ? 'Segunda' : 'Primera')], ['Cantidad (maples)', 'maples'], ['Precio unitario ($/maple)', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Con factura', 'con_factura', sino], ['N.º factura', 'nro_factura'],
       ['IVA %', 'iva_bp', (v) => String(Number(v) / 100).replace('.', ',')], ['Total del remito', 'total', pesos], ['Anulada', 'anulada', sino]]) },
-  compras: { titulo: 'Compras y pesajes (un renglón por producto)', modulo: 'compras', periodo: true, armar: async (p) => csv(
+  compras: { titulo: 'Compras y cartón (un renglón por producto)', modulo: 'compras', periodo: true, armar: async (p) => csv(
     await db('compra_items as i').join('compras as c', 'c.id', 'i.compra_id').join('proveedores as pr', 'pr.id', 'c.proveedor_id').join('materias_primas as m', 'm.id', 'i.materia_prima_id')
       .modify(entre('c.fecha', p)).orderBy(['c.fecha', 'c.numero'])
       .select('c.fecha', 'c.numero', 'c.tipo', 'pr.nombre as proveedor', 'pr.cuit', 'm.nombre as materia', 'm.unidad', 'i.cantidad', 'i.precio_unitario_centavos as precio', 'i.subtotal_centavos as subtotal',
         'c.con_factura', 'c.nro_factura', 'c.iva_centavos as iva', 'c.total_centavos as total', 'c.bruto_g', 'c.tara_g', 'c.patente', db.raw('c.anulada_at is not null as anulada')),
-    [['Fecha', 'fecha', fecha], ['N.º', 'numero', nro], ['Tipo', 'tipo', (v) => (v === 'pesaje' ? 'Pesaje' : 'Compra')], ['Proveedor', 'proveedor'], ['CUIT', 'cuit'], ['Producto', 'materia'], ['Unidad', 'unidad', (v) => (v === 'kg' ? 'kg' : 'L')],
+    [['Fecha', 'fecha', fecha], ['N.º', 'numero', nro], ['Tipo', 'tipo', (v) => (v === 'pesaje' ? 'Cartón' : 'Compra')], ['Proveedor', 'proveedor'], ['CUIT', 'cuit'], ['Producto', 'materia'], ['Unidad', 'unidad', (v) => (v === 'kg' ? 'kg' : 'L')],
       ['Cantidad', 'cantidad', mili], ['Precio unitario', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Con factura', 'con_factura', sino], ['N.º factura', 'nro_factura'], ['IVA de la compra', 'iva', pesos],
       ['Total de la compra', 'total', pesos], ['Bruto kg', 'bruto_g', mili], ['Tara kg', 'tara_g', mili], ['Patente', 'patente'], ['Anulada', 'anulada', sino]]) },
-  produccion: { titulo: 'Partes de producción', modulo: 'produccion', periodo: true, armar: async (p) => csv(
+  produccion: { titulo: 'Producción', modulo: 'produccion', periodo: true, armar: async (p) => csv(
     await db('partes as p').join('variantes as v', 'v.id', 'p.variante_id').join('maquinas as m', 'm.id', 'p.maquina_id').join('usuarios as u', 'u.id', 'p.usuario_id')
       .modify(entre('p.fecha', p)).orderBy(['p.fecha', 'p.numero'])
       .select('p.fecha', 'p.numero', 'p.turno', 'm.codigo as maquina', 'v.codigo', 'p.minutos', 'p.pulpeadas', 'p.paquetes', db.raw('p.paquetes * p.maples_por_paquete as maples'),

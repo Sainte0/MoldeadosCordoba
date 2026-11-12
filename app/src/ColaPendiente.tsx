@@ -17,7 +17,7 @@ export function ColaPendiente() {
         <div className="cola-fila">
           <CloudOff size={18} aria-hidden />
           <span>
-            {!enLinea ? 'Sin señal. Podés seguir cargando partes, despachos y pesajes: se suben solos cuando vuelva.' : ''}
+            {!enLinea ? 'Sin señal. Podés seguir cargando producción, ventas y entradas de cartón: se suben solos cuando vuelva.' : ''}
             {esperando.length > 0 && ` ${esperando.length === 1 ? 'Hay 1 carga guardada' : `Hay ${esperando.length} cargas guardadas`} en este teléfono: ${esperando.map((p) => p.descripcion).join(', ')}.`}
           </span>
           {enLinea && esperando.length > 0 && <button className="boton fantasma" onClick={() => void subirPendientes()}><RefreshCw size={16} aria-hidden /> Subir ahora</button>}

@@ -75,7 +75,7 @@ export function NuevaCompra() {
   const pasos: Paso[] = [
     {
       titulo: '¿A quién le compraste?',
-      ayuda: 'Elegí el proveedor. Para cargar cartón que llega en camión usá Pesaje de cartón.',
+      ayuda: 'Elegí el proveedor. Para cargar cartón que llega en camión usá Entrada de cartón.',
       contenido: <ElegirProveedor valor={proveedor} onChange={setProveedor} />,
       listo: proveedor ? true : 'Elegí un proveedor para seguir',
       rapido: true,

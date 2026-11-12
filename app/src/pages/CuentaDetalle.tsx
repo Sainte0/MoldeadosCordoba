@@ -25,7 +25,7 @@ export function CuentaDetalle() {
   const saldo = data.movimientos.at(-1)?.saldo ?? 0;
   const esCliente = de === 'cliente';
   const enlace = (m: Mov) => (m.tipo === 'saldo_inicial' ? null : m.signo === 1 ? (esCliente ? `/ventas/${m.id}` : `/compras/${m.id}`) : null);
-  const nombre = (m: Mov) => (m.tipo === 'saldo_inicial' ? 'Saldo inicial' : m.signo === 1 ? (m.tipo === 'venta' ? 'Remito' : m.tipo === 'pesaje' ? 'Ticket de pesaje' : 'Compra') : esCliente ? 'Cobro' : 'Pago');
+  const nombre = (m: Mov) => (m.tipo === 'saldo_inicial' ? 'Saldo inicial' : m.signo === 1 ? (m.tipo === 'venta' ? 'Remito' : m.tipo === 'pesaje' ? 'Ticket de cartón' : 'Compra') : esCliente ? 'Cobro' : 'Pago');
 
   const anular = async () => {
     if (!anulando) return;

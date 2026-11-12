@@ -158,8 +158,8 @@ export async function atencion(db: Knex, hoy: string, puede: (modulo: string) =>
     for (const p of pedidos) {
       const atrasado = p.dia < hoy;
       avisos.push({ nivel: atrasado ? 'critico' : 'atencion', tipo: 'pedido', titulo: `Pedido de ${p.nombre} ${atrasado ? 'atrasado' : 'para hoy'}`,
-        detalle: atrasado ? `Era para el ${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)} y todavía no se entregó todo.` : 'Todavía no se despachó completo.',
-        accion: { texto: 'Despachar', ruta: `/ventas/nueva?pedido=${p.id}` } });
+        detalle: atrasado ? `Era para el ${p.dia.slice(8, 10)}/${p.dia.slice(5, 7)} y todavía no se entregó todo.` : 'Todavía no se entregó completo.',
+        accion: { texto: 'Vender', ruta: `/ventas/nueva?pedido=${p.id}` } });
     }
   }
   if (puede('cuentas')) {

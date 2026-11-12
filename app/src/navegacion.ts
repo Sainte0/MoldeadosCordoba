@@ -20,7 +20,7 @@ export const AREAS: Area[] = [
     { a: '/clientes', texto: 'Clientes', modulo: 'ventas' },
   ] },
   { texto: 'Compras', icono: ShoppingCart, tambien: ['/pesaje'], pestanas: [
-    { a: '/compras', texto: 'Compras y pesajes', modulo: 'compras' },
+    { a: '/compras', texto: 'Compras y cartón', modulo: 'compras' },
     { a: '/proveedores', texto: 'Proveedores', modulo: 'proveedores' },
   ] },
   { texto: 'Plata', icono: Wallet, tambien: ['/dinero'], pestanas: [
@@ -45,10 +45,10 @@ export const enArea = (area: Area, path: string) => [...area.pestanas.map((x) =>
 export const TAREAS: { a: string; titulo: string; corto: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
   // La carga rápida: todo el día en una pantalla (pedido del socio, que anota todo junto al final del día).
   { a: '/planilla', titulo: 'Planilla del día', corto: 'Planilla', detalle: 'Lo fabricado, lo vendido y el cartón', icono: ClipboardCheck, modulo: 'produccion' },
-  { a: '/ventas/nueva', titulo: 'Despachar palets', corto: 'Despachar', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
-  { a: '/produccion/nuevo', titulo: 'Parte de producción', corto: 'Parte', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
+  { a: '/ventas/nueva', titulo: 'Vender palets', corto: 'Vender', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
+  { a: '/produccion/nuevo', titulo: 'Producción del turno', corto: 'Parte', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
   { a: '/palets/nuevo', titulo: 'Armar palet', corto: 'Palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
-  { a: '/pesaje', titulo: 'Pesaje de cartón', corto: 'Pesaje', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
+  { a: '/pesaje', titulo: 'Entrada de cartón', corto: 'Cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
   { a: '/dinero/nuevo?tipo=cobro', titulo: 'Pago a cuenta', corto: 'Cobro', detalle: 'Un cliente paga: efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
   { a: '/egresos/nuevo', titulo: 'Cargar egreso', corto: 'Egreso', detalle: 'Pagado o pendiente, con foto del comprobante', icono: Coins, modulo: 'gastos' },
   { a: '/pedidos/nuevo', titulo: 'Nuevo pedido', corto: 'Pedido', detalle: 'Un cliente encarga maples', icono: ClipboardList, modulo: 'ventas' },

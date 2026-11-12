@@ -23,7 +23,7 @@ export function Proveedores() {
       </Cabecera>
       <div style={{ marginBottom: 16 }}><Buscador placeholder="Buscar por nombre" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar proveedor" /></div>
       {isLoading ? <Cargando /> : !data?.length ? (
-        <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay proveedores. Se agregan acá o desde el pesaje.'}</p></div>
+        <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay proveedores. Se agregan acá o al cargar cartón.'}</p></div>
       ) : (
         <div className="hoja filas">
           {data.map((p) => (

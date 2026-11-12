@@ -49,15 +49,15 @@ export async function armarResumen(q: Knex, fecha: string): Promise<{ titulo: st
 
   const titulo = `Resumen del ${fechaLarga(fecha)}`;
   const l: string[] = [`*Moldeados Córdoba · ${titulo}*`, ''];
-  l.push(`*Ventas:* ${n(ventas?.n) ? `${n(ventas?.n)} ${n(ventas?.n) === 1 ? 'despacho' : 'despachos'}, ${n(ventas?.maples).toLocaleString('es-AR')} maples, ${formatPesos(n(ventas?.total))}` : 'sin despachos'}`);
+  l.push(`*Ventas:* ${n(ventas?.n) ? `${n(ventas?.n)} ${n(ventas?.n) === 1 ? 'venta' : 'ventas'}, ${n(ventas?.maples).toLocaleString('es-AR')} maples, ${formatPesos(n(ventas?.total))}` : 'sin ventas'}`);
   for (const c of porCliente) l.push(`  · ${c.nombre}: ${formatPesos(n(c.total))}`);
   l.push(`*Cobrado:* ${formatPesos(n(cobros?.total))}`);
   const totalPaq = partes.reduce((a: number, p: { paquetes: number }) => a + p.paquetes, 0);
-  l.push(`*Producción:* ${partes.length ? `${totalPaq.toLocaleString('es-AR')} paquetes` : 'sin partes cargados'}`);
+  l.push(`*Producción:* ${partes.length ? `${totalPaq.toLocaleString('es-AR')} paquetes` : 'sin producción cargada'}`);
   for (const p of partes as { codigo: string; turno: Turno; paquetes: number; esperado: number | null }[]) {
     l.push(`  · ${p.codigo} ${LABEL_TURNO[p.turno].toLowerCase()}: ${p.paquetes} paq.${p.esperado ? ` (rinde ${Math.round((p.paquetes / p.esperado) * 100)} %)` : ''}`);
   }
-  if (n(pesajes?.n)) l.push(`*Cartón recibido:* ${formatCantidad(n(pesajes?.gramos), 'kg')} en ${n(pesajes?.n)} pesajes`);
+  if (n(pesajes?.n)) l.push(`*Cartón recibido:* ${formatCantidad(n(pesajes?.gramos), 'kg')} en ${n(pesajes?.n)} entradas`);
   l.push(`*Compras:* ${formatPesos(n(compras?.total))} · *Gastos:* ${formatPesos(n(gastos?.total))}`);
   l.push(`*Nos deben en total:* ${formatPesos(n(porCobrar.rows[0]?.s))}`);
   const avisos: string[] = [];

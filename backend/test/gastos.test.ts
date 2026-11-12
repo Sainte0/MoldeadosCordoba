@@ -78,9 +78,9 @@ describe('gastos, caja chica y tablero (moldeados_test)', () => {
     await db('ventas').insert({ cliente_id: cliente, fecha: '2026-11-04', con_factura: false, neto_centavos: 9_000_000, iva_centavos: 0, total_centavos: 9_000_000, usuario_id: u });
     await db('movimientos_dinero').insert({ tipo: 'pago', proveedor_id: prov, fecha: '2026-11-01', monto_centavos: 2_500_000, medio: 'echeq', banco_id: (await db('bancos').first('id')).id, cheque_numero: '1', cheque_fecha_cobro: '2026-11-05', usuario_id: u });
     const r = await armarResumen(db, '2026-11-04');
-    expect(r.texto).toContain('*Ventas:* 1 despacho,');
+    expect(r.texto).toContain('*Ventas:* 1 venta,');
     expect(r.texto).toContain('Granja: $');
     expect(r.texto).toContain('Cheque nuestro a cubrir el 05/11');
-    expect(r.texto).toContain('sin partes cargados');
+    expect(r.texto).toContain('sin producción cargada');
   });
 });

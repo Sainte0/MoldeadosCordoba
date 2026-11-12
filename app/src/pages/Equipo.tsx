@@ -143,7 +143,7 @@ function PersonalPlanta() {
   const edita = puede('produccion', 3) || puede('usuarios', 3);
   return (
     <section>
-      <Cabecera titulo="Personal de planta" bajada="Quienes trabajan en las máquinas. Se marcan en cada parte de producción; no necesitan usuario.">
+      <Cabecera titulo="Personal de planta" bajada="Quienes trabajan en las máquinas. Se marcan en cada producción del turno; no necesitan usuario.">
         {edita && <button className="boton secundario" onClick={() => setEditando({ activo: true, turnoHabitual: null })}><Plus size={18} aria-hidden /> Agregar</button>}
       </Cabecera>
       <div className="hoja filas">
@@ -179,10 +179,10 @@ function EditarEmpleado({ inicial, onCerrar }: { inicial: Partial<Empleado>; onC
   return (
     <Dialogo titulo={inicial.id ? inicial.nombre ?? '' : 'Agregar al personal'} onCerrar={onCerrar}>
       <Campo etiqueta="Nombre y apellido"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus /></Campo>
-      <Campo etiqueta="Turno habitual" ayuda="Aparece primero al cargar los partes de ese turno.">
+      <Campo etiqueta="Turno habitual" ayuda="Aparece primero al cargar la producción de ese turno.">
         <Opciones<Turno | 'rota'> columnas valor={turno} onChange={setTurno} opciones={[...TURNOS.map((t) => ({ valor: t, titulo: LABEL_TURNO[t] })), { valor: 'rota', titulo: 'Rota' }]} />
       </Campo>
-      <Campo etiqueta="Valor de la hora" ayuda="Opcional: para estimar cuánto corresponde pagar según las horas de los partes.">
+      <Campo etiqueta="Valor de la hora" ayuda="Opcional: para estimar cuánto corresponde pagar según las horas de máquina.">
         <EntradaNumero unidad="$/h" value={valorHora} onChange={(e) => setValorHora(e.target.value)} />
       </Campo>
       {inicial.id && <Opciones columnas valor={activo} onChange={setActivo} opciones={[{ valor: true, titulo: 'Trabaja' }, { valor: false, titulo: 'Ya no trabaja' }]} />}
@@ -217,7 +217,7 @@ function DatosEmpresa({ editable }: { editable: boolean }) {
   const campo = (k: string, etiqueta: string) => <Campo etiqueta={etiqueta}><Entrada value={d[k] ?? ''} disabled={!editable} onChange={(e) => setD({ ...d, [k]: e.target.value })} /></Campo>;
   return (
     <section>
-      <Cabecera titulo="Datos de la empresa" bajada="Salen en los tickets de pesaje y en las etiquetas de los palets." />
+      <Cabecera titulo="Datos de la empresa" bajada="Salen en los tickets de cartón y en las etiquetas de los palets." />
       <div className="hoja relleno" style={{ display: 'grid', gap: 14 }}>
         {campo('razonSocial', 'Razón social')}
         {campo('direccion', 'Dirección')}

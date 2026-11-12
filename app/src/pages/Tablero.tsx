@@ -112,7 +112,7 @@ export function Tablero() {
             <BarrasRanking titulo="Ventas por calidad" filas={t.porCalidad.map((c) => ({ id: c.calidad, nombre: `${c.calidad === 'segunda' ? 'Segunda' : 'Primera'} · ${c.maples.toLocaleString('es-AR')} maples`, total: c.total }))} color={C_INGRESOS} vacio="Sin ventas en el período." />
             <section className="hoja">
               <div className="fila"><h3>Producción</h3><Link to="/produccion" className="chico">Ver planilla</Link></div>
-              {!t.produccion.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>Sin partes en el período.</p>}
+              {!t.produccion.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>Sin producción en el período.</p>}
               {t.produccion.map((p) => (
                 <div className="fila" key={p.codigo}>
                   <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo}</span><br /><span className="chico tenue">{formatMinutos(p.minutos)} de máquina</span></span></span>

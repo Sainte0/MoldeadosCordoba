@@ -20,7 +20,7 @@ export function Ventas() {
   return (
     <div className="ancho">
       <Cabecera titulo="Ventas" bajada="Cada venta con su remito: a quién, cuánto, quién se lo llevó y si está cobrada.">
-        {puede('ventas', 2) && <Link to="/ventas/nueva" className="boton primario grande"><ScanLine size={20} aria-hidden /> Despachar palets</Link>}
+        {puede('ventas', 2) && <Link to="/ventas/nueva" className="boton primario grande"><ScanLine size={20} aria-hidden /> Vender palets</Link>}
       </Cabecera>
       <div className="pestanas" role="group" aria-label="Estado de cobro" style={{ marginBottom: 12 }}>
         <button aria-pressed={f.cobro !== 'pendientes'} onClick={() => setF({ cobro: '' })}>Todas</button>

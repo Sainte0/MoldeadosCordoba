@@ -22,7 +22,7 @@ function Contador({ etiqueta, valor, set, max }: { etiqueta: string; valor: numb
   );
 }
 
-/** Armar palet: se eligen maple y armado; el sistema toma los paquetes de los partes más viejos y genera la etiqueta. */
+/** Armar palet: se eligen maple y armado; el sistema toma los paquetes de la producción más vieja y genera la etiqueta. */
 export function NuevoPalet() {
   const navegar = useNavigate();
   const qc = useQueryClient();
@@ -50,7 +50,7 @@ export function NuevoPalet() {
   const pasos: Paso[] = [
     {
       titulo: '¿Qué maple va en el palet?',
-      ayuda: 'Un palet lleva un solo código de maple. Al lado de cada uno ves cuántos paquetes hay producidos sin paletizar.',
+      ayuda: 'Un palet lleva un solo código de maple. Al lado de cada uno ves cuántos paquetes hay producidos sin armar en palets.',
       contenido: (
         <div className="opciones">
           {stock?.filter((x) => x.activo || x.producido - x.enPalets > 0).sort((a, b) => (b.producido - b.enPalets) - (a.producido - a.enPalets)).map((x) => (
@@ -58,13 +58,13 @@ export function NuevoPalet() {
               <Muestra color={x.colorHex} grande />
               <span style={{ flex: 1 }}><b>{x.codigo}</b><small>{x.nombre}</small></span>
               {x.producido - x.enPalets > 0
-                ? <span className="derecha"><span className="cifra">{(x.producido - x.enPalets).toLocaleString('es-AR')}</span><br /><small>sin paletizar</small></span>
-                : <small>Nada sin paletizar</small>}
+                ? <span className="derecha"><span className="cifra">{(x.producido - x.enPalets).toLocaleString('es-AR')}</span><br /><small>sin armar en palets</small></span>
+                : <small>Nada suelto</small>}
             </button>
           ))}
         </div>
       ),
-      listo: !varianteId ? 'Elegí el maple' : sueltos <= 0 ? 'No hay paquetes sueltos de este maple: primero cargá el parte de producción' : true,
+      listo: !varianteId ? 'Elegí el maple' : sueltos <= 0 ? 'No hay paquetes sueltos de este maple: primero cargá el producción del turno' : true,
       rapido: true,
     },
     {
@@ -81,7 +81,7 @@ export function NuevoPalet() {
           {lectura}
         </>
       ),
-      listo: paquetes > sueltos ? `Hay ${sueltos.toLocaleString('es-AR')} paquetes sueltos y este armado lleva ${paquetes}. Bajá la altura o cargá el parte que falta.` : true,
+      listo: paquetes > sueltos ? `Hay ${sueltos.toLocaleString('es-AR')} paquetes sueltos y este armado lleva ${paquetes}. Bajá la altura o cargá la producción que falta.` : true,
     },
     {
       titulo: '¿Para quién es?',
@@ -96,7 +96,7 @@ export function NuevoPalet() {
     },
     {
       titulo: 'Revisá y armá',
-      ayuda: 'Al guardar se toman los paquetes de los partes más viejos y se genera la etiqueta con el QR para pegar en el palet.',
+      ayuda: 'Al guardar se toman los paquetes de la producción más vieja y se genera la etiqueta con el QR para pegar en el palet.',
       contenido: (
         <>
           <dl className="resumen hoja relleno">

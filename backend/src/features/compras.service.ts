@@ -14,7 +14,7 @@ async function validar(trx: Knex.Transaction, proveedorId: string, items: Item[]
   const ids = [...new Set(items.map((i) => i.materiaPrimaId))];
   const mps = await trx('materias_primas').whereIn('id', ids).whereNull('deleted_at').where({ activo: true }).select('id', 'tipo');
   if (mps.length !== ids.length) throw new ValidationError('Hay un producto que no existe o está desactivado');
-  if (soloCarton && mps.some((m) => m.tipo !== 'carton')) throw new ValidationError('El ticket de pesaje es solo para cartón');
+  if (soloCarton && mps.some((m) => m.tipo !== 'carton')) throw new ValidationError('La entrada de cartón es solo para cartón');
 }
 
 async function guardar(
