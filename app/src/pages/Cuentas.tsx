@@ -55,13 +55,17 @@ export function Cuentas() {
       {isLoading ? <Cargando /> : (
         <div className="hoja filas">
           {filas.sort((a, b) => b.saldo - a.saldo).map((s) => (
-            <Link key={s.id} to={`/cuentas/${de}/${s.id}`} className="fila">
-              <div><div className="principal">{s.nombre}</div><div className="chico tenue">{de === 'cliente' ? 'Total vendido' : 'Total comprado'} {formatPesos(Number(s.debe))} · total pagado {formatPesos(Number(s.haber))}{s.ultimoMovimiento ? ` · última ${de === 'cliente' ? 'venta' : 'compra'} ${verFecha(s.ultimoMovimiento)}` : ''}</div></div>
+            // Quien debe tiene su botón a mano: cobrar (o pagar) sin entrar a la cuenta ni buscarlo de nuevo.
+            <div key={s.id} className="fila fila-accion">
+              <Link to={`/cuentas/${de}/${s.id}`} className="fila-enlace">
+              <div><div className="principal">{s.nombre}</div><div className="chico tenue">{s.ultimoMovimiento ? `Última ${de === 'cliente' ? 'venta' : 'compra'}: ${verFecha(s.ultimoMovimiento)}` : `Sin ${de === 'cliente' ? 'ventas' : 'compras'}`}</div></div>
               <div className="derecha">
                 <div className={`cifra ${s.saldo > 0 ? 'saldo-mas' : s.saldo === 0 ? 'saldo-cero' : ''}`}>{formatPesos(Math.abs(s.saldo))}</div>
                 <div className={`chico ${s.saldo > 0 ? 'saldo-mas' : 'saldo-ok'}`} style={{ fontWeight: 600 }}>{s.saldo > 0 ? (de === 'cliente' ? 'nos debe' : 'le debemos') : s.saldo < 0 ? 'a favor' : 'al día'}</div>
               </div>
-            </Link>
+              </Link>
+              {s.saldo > 0 && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=${de === 'cliente' ? 'cobro' : 'pago'}&id=${s.id}`} className="boton secundario boton-fila">{de === 'cliente' ? 'Cobrar' : 'Pagar'}</Link>}
+            </div>
           ))}
           {!filas.length && <p className="tenue" style={{ padding: 16 }}>No hay cuentas para mostrar.</p>}
         </div>

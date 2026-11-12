@@ -69,6 +69,7 @@ export const GUIAS: Guia[] = [
     palabras: 'inicio tareas avisos para vender hay que comprar',
     pasos: [
       'Al entrar ves "Hoy": el resumen del día y, abajo, lo que se fabricó, lo que se vendió y el cartón que entró. Cada bloque tiene "Agregar".',
+      'Todo se toca: las tarjetas de arriba llevan al detalle (las ventas del día, los saldos…) y cada maple de "En la fábrica" abre para venderlo o anotar que se fabricó.',
       'Materia prima: tocá una (por ejemplo Aglutinante) para anotar que entró (cantidad, precio y proveedor) o para corregir lo que hay de verdad.',
       'Al final, "Otras formas de cargar": escanear un palet o los pasos a paso (vender con QR, producción del turno, armar palet, cobro, egreso…).',
       'En cualquier carga paso a paso, "Salir" (arriba a la derecha) te saca desde el paso en que estés, sin guardar. Te pregunta antes, para que no se pierda nada por un toque sin querer.',
@@ -284,7 +285,7 @@ export const GUIAS: Guia[] = [
     id: 'cobro', area: 'Plata', titulo: 'Pago a cuenta de un cliente (cobro)', pantallas: ['/cuentas', '/dinero'],
     palabras: 'cobrar cobro pago a cuenta cliente efectivo transferencia mercado pago echeq cheque deuda saldo',
     pasos: [
-      'Desde Inicio "Pago a cuenta", o en Plata › Saldos, "Pago a cuenta". La lista pone primero a los que deben.',
+      'En Plata › Saldos, tocá "Cobrar" al lado del cliente que debe (o "Pago a cuenta" arriba). La lista pone primero a los que deben.',
       'Elegí el cliente y anotá el monto. Podés tocar "Todo el saldo".',
       'Elegí cómo pagó: efectivo, transferencia, Mercado Pago, e-Cheq o cheque.',
       'Si es cheque o e-Cheq: banco, número y fecha de cobro. Así aparece en la lista de cheques.',
