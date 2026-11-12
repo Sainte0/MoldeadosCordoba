@@ -4,7 +4,8 @@ import { PlanillaDia } from './Planilla';
 import { CalendarClock, ChartColumn, ChevronRight, Package, QrCode } from 'lucide-react';
 import { estadoStock, formatCantidad, ORDEN_NIVEL } from '@moldeados/shared/base';
 import { hoy, useSesion, verFecha } from '../api';
-import { useMaterias } from '../datos';
+import { useMaterias, type MateriaPrima } from '../datos';
+import { MateriaRapida } from './MateriaRapida';
 import { TAREAS } from '../navegacion';
 import { PedidosProximos } from './Avisos';
 import { Dialogo } from '../ui';
@@ -29,6 +30,7 @@ export function Inicio() {
   const [f, setF] = useFiltros({ fecha: hoyStr });
   const conPlanilla = puede('produccion') || puede('ventas') || puede('compras');
   const otras = TAREAS.filter((t) => puede(t.modulo, 2));
+  const [materia, setMateria] = useState<MateriaPrima | null>(null);
   return (
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       {aviso && <div className="aviso ok" role="status">{aviso}</div>}
@@ -72,27 +74,27 @@ export function Inicio() {
       <div className="rejilla dos">
         {materias && (
           <section className="hoja">
-            <div className="fila" style={{ borderBottom: '1px solid var(--linea)' }}>
-              <h3>Stock de materia prima</h3>
+            <div className="fila">
+              <div><h3>Materia prima</h3><span className="chico tenue">Tocá una para anotar que entró o corregir</span></div>
               {puede('materias') && <Link to="/materia-prima" className="chico">Ver todo</Link>}
             </div>
-            {/* Nunca se cargó nada (todo en cero y sin consumo): no es una alarma, es el arranque. */}
-            {materias.length > 0 && materias.filter((m) => m.activo).every((m) => m.stock === 0 && m.dias === null) ? (
-              <div className="fila"><div><div className="principal">Todavía no hay stock cargado</div><div className="chico tenue">Se suma solo con cada entrada de cartón o compra de tinta y aglutinante.</div></div>
-                {puede('compras', 2) && <Link to="/pesaje" className="boton secundario">Cargar cartón</Link>}</div>
-            ) : materias.filter((m) => m.activo)
-              .map((m) => ({ m, e: estadoStock(m) }))
-              .sort((x, y) => ORDEN_NIVEL[x.e.nivel] - ORDEN_NIVEL[y.e.nivel])
-              .map(({ m, e }) => (
-                <div className="fila" key={m.id}>
-                  <div><div className="principal">{m.nombre}</div><div className="chico tenue">{m.stock < 0 ? 'Falta cargar una compra o corregir el stock.' : e.detalle}</div></div>
-                  <div className="derecha"><div className="cifra">{formatCantidad(e.stockVisible, m.unidad)}</div><Estado nivel={e.nivel}>{e.titulo}</Estado></div>
-                  <div className={`nivel ${e.nivel}`} aria-hidden><i style={{ width: `${m.dias === null ? (e.stockVisible > 0 ? 100 : 0) : Math.min(100, (m.dias / 30) * 100)}%` }} /></div>
-                </div>
+            {materias.filter((m) => m.activo)
+              .map((m) => ({ m, e: estadoStock(m), sinCargar: m.stock === 0 && m.dias === null }))
+              .sort((x, y) => Number(x.sinCargar) - Number(y.sinCargar) || ORDEN_NIVEL[x.e.nivel] - ORDEN_NIVEL[y.e.nivel])
+              .map(({ m, e, sinCargar }) => (
+                <button type="button" className="fila" key={m.id} onClick={() => setMateria(m)} disabled={!puede('compras', 2) && !puede('materias', 3)}>
+                  <span className="principal">{m.nombre}</span>
+                  <span className="derecha materia-dato">
+                    <span className="cifra">{formatCantidad(e.stockVisible, m.unidad)}</span>
+                    {sinCargar ? <span className="marca-texto">Sin cargar</span> : <Estado nivel={e.nivel}>{e.titulo}</Estado>}
+                    <ChevronRight size={18} aria-hidden className="tenue" />
+                  </span>
+                </button>
               ))}
             {materias.length === 0 && <div className="vacio"><Package aria-hidden /><p>No hay materia prima cargada.</p></div>}
           </section>
         )}
+        {materia && <MateriaRapida m={materia} onCerrar={() => setMateria(null)} />}
       </div>
 
       {/* Los asistentes paso a paso y el escáner: para quien prefiere cargar de a una cosa o con el QR. */}

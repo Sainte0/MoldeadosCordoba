@@ -896,3 +896,4 @@ a.fila:active, button.fila:active { background: #ececf0; }
 .resumen-dia > * { gap: 2px; }
 .resumen-dia > * > small:first-child { color: var(--tinta-2); font-weight: 600; font-size: 0.8rem; }
 .resumen-dia .cifra { font-size: clamp(1.3rem, 5.4vw, 1.7rem) !important; white-space: nowrap !important; }
+.materia-dato { display: inline-flex; align-items: center; gap: 10px; }

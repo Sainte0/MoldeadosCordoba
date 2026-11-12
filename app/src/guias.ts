@@ -69,6 +69,7 @@ export const GUIAS: Guia[] = [
     palabras: 'inicio tareas avisos para vender hay que comprar',
     pasos: [
       'Al entrar ves "Hoy": el resumen del día y, abajo, lo que se fabricó, lo que se vendió y el cartón que entró. Cada bloque tiene "Agregar".',
+      'Materia prima: tocá una (por ejemplo Aglutinante) para anotar que entró (cantidad, precio y proveedor) o para corregir lo que hay de verdad.',
       'Al final, "Otras formas de cargar": escanear un palet o los pasos a paso (vender con QR, producción del turno, armar palet, cobro, egreso…).',
       'En cualquier carga paso a paso, "Salir" (arriba a la derecha) te saca desde el paso en que estés, sin guardar. Te pregunta antes, para que no se pierda nada por un toque sin querer.',
       'Arriba a la derecha: el triángulo de Atención (lo urgente: stock agotado, pedidos atrasados, cheques, vencimientos; el número rojo cuenta lo urgente) y la campana con tus avisos.',
