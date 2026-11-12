@@ -1,4 +1,4 @@
-import { ChartColumn, ClipboardCheck, ClipboardList, Coins, Factory, Home, Layers, Receipt, Scale, ScanLine, Settings, ShoppingCart, Wallet } from 'lucide-react';
+import { ChartColumn, ClipboardList, Coins, Factory, Home, Layers, Receipt, Scale, ScanLine, Settings, ShoppingCart, Wallet } from 'lucide-react';
 import type { Modulo } from '@moldeados/shared/base';
 
 // Mapa de la app: áreas del menú, sus pestañas y las tareas frecuentes. Lo usan el menú, el inicio y el buscador.
@@ -9,7 +9,6 @@ export interface Pestana { a: string; texto: string; modulo: Modulo }
 export interface Area { texto: string; icono: typeof Home; pestanas: Pestana[]; /** rutas que también pertenecen al área */ tambien?: string[] }
 export const AREAS: Area[] = [
   { texto: 'Planta', icono: Factory, tambien: ['/escanear'], pestanas: [
-    { a: '/planilla', texto: 'Planilla del día', modulo: 'produccion' },
     { a: '/produccion', texto: 'Producción', modulo: 'produccion' },
     { a: '/palets', texto: 'Stock y palets', modulo: 'produccion' },
     { a: '/materia-prima', texto: 'Materia prima', modulo: 'materias' },
@@ -43,8 +42,6 @@ export const enArea = (area: Area, path: string) => [...area.pestanas.map((x) =>
 
 // Las 4 primeras que el rol puede hacer, en orden de frecuencia en planta. El resto está en su área del menú.
 export const TAREAS: { a: string; titulo: string; corto: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
-  // La carga rápida: todo el día en una pantalla (pedido del socio, que anota todo junto al final del día).
-  { a: '/planilla', titulo: 'Planilla del día', corto: 'Planilla', detalle: 'Lo fabricado, lo vendido y el cartón', icono: ClipboardCheck, modulo: 'produccion' },
   { a: '/ventas/nueva', titulo: 'Vender palets', corto: 'Vender', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
   { a: '/produccion/nuevo', titulo: 'Producción del turno', corto: 'Parte', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
   { a: '/palets/nuevo', titulo: 'Armar palet', corto: 'Palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
@@ -79,7 +76,7 @@ const DETALLES: [RegExp, string][] = [
 /** Nombre corto de una pantalla, para el botón Volver. */
 export function nombreDeRuta(ruta: string): string {
   const path = ruta.split('?')[0]!;
-  if (path === '/') return 'Inicio';
+  if (path === '/') return 'Hoy';
   const pestana = [...AREAS, AJUSTES].flatMap((a) => a.pestanas).find((p) => p.a === path);
   if (pestana) return pestana.texto;
   return DETALLES.find(([re]) => re.test(path))?.[1] ?? 'Volver';

@@ -7,7 +7,7 @@ const SIGUIENTE = '.paso-acciones button[type=submit]';
 
 export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
   inicio: [
-    { ruta: '/', en: '.tareas', texto: 'Las tareas que más hacés. Tocá una y el sistema te lleva paso a paso, una pregunta por pantalla.' },
+    { ruta: '/', en: '.planilla .cifras, .tareas', texto: 'Hoy: arriba el resumen del día; abajo, lo fabricado, lo vendido y el cartón, cada uno con su "Agregar". Al final, otras formas de cargar (con QR o paso a paso).' },
     { en: '[data-guia="atencion"]', texto: 'Atención: lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos). El número en rojo es lo urgente; adentro, cada cosa trae su botón para resolverla.' },
     { en: '.campana', texto: 'La campana: recordatorios de la agenda, lo que te agendaron y los pedidos nuevos. El número rojo es lo que no leíste.' },
     { en: '.barra-inferior, .lateral', texto: 'Para moverte: en el iPhone, la barra de abajo (Inicio, tu tarea principal, Escanear un palet, Buscar y "Más" con todas las secciones). En el iPad y la computadora, el menú del costado: Planta, Ventas, Compras, Plata y Tablero, con Buscar arriba y Ajustes y Ayuda abajo.' },
@@ -27,10 +27,10 @@ export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
     { en: SIGUIENTE, texto: 'Con la carga lista, "Siguiente". Después: cliente, quién retira, calidad y precio, factura, si pagó algo, la firma y confirmar.' },
   ],
   planilla: [
-    { ruta: '/planilla', en: '.planilla .cifras', texto: 'El resumen del día: lo fabricado, lo vendido, lo que queda en la fábrica y el cartón que entró.' },
-    { en: '.planilla section:nth-of-type(1) .planilla-renglon', texto: 'Lo que se fabricó: maple, turno, comienzo, parada, palets y alto. "Agregar" y listo; quiénes trabajaron es opcional.' },
-    { en: '.planilla section:nth-of-type(2) .planilla-renglon', texto: 'Lo que se vendió: cliente, maple, palets y alto. El palet se arma a la medida y toma el precio de lista.' },
-    { en: '.planilla section:nth-of-type(3) .planilla-renglon', texto: 'El cartón que entró: proveedor, kilos y precio por kilo.' },
+    { ruta: '/', en: '.planilla .cifras', texto: 'El resumen del día: lo fabricado, lo vendido, lo que queda en la fábrica y el cartón que entró.' },
+    { en: '.planilla section:nth-of-type(1) .fila:first-child', texto: 'Lo que se fabricó: maple, turno, comienzo, parada, palets y alto. "Agregar" y listo; quiénes trabajaron es opcional.' },
+    { en: '.planilla section:nth-of-type(2) .fila:first-child', texto: 'Lo que se vendió: cliente, maple, palets y alto. El palet se arma a la medida y toma el precio de lista.' },
+    { en: '.planilla section:nth-of-type(3) .fila:first-child', texto: 'El cartón que entró: proveedor, kilos y precio por kilo.' },
   ],
   parte: [
     { ruta: '/produccion/nuevo', en: '.paso-cuerpo .opciones', texto: 'Primero el turno. Si cargás un turno de otro día, cambiá la fecha abajo.' },

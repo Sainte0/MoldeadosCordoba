@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { CalendarClock, ChartColumn, ChevronRight, Coins, Factory, Layers, Package, Scale, ScanLine, ShoppingCart, Wallet } from 'lucide-react';
-import { estadoStock, formatCantidad, formatPesos, ORDEN_NIVEL, type Modulo, plural } from '@moldeados/shared/base';
-import { api, hoy, useSesion } from '../api';
-import { useMaterias, useStockMaples, type CompraFila } from '../datos';
-import { Muestra } from '../MapleVista';
+import { useFiltros } from '../filtros';
+import { PlanillaDia } from './Planilla';
+import { CalendarClock, ChartColumn, ChevronRight, Package, QrCode } from 'lucide-react';
+import { estadoStock, formatCantidad, ORDEN_NIVEL } from '@moldeados/shared/base';
+import { hoy, useSesion, verFecha } from '../api';
+import { useMaterias } from '../datos';
 import { TAREAS } from '../navegacion';
 import { PedidosProximos } from './Avisos';
 import { Dialogo } from '../ui';
@@ -22,12 +22,13 @@ function saludo(): string {
 export function Inicio() {
   const { sesion, puede } = useSesion();
   const { data: materias } = useMaterias();
-  const { data: maples } = useStockMaples(puede('produccion'));
   const hoyStr = hoy();
-  const { data: deHoy } = useQuery({ queryKey: ['compras', 'hoy', hoyStr], queryFn: () => api<CompraFila[]>(`/compras?desde=${hoyStr}&hasta=${hoyStr}`), enabled: puede('compras') });
-  const validas = (deHoy ?? []).filter((c) => !c.anuladaAt);
 
   const aviso = (useLocation().state as { aviso?: string } | null)?.aviso;
+  // El inicio es "Hoy": la planilla del día. Se puede mirar o completar otro día (queda en la dirección).
+  const [f, setF] = useFiltros({ fecha: hoyStr });
+  const conPlanilla = puede('produccion') || puede('ventas') || puede('compras');
+  const otras = TAREAS.filter((t) => puede(t.modulo, 2));
   return (
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       {aviso && <div className="aviso ok" role="status">{aviso}</div>}
@@ -38,6 +39,13 @@ export function Inicio() {
         <nav className="inicio-links" aria-label="Accesos">
           <Link to="/agenda"><CalendarClock size={16} aria-hidden /> Agenda</Link>
           {puede('tablero') && <Link to="/tablero"><ChartColumn size={16} aria-hidden /> Tablero</Link>}
+          {conPlanilla && (
+            <label className="inicio-otro-dia">
+              <span>{f.fecha === hoyStr ? 'Otro día' : verFecha(f.fecha)}</span>
+              <input type="date" value={f.fecha} max={hoyStr} onChange={(e) => setF({ fecha: e.target.value || hoyStr })} aria-label="Ver o completar otro día" />
+            </label>
+          )}
+          {f.fecha !== hoyStr && <button type="button" onClick={() => setF({ fecha: hoyStr })}>Volver a hoy</button>}
         </nav>
       </header>
 
@@ -46,30 +54,20 @@ export function Inicio() {
           y después cómo estamos. */}
       <AgendaHoy />
 
-      <div className="tareas">
-        {TAREAS.filter((t) => puede(t.modulo, 2)).slice(0, 4).map((t) => (
-          <Link key={t.a} to={t.a} className="tarea" data-tarea={t.corto}>
-            <span className="ico"><t.icono size={24} aria-hidden /></span>
-            <span><b>{t.titulo}</b><small>{t.detalle}</small></span>
-            <ChevronRight aria-hidden />
-          </Link>
-        ))}
-      </div>
-
-      {/* "Para vender" llega como notificación (campana) y la lista completa está en Ventas › Clientes. */}
-      <PedidosProximos />
-
-      {maples && maples.some((m) => m.producido - m.vendido > 0) && (
-        <section className="hoja">
-          <div className="fila"><h3>Maples en stock</h3><Link to="/palets" className="chico">Ver palets</Link></div>
-          {maples.filter((m) => m.producido - m.vendido > 0).map((m) => (
-            <div className="fila" key={m.id}>
-              <span className="con-muestra"><Muestra color={m.colorHex} /> <span><span className="principal">{m.codigo}</span><br /><span className="chico tenue">{m.enPalets - m.vendido > 0 ? `${plural(m.enPalets - m.vendido, 'paquete', 'paquetes')} en palets listos` : 'Todavía sin armar en palets'}</span></span></span>
-              <span className="derecha"><span className="cifra">{(m.producido - m.vendido).toLocaleString('es-AR')}</span><br /><span className="chico tenue">paquetes</span></span>
-            </div>
+      {conPlanilla ? <PlanillaDia fecha={f.fecha} /> : (
+        <div className="tareas">
+          {otras.slice(0, 4).map((t) => (
+            <Link key={t.a} to={t.a} className="tarea" data-tarea={t.corto}>
+              <span className="ico"><t.icono size={24} aria-hidden /></span>
+              <span><b>{t.titulo}</b><small>{t.detalle}</small></span>
+              <ChevronRight aria-hidden />
+            </Link>
           ))}
-        </section>
+        </div>
       )}
+
+      {/* Lo que viene: pedidos de la semana. ("Para vender" llega como notificación.) */}
+      <PedidosProximos />
 
       <div className="rejilla dos">
         {materias && (
@@ -95,18 +93,18 @@ export function Inicio() {
             {materias.length === 0 && <div className="vacio"><Package aria-hidden /><p>No hay materia prima cargada.</p></div>}
           </section>
         )}
-        {puede('compras') && (
-          <section className="hoja">
-            <div className="fila"><div><h3>Compras y cartón de hoy</h3>{validas.length > 0 && <p className="chico tenue">{plural(validas.length, 'carga', 'cargas')}</p>}</div>{validas.length > 0 && <span className="cifra">{formatPesos(validas.reduce((a, c) => a + c.total, 0))}</span>}</div>
-            {validas.length === 0 ? <p className="tenue" style={{ padding: '0 18px 18px' }}>Todavía no se cargó nada hoy.</p> : validas.map((c) => (
-              <Link to={`/compras/${c.numero}`} className="fila" key={c.id}>
-                <div><div className="principal">{c.proveedor}</div><div className="chico tenue">{c.resumen}</div></div>
-                <span className="cifra">{formatPesos(c.total)}</span>
-              </Link>
-            ))}
-          </section>
-        )}
       </div>
+
+      {/* Los asistentes paso a paso y el escáner: para quien prefiere cargar de a una cosa o con el QR. */}
+      {conPlanilla && otras.length > 0 && (
+        <section className="otras-cargas">
+          <h3>Otras formas de cargar</h3>
+          <div>
+            <Link to="/escanear" className="chip-carga"><QrCode size={18} aria-hidden /> Escanear un palet</Link>
+            {otras.filter((t) => t.a !== '/planilla').map((t) => <Link key={t.a} to={t.a} className="chip-carga"><t.icono size={18} aria-hidden /> {t.titulo}</Link>)}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

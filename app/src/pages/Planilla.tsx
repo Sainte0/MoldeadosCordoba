@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, ClipboardList, Plus } from 'lucide-react';
+import { ClipboardList, Plus } from 'lucide-react';
 import { aCentavos, formatPesos, LABEL_TURNO, PALET_DEFAULT, TURNOS, type Turno } from '@moldeados/shared/base';
 import { api, hoy, useSesion, verFecha } from '../api';
 import { useClientes, useEmpleados, useMaterias, useProveedores, useVariantes } from '../datos';
-import { useFiltros } from '../filtros';
 import { Muestra } from '../MapleVista';
-import { Aviso, Cabecera, Campo, Entrada } from '../ui';
+import { Aviso, Campo, Entrada } from '../ui';
 
-// Planilla del día: todo lo del día en una pantalla, como la planilla de papel. Lo fabricado (palets × alto), lo que
+// Planilla del día (el inicio, "Hoy"): todo lo del día en una pantalla, como la planilla de papel. Lo fabricado (palets × alto), lo que
 // se vendió/retiró y el cartón que entró. Detrás guarda partes, ventas y pesajes: el resto del sistema sigue igual.
 
 interface Dia {
@@ -35,49 +34,47 @@ const turnoAhora = (): Turno => (Number(new Intl.DateTimeFormat('es-AR', { hour:
 const HORARIO: Record<Turno, [string, string]> = { manana: ['06:00', '14:00'], tarde: ['14:00', '22:00'] };
 const horas = (min: number) => `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`;
 
-export function Planilla() {
+/** El día en el inicio ("Hoy"): resumen, lo fabricado, lo vendido, el cartón y lo que queda en la fábrica. */
+export function PlanillaDia({ fecha }: { fecha: string }) {
   const { puede } = useSesion();
-  const [f, setF] = useFiltros({ fecha: hoy() });
-  const { data: dia } = useQuery({ queryKey: ['planilla', f.fecha], queryFn: () => api<Dia>(`/planilla?fecha=${f.fecha}`) });
-  const mover = (d: number) => { const x = new Date(`${f.fecha}T12:00:00`); x.setDate(x.getDate() + d); setF({ fecha: x.toISOString().slice(0, 10) }); };
-  const ppn = dia?.paquetesPorNivel ?? PALET_DEFAULT.ancho * PALET_DEFAULT.largo;
-  const fabricado = (dia?.produccion ?? []).reduce((a, p) => a + p.paquetes, 0);
-  const retirados = (dia?.ventas ?? []).reduce((a, v) => a + v.palets, 0);
-  const enFabrica = (dia?.stock ?? []).reduce((a, s) => a + Math.max(0, s.paquetes), 0);
-  const kilos = (dia?.carton ?? []).reduce((a, c) => a + c.gramos, 0) / 1000;
-
+  const { data: dia } = useQuery({ queryKey: ['planilla', fecha], queryFn: () => api<Dia>(`/planilla?fecha=${fecha}`) });
+  if (!dia) return null;
+  const ppn = dia.paquetesPorNivel;
+  const fabricado = dia.produccion.reduce((a, p) => a + p.paquetes, 0);
+  const retirados = dia.ventas.reduce((a, v) => a + v.palets, 0);
+  const enFabrica = dia.stock.reduce((a, s) => a + Math.max(0, s.paquetes), 0);
+  const kilos = dia.carton.reduce((a, c) => a + c.gramos, 0) / 1000;
+  const esHoy = fecha === hoy();
   return (
-    <div className="ancho planilla" style={{ display: 'grid', gap: 16 }}>
-      <Cabecera titulo="Planilla del día" bajada="Lo que se fabricó, lo que se vendió y el cartón que entró, todo en una pantalla.">
-        <div className="acciones-titulo">
-          <button className="boton secundario" onClick={() => mover(-1)} aria-label="Día anterior"><ChevronLeft size={18} /></button>
-          <Entrada type="date" value={f.fecha} max={hoy()} onChange={(e) => e.target.value && setF({ fecha: e.target.value })} aria-label="Fecha" style={{ width: 'auto' }} />
-          {f.fecha < hoy() && <button className="boton secundario" onClick={() => mover(1)} aria-label="Día siguiente"><ChevronRight size={18} /></button>}
-        </div>
-      </Cabecera>
-
+    <div className="planilla" style={{ display: 'grid', gap: 16 }}>
       <div className="cifras">
-        <div><span className="cifra">{enPalets(fabricado, ppn)}</span><small>fabricado {f.fecha === hoy() ? 'hoy' : `el ${verFecha(f.fecha)}`}</small></div>
+        <div><span className="cifra">{enPalets(fabricado, ppn)}</span><small>fabricado {esHoy ? 'hoy' : `el ${verFecha(fecha)}`}</small></div>
         <div><span className="cifra">{retirados} {retirados === 1 ? 'palet' : 'palets'}</span><small>vendidos y retirados</small></div>
         <div><span className="cifra">{enPalets(enFabrica, ppn)}</span><small>en la fábrica ahora</small></div>
         <div><span className="cifra">{kilos.toLocaleString('es-AR')} kg</span><small>de cartón que entró</small></div>
       </div>
+      {puede('produccion') && <Fabricado dia={dia} edita={puede('produccion', 2)} />}
+      {puede('ventas') && <Vendido dia={dia} edita={puede('ventas', 2)} />}
+      {puede('compras') && <Carton dia={dia} edita={puede('compras', 2)} />}
+      <section className="hoja">
+        <div className="fila"><h3>En la fábrica</h3>{puede('ventas', 2) && <Link to="/pedidos/nuevo" className="boton secundario"><ClipboardList size={18} aria-hidden /> Nuevo pedido</Link>}</div>
+        {dia.stock.map((s) => (
+          <div className="fila" key={s.id}>
+            <span className="con-muestra"><Muestra color={s.colorHex} /> <span><span className="principal">{s.codigo}</span><br /><span className="chico tenue">{s.nombre}</span></span></span>
+            <span className="derecha"><span className="cifra">{enPalets(s.paquetes, ppn)}</span><br /><span className="chico tenue">{Math.max(0, s.paquetes).toLocaleString('es-AR')} paquetes</span></span>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+}
 
-      {puede('produccion') && dia && <Fabricado dia={dia} edita={puede('produccion', 2)} />}
-      {puede('ventas') && dia && <Vendido dia={dia} edita={puede('ventas', 2)} />}
-      {puede('compras') && dia && <Carton dia={dia} edita={puede('compras', 2)} />}
-
-      {dia && (
-        <section className="hoja">
-          <div className="fila"><h3>En la fábrica</h3><Link to="/pedidos/nuevo" className="boton secundario"><ClipboardList size={18} aria-hidden /> Nuevo pedido</Link></div>
-          {dia.stock.map((s) => (
-            <div className="fila" key={s.id}>
-              <span className="con-muestra"><Muestra color={s.colorHex} /> <span><span className="principal">{s.codigo}</span><br /><span className="chico tenue">{s.nombre}</span></span></span>
-              <span className="derecha"><span className="cifra">{enPalets(s.paquetes, ppn)}</span><br /><span className="chico tenue">{Math.max(0, s.paquetes).toLocaleString('es-AR')} paquetes</span></span>
-            </div>
-          ))}
-        </section>
-      )}
+/** Encabezado de cada bloque: el título y "Agregar", que abre el renglón para cargar. */
+function Cabeza({ titulo, detalle, edita, abierto, onAbrir }: { titulo: string; detalle?: string; edita: boolean; abierto: boolean; onAbrir: () => void }) {
+  return (
+    <div className="fila">
+      <div><h3>{titulo}</h3>{detalle && <span className="chico tenue">{detalle}</span>}</div>
+      {edita && !abierto && <button type="button" className="boton secundario" onClick={onAbrir}><Plus size={18} aria-hidden /> Agregar</button>}
     </div>
   );
 }
@@ -96,6 +93,7 @@ function Fabricado({ dia, edita }: { dia: Dia; edita: boolean }) {
   const [r, setR] = useState({ varianteId: '', turno: turno0, inicio: HORARIO[turno0][0], fin: HORARIO[turno0][1], palets: '', alto: String(ALTO), empleadoIds: [] as string[] });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [abierto, setAbierto] = useState(dia.produccion.length === 0);
   const activas = (variantes ?? []).filter((v) => v.activo);
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,14 +108,14 @@ function Fabricado({ dia, edita }: { dia: Dia; edita: boolean }) {
   const turno = (t: Turno) => setR({ ...r, turno: t, inicio: HORARIO[t][0], fin: HORARIO[t][1] });
   return (
     <section className="hoja">
-      <div className="fila"><h3>Lo que se fabricó</h3><span className="chico tenue">{dia.produccion.length ? `${dia.produccion.length} ${dia.produccion.length === 1 ? 'carga' : 'cargas'}` : ''}</span></div>
+      <Cabeza titulo="Lo que se fabricó" detalle={dia.produccion.length ? `${dia.produccion.length} ${dia.produccion.length === 1 ? 'carga' : 'cargas'}` : undefined} edita={edita} abierto={abierto} onAbrir={() => setAbierto(true)} />
       {dia.produccion.map((p) => (
         <Link to={`/produccion/${p.numero}`} className="fila" key={p.id}>
           <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.maquina} · {p.codigo}</span><br /><span className="chico tenue">{LABEL_TURNO[p.turno]} · {horas(p.minutos)}</span></span></span>
           <span className="derecha"><span className="cifra">{enPalets(p.paquetes, dia.paquetesPorNivel)}</span><br /><span className="chico tenue">{p.maples.toLocaleString('es-AR')} maples</span></span>
         </Link>
       ))}
-      {edita && (
+      {edita && abierto && (
         <form className="planilla-renglon" onSubmit={guardar}>
           <Campo etiqueta="Maple">
             <select className="entrada" value={r.varianteId} onChange={(e) => setR({ ...r, varianteId: e.target.value })} required>
@@ -157,6 +155,7 @@ function Vendido({ dia, edita }: { dia: Dia; edita: boolean }) {
   const [r, setR] = useState({ cliente: '', varianteId: '', palets: '1', alto: String(ALTO), conFactura: false });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [abierto, setAbierto] = useState(dia.ventas.length === 0);
   const enStock = (id: string) => dia.stock.find((s) => s.id === id)?.paquetes ?? 0;
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,14 +173,14 @@ function Vendido({ dia, edita }: { dia: Dia; edita: boolean }) {
   };
   return (
     <section className="hoja">
-      <div className="fila"><h3>Lo que se vendió y se retiró</h3><span className="chico tenue">{dia.ventas.length ? `${dia.ventas.length} ${dia.ventas.length === 1 ? 'venta' : 'ventas'}` : ''}</span></div>
+      <Cabeza titulo="Lo que se vendió y se retiró" detalle={dia.ventas.length ? `${dia.ventas.length} ${dia.ventas.length === 1 ? 'venta' : 'ventas'}` : undefined} edita={edita} abierto={abierto} onAbrir={() => setAbierto(true)} />
       {dia.ventas.map((v) => (
         <Link to={`/ventas/${v.numero}`} className="fila" key={v.id}>
           <span><span className="principal">{v.cliente}</span><br /><span className="chico tenue">{v.palets} {v.palets === 1 ? 'palet' : 'palets'}{v.codigos ? ` · ${v.codigos}` : ''} · {v.maples.toLocaleString('es-AR')} maples</span></span>
           <span className="cifra">{formatPesos(v.total)}</span>
         </Link>
       ))}
-      {edita && (
+      {edita && abierto && (
         <form className="planilla-renglon" onSubmit={guardar}>
           <Campo etiqueta="Cliente">
             <Entrada list="planilla-clientes" value={r.cliente} onChange={(e) => setR({ ...r, cliente: e.target.value })} placeholder="Nombre" autoComplete="off" required />
@@ -212,6 +211,7 @@ function Carton({ dia, edita }: { dia: Dia; edita: boolean }) {
   const [r, setR] = useState({ proveedor: '', kilos: '', precio: '', conFactura: false });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [abierto, setAbierto] = useState(dia.carton.length === 0);
   const carton = (materias ?? []).find((m) => m.tipo === 'carton' && m.activo);
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,14 +232,14 @@ function Carton({ dia, edita }: { dia: Dia; edita: boolean }) {
   };
   return (
     <section className="hoja">
-      <div className="fila"><h3>Cartón que entró</h3></div>
+      <Cabeza titulo="Cartón que entró" edita={edita} abierto={abierto} onAbrir={() => setAbierto(true)} />
       {dia.carton.map((c) => (
         <Link to={`/compras/${c.numero}`} className="fila" key={c.id}>
           <span><span className="principal">{c.proveedor}</span><br /><span className="chico tenue">{(c.gramos / 1000).toLocaleString('es-AR')} kg</span></span>
           <span className="cifra">{formatPesos(c.total)}</span>
         </Link>
       ))}
-      {edita && (
+      {edita && abierto && (
         <form className="planilla-renglon" onSubmit={guardar}>
           <Campo etiqueta="Proveedor">
             <Entrada list="planilla-proveedores" value={r.proveedor} onChange={(e) => setR({ ...r, proveedor: e.target.value })} placeholder="Nombre" autoComplete="off" required />

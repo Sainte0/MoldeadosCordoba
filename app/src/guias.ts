@@ -65,10 +65,11 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
-    id: 'inicio', area: 'Primeros pasos', titulo: 'Qué muestra la pantalla de inicio', pantallas: ['/'],
+    id: 'inicio', area: 'Primeros pasos', titulo: 'Qué muestra la pantalla Hoy (el inicio)', pantallas: ['/'],
     palabras: 'inicio tareas avisos para vender hay que comprar',
     pasos: [
-      'Arriba están las tareas que más hacés según tu rol: tocá una y el sistema te guía paso a paso.',
+      'Al entrar ves "Hoy": el resumen del día y, abajo, lo que se fabricó, lo que se vendió y el cartón que entró. Cada bloque tiene "Agregar".',
+      'Al final, "Otras formas de cargar": escanear un palet o los pasos a paso (vender con QR, producción del turno, armar palet, cobro, egreso…).',
       'En cualquier carga paso a paso, "Salir" (arriba a la derecha) te saca desde el paso en que estés, sin guardar. Te pregunta antes, para que no se pierda nada por un toque sin querer.',
       'Arriba a la derecha: el triángulo de Atención (lo urgente: stock agotado, pedidos atrasados, cheques, vencimientos; el número rojo cuenta lo urgente) y la campana con tus avisos.',
       'Cuando a un cliente le toca comprar (o dejó de comprar) te llega una notificación a la campana, una vez por día a partir de las 9. Tocala: te lleva a Ventas › Clientes, donde "Para vender" tiene el botón de WhatsApp con el mensaje armado.',
@@ -129,11 +130,11 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
-    id: 'planilla', area: 'Planta', titulo: 'Planilla del día: todo lo del día en una pantalla', pantallas: ['/planilla'],
+    id: 'planilla', area: 'Primeros pasos', titulo: 'Hoy: cargar todo lo del día en una pantalla', pantallas: ['/'],
     palabras: 'planilla diaria dia fabricado vendido retiraron palets alto stock fabrica carton kilos rapido',
     pasos: [
-      'Inicio › "Planilla del día" (en el iPhone, también abajo). Arriba elegís el día; por defecto, hoy.',
-      'Lo que se fabricó: maple, turno, hora de comienzo y de parada, cuántos palets y de qué alto. Ancho y largo son siempre los mismos. Tocá "Agregar"; quiénes trabajaron es opcional.',
+      'Es lo primero que ves al entrar ("Hoy"). Para completar o mirar otro día, tocá "Otro día" arriba.',
+      'Lo que se fabricó: tocá "Agregar" y completá maple, turno, hora de comienzo y de parada, cuántos palets y de qué alto. Ancho y largo son siempre los mismos. Tocá "Agregar"; quiénes trabajaron es opcional.',
       'Lo que se vendió y se retiró: escribí el cliente (si es nuevo, se crea solo), el maple, cuántos palets y de qué alto. Toma el precio del cliente o el de lista y queda pendiente de cobro.',
       'El palet se arma a la medida al vender. Si hace falta, el sistema desarma uno ya armado (por ejemplo uno de 8 para entregar 6) y lo que sobra queda libre en la fábrica.',
       'Cartón que entró: proveedor, kilos y precio por kilo.',

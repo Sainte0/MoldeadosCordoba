@@ -34,7 +34,6 @@ const NuevoParte = lazy(() => import('./pages/NuevoParte').then((m) => ({ defaul
 const ParteDetalle = lazy(() => import('./pages/ParteDetalle').then((m) => ({ default: m.ParteDetalle })));
 const Palets = lazy(() => import('./pages/Palets').then((m) => ({ default: m.Palets })));
 const NuevoPalet = lazy(() => import('./pages/NuevoPalet').then((m) => ({ default: m.NuevoPalet })));
-const Planilla = lazy(() => import('./pages/Planilla').then((m) => ({ default: m.Planilla })));
 const Escanear = lazy(() => import('./pages/Escanear').then((m) => ({ default: m.Escanear })));
 const PaletDetalle = lazy(() => import('./pages/PaletDetalle').then((m) => ({ default: m.PaletDetalle })));
 const Maples = lazy(() => import('./pages/Maples').then((m) => ({ default: m.Maples })));
@@ -144,7 +143,7 @@ export function App() {
             <Search size={18} aria-hidden /> <span>Buscar</span> <kbd>{/Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘K' : 'Ctrl K'}</kbd>
           </button>
         </div>
-        <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' activo' : ''}`}><Home size={20} aria-hidden /> Inicio</NavLink>
+        <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' activo' : ''}`}><Home size={20} aria-hidden /> Hoy</NavLink>
         {[...AREAS, AJUSTES].map((area) => {
           const visibles = area.pestanas.filter((x) => p(x.modulo));
           if (!visibles.length) return null;
@@ -222,7 +221,8 @@ export function App() {
           {([['/compras/nueva', 'compras'], ['/ventas/nueva', 'ventas'], ['/pedidos/nuevo', 'ventas'], ['/produccion/nuevo', 'produccion'], ['/palets/nuevo', 'produccion']] as const)
             .filter(([, m]) => !p(m, 2)).map(([r]) => <Route key={r} path={r} element={<Navigate to="/" replace />} />)}
           <Route path="/escanear" element={<Escanear />} />
-          {(p('produccion') || p('ventas') || p('compras')) && <Route path="/planilla" element={<Planilla />} />}
+          {/* La planilla del día es el inicio ("Hoy"); el link viejo lleva ahí, con su fecha. */}
+          <Route path="/planilla" element={<Navigate to={`/${location.search}`} replace />} />
           <Route path="/palets/:id" element={<PaletDetalle />} />
           {p('productos') && <Route path="/maples" element={<Maples />} />}
           {p('materias') && <Route path="/materia-prima" element={<Materias />} />}
@@ -267,7 +267,7 @@ function BarraInferior({ pathname, puede, onMas, onBuscar }: { pathname: string;
   const enTarea = !!tarea && pathname === tarea.a.split('?')[0];
   return (
     <nav className="barra-inferior" aria-label="Accesos rápidos">
-      <NavLink to="/" end className={({ isActive }) => (isActive ? 'activo' : '')}><Home size={22} aria-hidden /><span>Inicio</span></NavLink>
+      <NavLink to="/" end className={({ isActive }) => (isActive ? 'activo' : '')}><Home size={22} aria-hidden /><span>Hoy</span></NavLink>
       {tarea && <NavLink to={tarea.a} className={enTarea ? 'activo' : ''}><tarea.icono size={22} aria-hidden /><span>{tarea.corto}</span></NavLink>}
       <NavLink to="/escanear" className={({ isActive }) => `central${isActive ? ' activo' : ''}`}><span className="disco"><QrCode size={22} aria-hidden /></span><span>Escanear</span></NavLink>
       <button type="button" onClick={onBuscar}><Search size={22} aria-hidden /><span>Buscar</span></button>
