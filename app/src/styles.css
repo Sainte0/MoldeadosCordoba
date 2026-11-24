@@ -903,3 +903,51 @@ a.fila:active, button.fila:active { background: #ececf0; }
 .boton.boton-fila { min-height: 34px; padding: 0 12px; font-size: 0.88rem; border-radius: 10px; }
 .resumen-dia > a { text-decoration: none; color: inherit; }
 .resumen-dia > a:active { opacity: 0.7; }
+
+/* ---------- Pedido 01: plastificadora, orden de venta y carga con pistola ---------- */
+/* Tablet de la plastificadora: botones grandes para tocar con guantes, nada para tipear. */
+.plastificar { display: grid; gap: 18px; max-width: 900px; }
+.tecla-grupo { display: grid; gap: 10px; }
+.tecla-grupo h3 { font-size: 1.05rem; color: var(--tinta-2); }
+.teclas { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.teclas.cuatro { grid-template-columns: repeat(4, 1fr); }
+.tecla { min-height: 96px; border-radius: 18px; border: 2px solid transparent; background: var(--superficie); font: 600 1.5rem/1.1 inherit; color: var(--tinta); display: flex; align-items: center; justify-content: center; gap: 12px; cursor: pointer; }
+.tecla.numero { font-size: 2.6rem; font-variant-numeric: tabular-nums; }
+.tecla[aria-pressed='true'] { background: var(--accion); color: #fff; }
+.tecla-confirmar { min-height: 84px; font-size: 1.35rem; border-radius: 18px; width: 100%; }
+.solo-impresion { display: none; }
+@media print { .solo-impresion { display: block; } .plastificar .solo-impresion .etiqueta { display: grid; } }
+
+/* Orden: renglones maple + alto + cantidad. */
+.renglon-orden { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 8px; align-items: center; }
+.renglon-orden .renglon-dato { grid-column: 1 / -1; margin: -2px 0 6px; }
+@media (max-width: 560px) { .renglon-orden { grid-template-columns: 1fr 1fr; } }
+.precios-cliente { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+
+/* Pantalla de carga: un contador grande por renglón, y el resultado de cada escaneo bien visible. */
+.contadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.renglon-carga { background: var(--superficie); border-radius: 18px; padding: 18px 20px; display: grid; gap: 6px; }
+.carga-cifra { font-size: 3.4rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.carga-cifra small { font-size: 1.4rem; font-weight: 500; color: var(--tinta-2); }
+.renglon-carga.completo { background: var(--ok-claro); }
+.renglon-carga.completo .carga-cifra { color: var(--ok); }
+.escaneo { display: grid; gap: 10px; }
+.resultado-escaneo { padding: 18px 20px; border-radius: 18px; font-size: 1.3rem; font-weight: 600; }
+.resultado-escaneo.ok { background: var(--ok-claro); color: var(--ok); }
+.resultado-escaneo.mal { background: var(--peligro-claro); color: var(--peligro); }
+
+/* Orden impresa por duplicado (A4): original para el chofer y duplicado para la fábrica. */
+@media print {
+  .carga .impresion { display: block; }
+  .orden-impresa { break-after: page; font-size: 11pt; color: #000; }
+  .orden-impresa:last-child { break-after: auto; }
+  .orden-impresa header { display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #000; padding-bottom: 8px; margin-bottom: 12px; }
+  .orden-impresa p { margin: 4px 0; }
+  .orden-impresa table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  .orden-impresa th, .orden-impresa td { border-bottom: 1px solid #999; padding: 4px 6px; text-align: left; }
+  .orden-impresa .firma { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px; }
+  .orden-impresa .firma div { border-top: 1px solid #000; padding-top: 4px; }
+}
+@media print { .barra-arriba { display: none !important; } }
+.tabla-balance td:first-child { text-align: left; }
+.planilla-renglon .pestanas { grid-column: 1 / -1; justify-self: start; }

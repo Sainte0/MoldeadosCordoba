@@ -241,8 +241,8 @@ export function Despacho() {
       listo: faltaSegunda ? `Escribí el precio de segunda del ${faltaSegunda.codigo}` : faltaPrecio && navigator.onLine ? (cambiaPrecios ? `Falta el precio del ${faltaPrecio.codigo}` : `El ${faltaPrecio.codigo} no tiene precio cargado: pedile a administración que lo cargue en Ajustes › Precios.`) : true,
     },
     {
-      titulo: '¿Lleva factura?',
-      ayuda: 'Marcá si esta venta se factura. No emite la factura: solo deja registrado si va en blanco o en negro.',
+      titulo: '¿Cuenta 1 o Cuenta 2?',
+      ayuda: 'Marcá si esta venta va a Cuenta 1 o a Cuenta 2. No emite la factura.',
       contenido: <PasoFactura v={factura} set={setFactura} />,
       listo: facturaLista(factura),
     },
@@ -286,7 +286,7 @@ export function Despacho() {
           <dl className="resumen hoja relleno">
             <dt>Cliente</dt><dd>{cliente?.nombre}</dd>
             <dt>Retira</dt><dd>{retira}{vehiculo ? ` · ${LABEL_VEHICULO[vehiculo]}` : ''}{patente ? ` · ${patente.toUpperCase()}` : ''}</dd>
-            <dt>Factura</dt><dd>{factura.conFactura ? `Sí · ${formatIva(factura.ivaBp)}` : 'No'}</dd>
+            <dt>Cuenta</dt><dd>{factura.conFactura ? `Cuenta 1 · ${formatIva(factura.ivaBp)}` : 'Cuenta 2'}</dd>
             {segunda.length > 0 && <><dt>Segunda</dt><dd>{codigos.filter((c) => segunda.includes(c.varianteId)).map((c) => c.codigo).join(', ')}</dd></>}
             <dt>Pago</dt><dd>{pagado === 0 ? 'Pendiente (queda en su cuenta)' : pagado >= totales.total ? `Cobrado · ${pagosLista.map((p) => LABEL_MEDIO[p.medio]).join(' + ')}` : `Pagó ${formatPesos(pagado)}, queda pendiente ${formatPesos(totales.total - pagado)}`}</dd>
           </dl>

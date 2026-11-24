@@ -26,7 +26,9 @@ en el **mismo VPS que Centrolab y Hassuru**.
 - **Compra** `con_factura` true/false (en blanco / en negro).
 - **Variante de maple:** tamaño (chico MP-1 / grande MP-2) × color (natural o un color). Tiene código y **receta por hora**.
 - **Parte de producción:** fecha + turno (mañana/tarde) + máquina + variante + horas + paquetes de 60.
-- **Palet:** paquetes por palet = ancho × largo × alto (alto variable según vehículo).
+- **Palet:** 3 × 2 paquetes por camada × alto (4 a 7). Entra al stock al terminar de plastificarlo (Planta › Plastificadora), sin depender de la producción por turno (esa carga queda escondida, para costos futuros).
+- **Orden de venta:** la emite el gerente (cliente, chofer, renglones maple + alto + cantidad); el mulero escanea cada pallet con la pistola; con el último se cierra sola, registra la venta e imprime por duplicado.
+- **Cuenta 1 / Cuenta 2 / Mixta:** condición de pago del cliente (Cuenta 1 = `con_factura`). En pantalla **nunca** "con/sin factura", "en blanco/negro": solo Cuenta 1, Cuenta 2, Mixta.
 - **Medios de pago:** efectivo, transferencia, Mercado Pago, e-cheq (banco), cheque físico (banco, nro., fecha de cobro).
 
 ## Diseño

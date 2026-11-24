@@ -12,8 +12,8 @@ export function PasoFactura({ v, set }: { v: DatosFactura; set: (v: DatosFactura
         valor={v.conFactura}
         onChange={(conFactura) => set({ ...v, conFactura, ivaBp: conFactura ? (v.ivaBp || 2100) : 0 })}
         opciones={[
-          { valor: true, titulo: 'Con factura', detalle: 'Se registra en blanco' },
-          { valor: false, titulo: 'Sin factura', detalle: 'Se registra en negro' },
+          { valor: true, titulo: 'Cuenta 1' },
+          { valor: false, titulo: 'Cuenta 2' },
         ]}
       />
       {v.conFactura && (
@@ -30,5 +30,5 @@ export function PasoFactura({ v, set }: { v: DatosFactura; set: (v: DatosFactura
   );
 }
 
-export const facturaLista = (v: DatosFactura) => (v.conFactura === null ? 'Elegí si vino con factura o sin factura' : true);
+export const facturaLista = (v: DatosFactura) => (v.conFactura === null ? 'Elegí Cuenta 1 o Cuenta 2' : true);
 export const facturaBody = (v: DatosFactura) => ({ conFactura: v.conFactura === true, nroFactura: v.nroFactura || undefined, ivaBp: v.conFactura ? v.ivaBp : 0 });

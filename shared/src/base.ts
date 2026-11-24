@@ -47,12 +47,13 @@ export function calcularCompra(items: { cantidad: number; precioUnitario: number
 
 // ---------- Roles y permisos ----------
 
-export const ROLES = ['dueno', 'administracion', 'encargado', 'operario'] as const;
+export const ROLES = ['dueno', 'gerente', 'administracion', 'encargado', 'operario'] as const;
 
 export type Rol = (typeof ROLES)[number];
 
 export const LABEL_ROL: Record<Rol, string> = {
   dueno: 'Dueño',
+  gerente: 'Gerente',
   administracion: 'Administración',
   encargado: 'Encargado de planta',
   operario: 'Operario',
@@ -84,8 +85,10 @@ export type MatrizPermisos = Record<Rol, Record<Modulo, Nivel>>;
 /** Default de fábrica. La tabla rol_permisos guarda solo lo que el dueño cambió. El dueño ve todo siempre. */
 export const PERMISOS_DEFAULT: MatrizPermisos = {
   dueno: { tablero: 1, gastos: 3, ventas: 3, cuentas: 3, produccion: 3, productos: 3, compras: 3, proveedores: 3, materias: 3, usuarios: 3, auditoria: 1 },
+  // Gerente: emite las órdenes de venta, las cierra cortas o las cancela, y anula pallets.
+  gerente: { tablero: 1, gastos: 3, ventas: 3, cuentas: 3, produccion: 3, productos: 3, compras: 3, proveedores: 3, materias: 3, usuarios: 0, auditoria: 1 },
   administracion: { tablero: 1, gastos: 3, ventas: 3, cuentas: 3, produccion: 1, productos: 1, compras: 3, proveedores: 3, materias: 1, usuarios: 0, auditoria: 1 },
-  encargado: { tablero: 0, gastos: 2, ventas: 2, cuentas: 0, produccion: 3, productos: 3, compras: 2, proveedores: 2, materias: 3, usuarios: 0, auditoria: 0 },
+  encargado: { tablero: 0, gastos: 2, ventas: 2, cuentas: 0, produccion: 2, productos: 3, compras: 2, proveedores: 2, materias: 3, usuarios: 0, auditoria: 0 },
   operario: { tablero: 0, gastos: 0, ventas: 0, cuentas: 0, produccion: 2, productos: 1, compras: 2, proveedores: 1, materias: 1, usuarios: 0, auditoria: 0 },
 };
 
@@ -119,10 +122,31 @@ export const VEHICULOS = ['camioneta', 'chasis', 'acoplado', 'camion_termico'] a
 
 export type Vehiculo = (typeof VEHICULOS)[number];
 
-export const LABEL_VEHICULO: Record<Vehiculo, string> = { camioneta: 'Camioneta', chasis: 'Chasis', acoplado: 'Acoplado', camion_termico: 'Camión térmico' };
+export const LABEL_VEHICULO: Record<Vehiculo, string> = { camioneta: 'Camioneta', chasis: 'Chasis', acoplado: 'Acoplado', camion_termico: 'Térmico' };
 
-/** Armado más común: 2 de ancho × 3 de largo × 6 de alto (paquetes de 60). */
-export const PALET_DEFAULT = { ancho: 2, largo: 3, alto: 6 } as const;
+/** Armado: 3 de ancho × 2 de largo (6 paquetes de 60 por camada) × el alto. */
+export const PALET_DEFAULT = { ancho: 3, largo: 2, alto: 6 } as const;
+
+/** Altos con los que sale un pallet de la plastificadora. */
+export const ALTOS_PALET = [4, 5, 6, 7] as const;
+
+// Condición de pago del cliente. Cuenta 1 = con factura, Cuenta 2 = sin factura (en pantalla solo se dice Cuenta 1/2).
+export const CONDICIONES = ['cuenta1', 'cuenta2', 'mixta'] as const;
+export type Condicion = (typeof CONDICIONES)[number];
+export const LABEL_CONDICION: Record<Condicion, string> = { cuenta1: 'Cuenta 1', cuenta2: 'Cuenta 2', mixta: 'Mixta' };
+export const verCondicion = (c: Condicion, pct: number | null) => (c === 'mixta' ? `Mixta (${pct ?? 0}% Cuenta 1, ${100 - (pct ?? 0)}% Cuenta 2)` : LABEL_CONDICION[c]);
+/** IVA que lleva lo de Cuenta 1 (el precio acordado es sin IVA). */
+export const IVA_CUENTA1 = 2100;
+
+/**
+ * Reparte los maples de cada pallet entre Cuenta 1 y Cuenta 2 según el porcentaje. Redondea por pallet y deja
+ * el resto en Cuenta 2, así la suma da siempre los maples cargados.
+ */
+export function repartirCuentas(maples: number, condicion: Condicion, pct: number | null): { cuenta1: number; cuenta2: number } {
+  const p = condicion === 'cuenta1' ? 100 : condicion === 'cuenta2' ? 0 : Math.max(0, Math.min(100, pct ?? 0));
+  const cuenta1 = Math.round((maples * p) / 100);
+  return { cuenta1, cuenta2: maples - cuenta1 };
+}
 
 /** Consumo según receta: cantidad por hora × minutos trabajados. */
 export const consumoTeorico = (cantidadPorHora: number, minutos: number) => Math.round((cantidadPorHora * minutos) / 60);

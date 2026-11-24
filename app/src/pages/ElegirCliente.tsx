@@ -26,7 +26,7 @@ export function ElegirCliente({ valor, onChange, conDeuda }: { valor: Cliente | 
     if (!nombre) return;
     setError(null);
     const existe = lista?.find((x) => x.nombre.trim().toLowerCase() === nombre.toLowerCase());
-    onChange(existe ?? { id: '', nombre, cuit: null, telefono: null, email: null, direccion: null, vehiculoHabitual: null, notas: null });
+    onChange(existe ?? { id: '', nombre, cuit: null, telefono: null, email: null, direccion: null, vehiculoHabitual: null, notas: null, condicionPago: 'cuenta1', porcentajeCuenta1: null });
     setNuevo(null);
   };
 

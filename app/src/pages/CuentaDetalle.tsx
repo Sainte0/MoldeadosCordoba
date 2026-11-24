@@ -62,7 +62,7 @@ export function CuentaDetalle() {
                 <div className="principal">{nombre(m)}{m.tipo !== 'saldo_inicial' && ` ${nroTicket(m.numero)}`}</div>
                 <div className="chico tenue">
                   {verFecha(m.fecha)}
-                  {m.tipo === 'saldo_inicial' ? (m.referencia ? ` · ${m.referencia}` : '') : m.signo === 1 ? ` · ${m.conFactura ? 'con factura' : 'sin factura'}` : ` · ${LABEL_MEDIO[m.medio!]}${m.banco ? ` ${m.banco}` : ''}${m.chequeNumero ? ` n.º ${m.chequeNumero}` : ''}${m.chequeFechaCobro ? `, cobro ${verFecha(m.chequeFechaCobro)}` : ''}${m.referencia ? ` · ${m.referencia}` : ''}`}
+                  {m.tipo === 'saldo_inicial' ? (m.referencia ? ` · ${m.referencia}` : '') : m.signo === 1 ? ` · ${m.conFactura ? 'Cuenta 1' : 'Cuenta 2'}` : ` · ${LABEL_MEDIO[m.medio!]}${m.banco ? ` ${m.banco}` : ''}${m.chequeNumero ? ` n.º ${m.chequeNumero}` : ''}${m.chequeFechaCobro ? `, cobro ${verFecha(m.chequeFechaCobro)}` : ''}${m.referencia ? ` · ${m.referencia}` : ''}`}
                 </div>
                 {m.anuladoAt && <span className="marca-texto peligro">Anulado</span>}
               </div>

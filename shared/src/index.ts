@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ALICUOTAS_IVA, MEDIOS, MEDIOS_GASTO, MODULOS, REPETICIONES, ROLES, TIPOS_MP, TURNOS, VEHICULOS, type Modulo } from './base.js';
+import { ALICUOTAS_IVA, ALTOS_PALET, CONDICIONES, MEDIOS, MEDIOS_GASTO, MODULOS, REPETICIONES, ROLES, TIPOS_MP, TURNOS, VEHICULOS, type Modulo } from './base.js';
 
 // Schemas de entrada (Zod) para el backend. Todo lo demás está en base.ts y se re-exporta acá.
 export * from './base.js';
@@ -209,7 +209,40 @@ export const clienteSchema = z.object({
   direccion: opcional(200),
   vehiculoHabitual: z.enum(VEHICULOS).nullable().default(null),
   notas: opcional(1000),
+  condicionPago: z.enum(CONDICIONES).default('cuenta1'),
+  porcentajeCuenta1: z.number().int().min(1, 'El porcentaje a Cuenta 1 va de 1 a 99').max(99, 'El porcentaje a Cuenta 1 va de 1 a 99').nullable().default(null),
+  /** Precio acordado por maple; null = se le cobra el de lista. Si no viene, no se tocan sus precios. */
+  precios: z.array(z.object({ varianteId: z.string().uuid(), precioMaple: z.number().int().min(0).nullable() })).max(50).optional(),
+}).refine((c) => c.condicionPago !== 'mixta' || c.porcentajeCuenta1 !== null, { message: 'En Mixta indicá qué porcentaje va a Cuenta 1', path: ['porcentajeCuenta1'] });
+
+export const choferSchema = z.object({
+  nombre: texto(80).min(2, 'Ingresá el nombre'),
+  apellido: texto(80).min(2, 'Ingresá el apellido'),
+  dni: opcional(12).refine((v) => v === null || /^\d{7,8}$/.test(v.replace(/\./g, '')), 'El DNI no es válido (7 u 8 números)').transform((v) => v?.replace(/\./g, '') ?? null),
+  telefono: opcional(40),
+  patente: opcional(15).transform((v) => v?.toUpperCase().replace(/\s+/g, ' ') ?? null),
+  vehiculo: z.enum(VEHICULOS).nullable().default(null),
+  clienteIds: z.array(z.string().uuid()).max(100).default([]),
 });
+
+/** Pallet que sale de la plastificadora: tamaño + color (= el maple) y alto. Entra al stock en el momento. */
+export const paletPlastificadoSchema = z.object({
+  varianteId: z.string().uuid('Elegí el maple'),
+  alto: z.number().int().refine((v) => (ALTOS_PALET as readonly number[]).includes(v), 'El alto va de 4 a 7'),
+});
+
+export const ordenSchema = z.object({
+  clienteId: z.string().uuid('Elegí el cliente'),
+  choferId: z.string().uuid().nullable().default(null),
+  condicionPago: z.enum(CONDICIONES),
+  porcentajeCuenta1: z.number().int().min(1).max(99).nullable().default(null),
+  items: z.array(z.object({
+    varianteId: z.string().uuid('Elegí el maple'),
+    alto: z.number().int().min(1).max(20),
+    cantidad: z.number().int().min(1, 'Ingresá cuántos pallets').max(200),
+  })).min(1, 'Agregá qué se lleva').max(20),
+  notas: opcional(500),
+}).refine((o) => o.condicionPago !== 'mixta' || o.porcentajeCuenta1 !== null, { message: 'En Mixta indicá qué porcentaje va a Cuenta 1', path: ['porcentajeCuenta1'] });
 
 export const precioSchema = z.object({
   varianteId: z.string().uuid(),
@@ -367,3 +400,5 @@ export const suscripcionSchema = z.object({
 });
 export type PlanillaProduccionInput = z.infer<typeof planillaProduccionSchema>;
 export type PlanillaVentaInput = z.infer<typeof planillaVentaSchema>;
+export type ChoferInput = z.infer<typeof choferSchema>;
+export type OrdenInput = z.infer<typeof ordenSchema>;

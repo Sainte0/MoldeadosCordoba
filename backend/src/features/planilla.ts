@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Knex } from 'knex';
 import { PALET_DEFAULT, planillaProduccionSchema, planillaVentaSchema, ventaSchema, type PlanillaProduccionInput, type PlanillaVentaInput } from '@moldeados/shared';
 import { db } from '../db.js';
+import { stockPorAlto } from './ordenes.js';
 import { requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError, ValidationError } from '../lib/errors.js';
@@ -78,28 +79,24 @@ export async function cargarVenta(k: Knex, usuarioId: string, i: PlanillaVentaIn
   });
 }
 
-/** Lo del día: fabricado, vendido/retirado, cartón que entró y lo que queda en la fábrica. */
+/** Lo del día: pallets cargados en la plastificadora, ventas, cartón que entró, cobros y lo que hay en la fábrica (por tipo y alto). */
 export async function resumenDelDia(k: Knex, fecha: string) {
-  const [produccion, ventas, carton, stock, cobros] = await Promise.all([
-    k('partes as p').join('variantes as v', 'v.id', 'p.variante_id').join('maquinas as m', 'm.id', 'p.maquina_id')
-      .where('p.fecha', fecha).whereNull('p.anulado_at').orderBy('p.numero')
-      .select('p.id', 'p.numero', 'p.turno', 'p.minutos', 'p.paquetes', 'p.notas', 'v.codigo', 'v.color_hex as colorHex', 'm.codigo as maquina',
-        k.raw('p.paquetes * v.maples_por_paquete as maples')),
+  const [pallets, ventas, carton, stock, cobros] = await Promise.all([
+    k('palets as p').join('variantes as v', 'v.id', 'p.variante_id').where('p.suelto', false).whereNull('p.anulado_at')
+      .whereRaw('p.created_at::date = ?', [fecha]).orderBy('p.numero', 'desc')
+      .select('p.id', 'p.numero', 'p.alto', 'p.created_at as cargadoAt', 'v.codigo', 'v.color_hex as colorHex', k.raw('p.paquetes * v.maples_por_paquete as maples')),
     k('ventas as ve').join('clientes as c', 'c.id', 've.cliente_id').where('ve.fecha', fecha).whereNull('ve.anulado_at').orderBy('ve.numero')
-      .select('ve.id', 've.numero', 'c.nombre as cliente', 've.total_centavos as total',
-        k.raw("(select count(*) from palets pa where pa.venta_id = ve.id and not pa.suelto)::int as palets"),
+      .select('ve.id', 've.numero', 'c.nombre as cliente', 've.total_centavos as total', 've.con_factura as cuenta1', 've.orden_id as ordenId',
+        k.raw("(select count(distinct i.palet_id) from venta_items i join palets pa on pa.id = i.palet_id where i.venta_id = ve.id and not pa.suelto)::int as palets"),
         k.raw("(select string_agg(distinct va.codigo, ', ') from venta_items i join variantes va on va.id = i.variante_id where i.venta_id = ve.id) as codigos"),
         k.raw('(select coalesce(sum(i.maples), 0) from venta_items i where i.venta_id = ve.id)::int as maples')),
     k('compras as co').join('proveedores as pr', 'pr.id', 'co.proveedor_id').where('co.fecha', fecha).where('co.tipo', 'pesaje').whereNull('co.anulada_at').orderBy('co.numero')
       .select('co.id', 'co.numero', 'pr.nombre as proveedor', k.raw('(co.bruto_g - co.tara_g) as gramos'), 'co.total_centavos as total'),
-    // En la fábrica = fabricado − vendido, en paquetes (armado o no, es lo mismo: se arma a medida).
-    k('variantes as v').whereNull('v.deleted_at').where('v.activo', true).orderBy('v.codigo')
-      .select('v.id', 'v.codigo', 'v.nombre', 'v.color_hex as colorHex',
-        k.raw('(coalesce((select sum(p.paquetes) from partes p where p.variante_id = v.id and p.anulado_at is null), 0) - coalesce((select sum(pa.paquetes) from palets pa join ventas ve on ve.id = pa.venta_id where pa.variante_id = v.id and pa.anulado_at is null and ve.anulado_at is null), 0))::int as paquetes')),
+    stockPorAlto(k),
     // Lo que entró de plata en el día (cobros a clientes).
     k('movimientos_dinero').where({ tipo: 'cobro', fecha }).whereNull('anulado_at').sum<{ s: string | null }>('monto_centavos as s').first(),
   ]);
-  return { fecha, paquetesPorNivel: PAQUETES_POR_NIVEL, produccion, ventas, carton, stock, cobrado: Number(cobros?.s ?? 0) };
+  return { fecha, pallets, ventas, carton, stock, cobrado: Number(cobros?.s ?? 0) };
 }
 
 export async function planillaRoutes(app: FastifyInstance): Promise<void> {

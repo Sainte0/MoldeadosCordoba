@@ -86,8 +86,8 @@ function FichaProveedor({ inicial, onCerrar }: { inicial: Partial<Proveedor>; on
         <dl className="resumen hoja relleno">
           <dt>Compras</dt><dd>{det.totales.compras}</dd>
           <dt>Total comprado</dt><dd className="cifra">{formatPesos(det.totales.total)}</dd>
-          <dt>Con factura</dt><dd>{formatPesos(det.totales.conFactura)}</dd>
-          <dt>Sin factura</dt><dd>{formatPesos(det.totales.sinFactura)}</dd>
+          <dt>Cuenta 1</dt><dd>{formatPesos(det.totales.conFactura)}</dd>
+          <dt>Cuenta 2</dt><dd>{formatPesos(det.totales.sinFactura)}</dd>
         </dl>
       )}
       {!nuevo && <Link className="chico" to={`/compras`}>Ver compras</Link>}

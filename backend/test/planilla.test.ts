@@ -36,7 +36,7 @@ describe('planilla del día (moldeados_test)', () => {
     const v = await db('ventas').first('total_centavos', 'retira');
     expect(v).toMatchObject({ total_centavos: 23760000, retira: 'Avícola Santa Rosa' }); // 36 paq × 60 × $110
     const r = await resumenDelDia(db, fecha);
-    expect(r.stock.find((s) => s.codigo === 'MGR-NAT')?.paquetes).toBe(36);
+    expect(r.stock).toEqual([]); // el stock ahora es por pallet: el vendido ya no está
     expect(r.ventas[0]).toMatchObject({ palets: 1, maples: 2160 });
     // Cobrado del día: solo cobros de esa fecha y sin anular.
     await db('movimientos_dinero').insert([
@@ -54,7 +54,7 @@ describe('planilla del día (moldeados_test)', () => {
     const desarmado = await db('palets').where({ alto: 8 }).first('anulado_at', 'motivo_anulacion');
     expect(desarmado?.anulado_at).not.toBeNull();
     expect(desarmado?.motivo_anulacion).toBe('Desarmado para la entrega a Avícola Santa Rosa');
-    expect((await resumenDelDia(db, fecha)).stock[0]?.paquetes).toBe(12); // 2 de alto
+    expect((await resumenDelDia(db, fecha)).stock).toEqual([]); // el de 8 se anuló y el de 6 salió
   });
 
   it('si no alcanza, avisa cuánto hay y no guarda nada', async () => {

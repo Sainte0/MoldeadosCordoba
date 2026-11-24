@@ -108,8 +108,8 @@ export function NuevoGasto() {
             </label>
           )}
           <Aviso>{errorFoto}</Aviso>
-          <Campo etiqueta="¿Tiene factura?">
-            <Opciones columnas valor={conFactura} onChange={setConFactura} opciones={[{ valor: true, titulo: 'Con factura' }, { valor: false, titulo: 'Sin factura' }]} />
+          <Campo etiqueta="¿Cuenta 1 o Cuenta 2?">
+            <Opciones columnas valor={conFactura} onChange={setConFactura} opciones={[{ valor: true, titulo: 'Cuenta 1' }, { valor: false, titulo: 'Cuenta 2' }]} />
           </Campo>
           {conFactura && <Campo etiqueta="N° comprobante" ayuda="Opcional (ej.: A-3169, F-931 07-2026)"><Entrada value={nroFactura} onChange={(e) => setNroFactura(e.target.value)} /></Campo>}
         </>
@@ -126,7 +126,7 @@ export function NuevoGasto() {
             <dt>Concepto</dt><dd>{descripcion}{empleadoId ? ` · ${empleados?.find((e) => e.id === empleadoId)?.nombre}` : ''}</dd>
             {beneficiario && <><dt>Beneficiario</dt><dd>{beneficiario}</dd></>}
             <dt>Estado</dt><dd>{estado === 'pendiente' ? `Pendiente${vencimiento ? ` · vence ${verFecha(vencimiento)}` : ''}` : <>Pagado · {medio && LABEL_MEDIO_GASTO[medio]}{bancoId && necesitaBanco ? ` · ${bancos?.find((b) => b.id === bancoId)?.nombre}` : ''}</>}</dd>
-            <dt>Comprobante</dt><dd>{foto ? 'Con foto' : 'Sin foto'} · {conFactura ? 'con factura' : 'sin factura'}</dd>
+            <dt>Comprobante</dt><dd>{foto ? 'Con foto' : 'Sin foto'} · {conFactura ? 'Cuenta 1' : 'Cuenta 2'}</dd>
           </dl>
           <div className="lectura"><span>Egreso</span><span className="cifra">{centavos !== null && formatPesos(centavos)}</span></div>
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}><Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} /></Campo>

@@ -4,6 +4,7 @@ import { aCentavos, aMili, formatCantidad, formatPesos, subtotalItem, type Unida
 import { api, hoy, useSesion } from '../api';
 import { useProveedores, type MateriaPrima } from '../datos';
 import { Aviso, Campo, Dialogo, Entrada } from '../ui';
+import { Cuenta } from './Planilla';
 
 // Tocar una materia prima en "Hoy": anotar que entró (una compra) o corregir lo que hay, sin ir a otra pantalla.
 
@@ -61,7 +62,7 @@ function Entro({ m, unidad, onListo }: { m: MateriaPrima; unidad: string; onList
         <Entrada list="rapida-proveedores" value={r.proveedor} onChange={(e) => setR({ ...r, proveedor: e.target.value })} placeholder="Nombre" autoComplete="off" required />
         <datalist id="rapida-proveedores">{(proveedores ?? []).map((p) => <option key={p.id} value={p.nombre} />)}</datalist>
       </Campo>
-      <label className="planilla-check"><input type="checkbox" checked={r.conFactura} onChange={(e) => setR({ ...r, conFactura: e.target.checked })} /> Con factura</label>
+      <Cuenta valor={r.conFactura} onChange={(conFactura) => setR({ ...r, conFactura })} />
       {cantidad && precio !== null ? <p className="chico tenue">Total sin IVA: {formatPesos(subtotalItem(cantidad, precio))}. Se suma al stock y a la cuenta del proveedor.</p> : null}
       <Aviso>{error}</Aviso>
       <div className="acciones">

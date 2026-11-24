@@ -93,8 +93,8 @@ export function Pesaje() {
       listo: precioC === null || precioC < 0 ? 'Ingresá el precio por kilo' : true,
     },
     {
-      titulo: '¿Vino con factura?',
-      ayuda: 'El cartón a veces se factura y a veces no. Marcalo como corresponda: así las cuentas en blanco y en negro quedan separadas.',
+      titulo: '¿Cuenta 1 o Cuenta 2?',
+      ayuda: 'El cartón a veces va a Cuenta 1 y a veces a Cuenta 2. Marcalo como corresponda: así las dos cuentas quedan separadas.',
       contenido: <PasoFactura v={factura} set={setFactura} />,
       listo: facturaLista(factura),
     },
@@ -109,7 +109,7 @@ export function Pesaje() {
             <dt>Bruto / tara</dt><dd className="cifra">{brutoG !== null && formatCantidad(brutoG, 'kg')} / {formatCantidad(taraG ?? 0, 'kg')}</dd>
             <dt>Neto</dt><dd className="cifra">{netoG !== null && formatCantidad(netoG, 'kg')}</dd>
             <dt>Precio</dt><dd>{precioC !== null && formatPesos(precioC)} por kg</dd>
-            <dt>Factura</dt><dd>{factura.conFactura ? `Sí · ${formatIva(factura.ivaBp)}` : 'No'}</dd>
+            <dt>Cuenta</dt><dd>{factura.conFactura ? `Cuenta 1 · ${formatIva(factura.ivaBp)}` : 'Cuenta 2'}</dd>
             {patente && <><dt>Patente</dt><dd>{patente.toUpperCase()}</dd></>}
           </dl>
           {totales && <div className="lectura"><span>Total{totales.iva ? ' con IVA' : ''}</span><span className="cifra">{formatPesos(totales.total)}</span></div>}

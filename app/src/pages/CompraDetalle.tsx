@@ -57,7 +57,7 @@ export function CompraDetalle() {
         <span className="ico-detalle">{pesaje ? <Scale size={22} aria-hidden /> : <ShoppingCart size={22} aria-hidden />}</span>
         <div>
           <h1>{pesaje ? 'Ticket' : 'Compra'} {nroTicket(c.numero)}</h1>
-          <p className="tenue">{c.proveedor} · {verFecha(c.fecha)} · {formatPesos(c.total)} · {c.conFactura ? 'con factura' : 'sin factura'}</p>
+          <p className="tenue">{c.proveedor} · {verFecha(c.fecha)} · {formatPesos(c.total)} · {c.conFactura ? 'Cuenta 1' : 'Cuenta 2'}</p>
         </div>
         {c.anuladaAt && <Estado nivel="critico">Anulada</Estado>}
       </header>
@@ -88,7 +88,7 @@ export function CompraDetalle() {
             <dt>Bruto</dt><dd className="cifra">{formatCantidad(c.brutoG, 'kg')}</dd>
             <dt>Tara</dt><dd className="cifra">{formatCantidad(c.taraG ?? 0, 'kg')}</dd>
           </>}
-          <dt>Factura</dt><dd>{c.conFactura ? `Sí${c.nroFactura ? ` · ${c.nroFactura}` : ''}` : 'No'}</dd>
+          <dt>Cuenta</dt><dd>{c.conFactura ? `Cuenta 1${c.nroFactura ? ` · ${c.nroFactura}` : ''}` : 'Cuenta 2'}</dd>
         </dl>
         <table>
           <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr></thead>

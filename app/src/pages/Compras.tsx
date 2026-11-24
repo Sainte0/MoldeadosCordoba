@@ -58,7 +58,7 @@ export function Compras() {
                 </div>
                 <div className="derecha">
                   <div className="cifra">{formatPesos(c.total)}</div>
-                  {c.anuladaAt ? <span className="marca-texto peligro">Anulada</span> : <span className={`marca-texto ${c.conFactura ? 'ok' : ''}`}>{c.conFactura ? 'Con factura' : 'Sin factura'}</span>}
+                  {c.anuladaAt ? <span className="marca-texto peligro">Anulada</span> : <span className={`marca-texto ${c.conFactura ? 'ok' : ''}`}>{c.conFactura ? 'Cuenta 1' : 'Cuenta 2'}</span>}
                 </div>
               </Link>
             ))}

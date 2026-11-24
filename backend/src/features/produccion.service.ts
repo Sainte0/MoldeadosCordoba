@@ -120,6 +120,8 @@ export async function anularPalet(db: Knex, usuarioId: string, paletId: string, 
     if (!p) throw new NotFoundError('No encontramos ese palet');
     if (p.anulado_at) throw new ConflictError('Este palet ya estaba anulado');
     if (p.venta_id) throw new ConflictError('Este palet ya se vendió. Para desarmarlo, primero anulá la venta.');
+    const enOrden = await trx('orden_palets as op').join('ordenes as o', 'o.id', 'op.orden_id').where({ 'op.palet_id': p.id, 'op.vigente': true }).first('o.numero');
+    if (enOrden) throw new ConflictError(`Este pallet está cargado en la orden ${String(enOrden.numero).padStart(6, '0')}. Cancelá la orden o cerrala primero.`);
     await trx('palets').where({ id: p.id }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: motivo, updated_at: trx.fn.now() });
     await auditar(trx, { usuarioId, accion: 'anular', entidad: 'palet', entidadId: p.id, motivo });
   });

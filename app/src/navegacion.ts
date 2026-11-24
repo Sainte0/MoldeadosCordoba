@@ -1,4 +1,4 @@
-import { ChartColumn, ClipboardList, Coins, Factory, Home, Layers, Receipt, Scale, ScanLine, Settings, ShoppingCart, Wallet } from 'lucide-react';
+import { ChartColumn, ClipboardList, Coins, Factory, Home, Layers, Receipt, Scale, ScanLine, Settings, ShoppingCart, Truck, Wallet } from 'lucide-react';
 import type { Modulo } from '@moldeados/shared/base';
 
 // Mapa de la app: áreas del menú, sus pestañas y las tareas frecuentes. Lo usan el menú, el inicio y el buscador.
@@ -8,15 +8,18 @@ import type { Modulo } from '@moldeados/shared/base';
 export interface Pestana { a: string; texto: string; modulo: Modulo }
 export interface Area { texto: string; icono: typeof Home; pestanas: Pestana[]; /** rutas que también pertenecen al área */ tambien?: string[] }
 export const AREAS: Area[] = [
-  { texto: 'Planta', icono: Factory, tambien: ['/escanear'], pestanas: [
-    { a: '/produccion', texto: 'Producción', modulo: 'produccion' },
-    { a: '/palets', texto: 'Stock y palets', modulo: 'produccion' },
+  // La producción por turno queda escondida (pedido 01: más adelante para costos); sus rutas siguen andando.
+  { texto: 'Planta', icono: Factory, tambien: ['/escanear', '/produccion'], pestanas: [
+    { a: '/palets', texto: 'Stock de pallets', modulo: 'produccion' },
+    { a: '/plastificar', texto: 'Plastificadora', modulo: 'produccion' },
     { a: '/materia-prima', texto: 'Materia prima', modulo: 'materias' },
   ] },
   { texto: 'Ventas', icono: Receipt, pestanas: [
+    { a: '/ordenes', texto: 'Órdenes', modulo: 'ventas' },
     { a: '/ventas', texto: 'Ventas', modulo: 'ventas' },
     { a: '/pedidos', texto: 'Pedidos', modulo: 'ventas' },
     { a: '/clientes', texto: 'Clientes', modulo: 'ventas' },
+    { a: '/choferes', texto: 'Choferes', modulo: 'ventas' },
   ] },
   { texto: 'Compras', icono: ShoppingCart, tambien: ['/pesaje'], pestanas: [
     { a: '/compras', texto: 'Compras y cartón', modulo: 'compras' },
@@ -41,10 +44,10 @@ export const AJUSTES: Area = { texto: 'Ajustes', icono: Settings, pestanas: [
 export const enArea = (area: Area, path: string) => [...area.pestanas.map((x) => x.a), ...(area.tambien ?? [])].some((r) => path === r || path.startsWith(r + '/'));
 
 // Las 4 primeras que el rol puede hacer, en orden de frecuencia en planta. El resto está en su área del menú.
-export const TAREAS: { a: string; titulo: string; corto: string; detalle: string; icono: typeof Factory; modulo: Modulo }[] = [
-  { a: '/ventas/nueva', titulo: 'Vender palets', corto: 'Vender', detalle: 'Se va un camión: escaneá y listo', icono: ScanLine, modulo: 'ventas' },
-  { a: '/produccion/nuevo', titulo: 'Producción del turno', corto: 'Parte', detalle: 'Terminó un turno de máquina', icono: Factory, modulo: 'produccion' },
-  { a: '/palets/nuevo', titulo: 'Armar palet', corto: 'Palet', detalle: 'Con su etiqueta y QR', icono: Layers, modulo: 'produccion' },
+export const TAREAS: { a: string; titulo: string; corto: string; detalle: string; icono: typeof Factory; modulo: Modulo; nivel?: 2 | 3 }[] = [
+  { a: '/plastificar', titulo: 'Pallet terminado', corto: 'Pallet', detalle: 'Salió de la plastificadora: entra al stock con su etiqueta', icono: Layers, modulo: 'produccion' },
+  { a: '/ordenes/nueva', titulo: 'Orden de venta', corto: 'Orden', detalle: 'Cliente, chofer y qué se lleva', icono: Truck, modulo: 'ventas', nivel: 3 },
+  { a: '/ordenes', titulo: 'Cargar camión', corto: 'Carga', detalle: 'Escanear los pallets de una orden', icono: ScanLine, modulo: 'produccion' },
   { a: '/pesaje', titulo: 'Entrada de cartón', corto: 'Cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
   { a: '/dinero/nuevo?tipo=cobro', titulo: 'Pago a cuenta', corto: 'Cobro', detalle: 'Un cliente paga: efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
   { a: '/egresos/nuevo', titulo: 'Cargar egreso', corto: 'Egreso', detalle: 'Pagado o pendiente, con foto del comprobante', icono: Coins, modulo: 'gastos' },
@@ -71,7 +74,7 @@ export function rutaAnterior(): string | null {
 }
 const DETALLES: [RegExp, string][] = [
   [/^\/ventas\/[^/]+/, 'Venta'], [/^\/compras\/[^/]+/, 'Compra'], [/^\/palets\/[^/]+/, 'Palet'], [/^\/produccion\/[^/]+/, 'Parte'],
-  [/^\/pedidos\/[^/]+/, 'Pedido'], [/^\/cuentas\/[^/]+/, 'Cuenta'], [/^\/agenda/, 'Agenda'], [/^\/ayuda/, 'Ayuda'], [/^\/escanear/, 'Escanear'],
+  [/^\/pedidos\/[^/]+/, 'Pedido'], [/^\/ordenes\/[^/]+/, 'Orden'], [/^\/cuentas\/[^/]+/, 'Cuenta'], [/^\/agenda/, 'Agenda'], [/^\/ayuda/, 'Ayuda'], [/^\/escanear/, 'Escanear'],
 ];
 /** Nombre corto de una pantalla, para el botón Volver. */
 export function nombreDeRuta(ruta: string): string {
@@ -81,3 +84,6 @@ export function nombreDeRuta(ruta: string): string {
   if (pestana) return pestana.texto;
   return DETALLES.find(([re]) => re.test(path))?.[1] ?? 'Volver';
 }
+
+/** Si el rol puede hacer la tarea (algunas piden más que cargar: la orden de venta es del gerente). */
+export const puedeTarea = (puede: (m: Modulo, n?: 1 | 2 | 3) => boolean, t: (typeof TAREAS)[number]) => puede(t.modulo, t.nivel ?? 2);

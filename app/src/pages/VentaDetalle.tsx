@@ -97,7 +97,7 @@ export function VentaDetalle() {
           {v.retira && <><dt>Retira</dt><dd>{v.retira}</dd></>}
           {v.pedidoId && <><dt>Pedido</dt><dd><Link to={`/pedidos/${v.pedidoNumero}`}>{nroTicket(v.pedidoNumero ?? 0)}</Link></dd></>}
           {(v.vehiculo || v.patente) && <><dt>Vehículo</dt><dd>{[v.vehiculo && LABEL_VEHICULO[v.vehiculo], v.patente].filter(Boolean).join(' · ')}</dd></>}
-          <dt>Factura</dt><dd>{v.conFactura ? `Sí${v.nroFactura ? ` · ${v.nroFactura}` : ''}` : 'No'}</dd>
+          <dt>Cuenta</dt><dd>{v.conFactura ? `Cuenta 1${v.nroFactura ? ` · ${v.nroFactura}` : ''}` : 'Cuenta 2'}</dd>
         </dl>
         {sinPalets && <p className="chico tenue no-imprimir">Venta anterior al sistema, cargada desde la planilla de finanzas: no tiene palets asignados. Las ventas nuevas muestran acá cada palet que se llevó.</p>}
         <table>

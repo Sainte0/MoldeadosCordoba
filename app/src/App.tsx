@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BellRing, CircleHelp, Home, LogOut, Menu, QrCode, Search, X } from 'lucide-react';
-import { AJUSTES, AREAS, enArea, registrarRuta, TAREAS, type Area } from './navegacion';
+import { AJUSTES, AREAS, enArea, registrarRuta, TAREAS, puedeTarea, type Area } from './navegacion';
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
 import { useCola } from './cola';
@@ -56,6 +56,11 @@ const PedidoDetalleVista = lazy(() => import('./pages/Pedidos').then((m) => ({ d
 const Importar = lazy(() => import('./pages/Importar').then((m) => ({ default: m.Importar })));
 const Agenda = lazy(() => import('./pages/Agenda').then((m) => ({ default: m.Agenda })));
 const NuevoRecordatorio = lazy(() => import('./pages/Agenda').then((m) => ({ default: m.NuevoRecordatorio })));
+const Plastificar = lazy(() => import('./pages/Plastificar').then((m) => ({ default: m.Plastificar })));
+const Ordenes = lazy(() => import('./pages/Ordenes').then((m) => ({ default: m.Ordenes })));
+const NuevaOrden = lazy(() => import('./pages/Ordenes').then((m) => ({ default: m.NuevaOrden })));
+const OrdenCarga = lazy(() => import('./pages/Ordenes').then((m) => ({ default: m.OrdenCarga })));
+const Choferes = lazy(() => import('./pages/Choferes').then((m) => ({ default: m.Choferes })));
 const Exportar = lazy(() => import('./pages/Exportar').then((m) => ({ default: m.Exportar })));
 
 function Marca() {
@@ -216,6 +221,12 @@ export function App() {
           {p('produccion') && <Route path="/produccion/:id" element={<ParteDetalle />} />}
           {p('produccion') && <Route path="/palets" element={<Palets />} />}
           {p('produccion', 2) && <Route path="/palets/nuevo" element={<NuevoPalet />} />}
+          {p('produccion', 2) && <Route path="/plastificar" element={<Plastificar />} />}
+          {(p('ventas') || p('produccion', 2)) && <Route path="/ordenes" element={<Ordenes />} />}
+          {p('ventas', 3) && <Route path="/ordenes/nueva" element={<NuevaOrden />} />}
+          {!p('ventas', 3) && <Route path="/ordenes/nueva" element={<Navigate to="/ordenes" replace />} />}
+          {(p('ventas') || p('produccion', 2)) && <Route path="/ordenes/:id" element={<OrdenCarga />} />}
+          {p('ventas') && <Route path="/choferes" element={<Choferes />} />}
           {/* El QR del palet: cualquiera con usuario lo abre; lo que ve depende de sus permisos. */}
           {/* Sin permiso para cargar, "…/nuevo" no tiene que caer en la ficha de detalle (pediría el registro "nuevo"). */}
           {([['/compras/nueva', 'compras'], ['/ventas/nueva', 'ventas'], ['/pedidos/nuevo', 'ventas'], ['/produccion/nuevo', 'produccion'], ['/palets/nuevo', 'produccion']] as const)
@@ -263,7 +274,7 @@ function Pestanas({ path, puede }: { path: string; puede: (m: Modulo) => boolean
  */
 function BarraInferior({ pathname, puede, onMas, onBuscar }: { pathname: string; puede: (m: Modulo, n?: 1 | 2 | 3) => boolean; onMas: () => void; onBuscar: () => void }) {
   if (/\/(nuevo|nueva)$|^\/pesaje|^\/dinero\/nuevo/.test(pathname)) return null;
-  const tarea = TAREAS.find((t) => puede(t.modulo, 2));
+  const tarea = TAREAS.find((t) => puedeTarea(puede, t));
   const enTarea = !!tarea && pathname === tarea.a.split('?')[0];
   return (
     <nav className="barra-inferior" aria-label="Accesos rápidos">

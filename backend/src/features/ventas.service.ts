@@ -79,9 +79,10 @@ export async function crearVenta(db: Knex, usuarioId: string, i: VentaInput): Pr
 
 export async function anularVenta(db: Knex, usuarioId: string, ventaId: string, motivo: string): Promise<void> {
   await db.transaction(async (trx) => {
-    const v = await trx('ventas').where({ id: ventaId }).forUpdate().first('id', 'anulado_at', 'pedido_id');
+    const v = await trx('ventas').where({ id: ventaId }).forUpdate().first('id', 'anulado_at', 'pedido_id', 'orden_id');
     if (!v) throw new NotFoundError('No encontramos esa venta');
     if (v.anulado_at) throw new ConflictError('Esta venta ya estaba anulada');
+    if (v.orden_id) return anularVentaDeOrden(trx, usuarioId, v.orden_id, motivo);
     await trx('ventas').where({ id: v.id }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: motivo, updated_at: trx.fn.now() });
     // Los paquetes sueltos vuelven a estar sueltos (su palet 1×1×N se deshace); los palets, disponibles para otro despacho.
     await trx('palets').where({ venta_id: v.id, suelto: true }).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: `Venta anulada: ${motivo}`, venta_id: null, updated_at: trx.fn.now() });
@@ -89,6 +90,19 @@ export async function anularVenta(db: Knex, usuarioId: string, ventaId: string, 
     if (v.pedido_id) await actualizarEstadoPedido(trx, v.pedido_id);
     await auditar(trx, { usuarioId, accion: 'anular', entidad: 'venta', entidadId: v.id, motivo });
   });
+}
+
+/**
+ * Una orden de venta Mixta genera dos ventas (Cuenta 1 y Cuenta 2) con los mismos pallets: se anulan juntas, los
+ * pallets vuelven al stock y la orden queda cancelada.
+ */
+async function anularVentaDeOrden(trx: Knex.Transaction, usuarioId: string, ordenId: string, motivo: string): Promise<void> {
+  const ventas = await trx('ventas').where({ orden_id: ordenId }).whereNull('anulado_at').forUpdate().pluck('id');
+  await trx('ventas').whereIn('id', ventas).update({ anulado_at: trx.fn.now(), anulado_por: usuarioId, motivo_anulacion: motivo, updated_at: trx.fn.now() });
+  await trx('palets').whereIn('venta_id', ventas).update({ venta_id: null, updated_at: trx.fn.now() });
+  await trx('orden_palets').where({ orden_id: ordenId, vigente: true }).update({ vigente: false });
+  await trx('ordenes').where({ id: ordenId }).update({ estado: 'cancelada', motivo: `Venta anulada: ${motivo}`, updated_at: trx.fn.now() });
+  for (const id of ventas) await auditar(trx, { usuarioId, accion: 'anular', entidad: 'venta', entidadId: id, motivo });
 }
 
 export async function crearMovimiento(db: Knex, usuarioId: string, i: MovimientoDineroInput): Promise<{ id: string; numero: number }> {

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { Knex } from 'knex';
-import { LABEL_MEDIO_GASTO, LABEL_TURNO, LABEL_VEHICULO, MEDIOS_GASTO, type MatrizPermisos, type Modulo, type Rol } from '@moldeados/shared';
+import { LABEL_CONDICION, LABEL_MEDIO_GASTO, LABEL_TURNO, type Condicion, LABEL_VEHICULO, MEDIOS_GASTO, type MatrizPermisos, type Modulo, type Rol } from '@moldeados/shared';
 import { db } from '../db.js';
 import { matriz, requerirAlguno } from '../lib/auth.js';
 import { NotFoundError, ValidationError } from '../lib/errors.js';
@@ -40,7 +40,7 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
       .select('v.fecha', 'v.numero', 'c.nombre as cliente', 'c.cuit', 'v.retira', 'v.vehiculo', 'v.patente', 'pa.numero as palet', 'va.codigo', 'i.calidad', 'i.maples', 'i.precio_maple_centavos as precio', 'i.subtotal_centavos as subtotal',
         'v.con_factura', 'v.nro_factura', 'v.iva_bp', 'v.total_centavos as total', db.raw('v.anulado_at is not null as anulada')),
     [['Fecha', 'fecha', fecha], ['Remito', 'numero', nro], ['Cliente', 'cliente'], ['CUIT', 'cuit'], ['Retiró', 'retira'], ['Vehículo', 'vehiculo', vehiculo], ['Patente', 'patente'], ['Palet', 'palet', nro],
-      ['Código', 'codigo'], ['Calidad', 'calidad', (v) => (v === 'segunda' ? 'Segunda' : 'Primera')], ['Cantidad (maples)', 'maples'], ['Precio unitario ($/maple)', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Con factura', 'con_factura', sino], ['N.º factura', 'nro_factura'],
+      ['Código', 'codigo'], ['Calidad', 'calidad', (v) => (v === 'segunda' ? 'Segunda' : 'Primera')], ['Cantidad (maples)', 'maples'], ['Precio unitario ($/maple)', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Cuenta', 'con_factura', (v) => (v ? 'Cuenta 1' : 'Cuenta 2')], ['N.º factura', 'nro_factura'],
       ['IVA %', 'iva_bp', (v) => String(Number(v) / 100).replace('.', ',')], ['Total del remito', 'total', pesos], ['Anulada', 'anulada', sino]]) },
   compras: { titulo: 'Compras y cartón (un renglón por producto)', modulo: 'compras', periodo: true, armar: async (p) => csv(
     await db('compra_items as i').join('compras as c', 'c.id', 'i.compra_id').join('proveedores as pr', 'pr.id', 'c.proveedor_id').join('materias_primas as m', 'm.id', 'i.materia_prima_id')
@@ -48,7 +48,7 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
       .select('c.fecha', 'c.numero', 'c.tipo', 'pr.nombre as proveedor', 'pr.cuit', 'm.nombre as materia', 'm.unidad', 'i.cantidad', 'i.precio_unitario_centavos as precio', 'i.subtotal_centavos as subtotal',
         'c.con_factura', 'c.nro_factura', 'c.iva_centavos as iva', 'c.total_centavos as total', 'c.bruto_g', 'c.tara_g', 'c.patente', db.raw('c.anulada_at is not null as anulada')),
     [['Fecha', 'fecha', fecha], ['N.º', 'numero', nro], ['Tipo', 'tipo', (v) => (v === 'pesaje' ? 'Cartón' : 'Compra')], ['Proveedor', 'proveedor'], ['CUIT', 'cuit'], ['Producto', 'materia'], ['Unidad', 'unidad', (v) => (v === 'kg' ? 'kg' : 'L')],
-      ['Cantidad', 'cantidad', mili], ['Precio unitario', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Con factura', 'con_factura', sino], ['N.º factura', 'nro_factura'], ['IVA de la compra', 'iva', pesos],
+      ['Cantidad', 'cantidad', mili], ['Precio unitario', 'precio', pesos], ['Subtotal sin IVA', 'subtotal', pesos], ['Cuenta', 'con_factura', (v) => (v ? 'Cuenta 1' : 'Cuenta 2')], ['N.º factura', 'nro_factura'], ['IVA de la compra', 'iva', pesos],
       ['Total de la compra', 'total', pesos], ['Bruto kg', 'bruto_g', mili], ['Tara kg', 'tara_g', mili], ['Patente', 'patente'], ['Anulada', 'anulada', sino]]) },
   produccion: { titulo: 'Producción', modulo: 'produccion', periodo: true, armar: async (p) => csv(
     await db('partes as p').join('variantes as v', 'v.id', 'p.variante_id').join('maquinas as m', 'm.id', 'p.maquina_id').join('usuarios as u', 'u.id', 'p.usuario_id')
@@ -116,8 +116,22 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
       [['Tipo', 'tipo'], ['Nombre', 'nombre'], ['CUIT', 'cuit'], ['Ventas / compras', 'debe', pesos], ['Cobrado / pagado', 'haber', pesos], ['Saldo', 'saldo', pesos]]);
   } },
   clientes: { titulo: 'Clientes', modulo: 'ventas', periodo: false, armar: async () => csv(
-    await db('clientes').whereNull('deleted_at').orderBy('nombre').select('nombre', 'cuit', 'telefono', 'email', 'direccion', 'vehiculo_habitual', 'notas'),
-    [['Nombre', 'nombre'], ['CUIT', 'cuit'], ['Teléfono', 'telefono'], ['Email', 'email'], ['Dirección', 'direccion'], ['Suele retirar en', 'vehiculo_habitual', vehiculo], ['Notas', 'notas']]) },
+    await db('clientes').whereNull('deleted_at').orderBy('nombre').select('nombre', 'cuit', 'telefono', 'email', 'direccion', 'vehiculo_habitual', 'notas', 'condicion_pago', 'porcentaje_cuenta1'),
+    [['Nombre', 'nombre'], ['CUIT', 'cuit'], ['Teléfono', 'telefono'], ['Email', 'email'], ['Dirección', 'direccion'], ['Suele retirar en', 'vehiculo_habitual', vehiculo],
+      ['Condición de pago', 'condicion_pago', (v) => LABEL_CONDICION[v as Condicion] ?? ''], ['% a Cuenta 1', 'porcentaje_cuenta1'], ['Notas', 'notas']]) },
+  choferes: { titulo: 'Choferes', modulo: 'ventas', periodo: false, armar: async () => csv(
+    await db('choferes as ch').whereNull('ch.deleted_at').orderBy(['ch.apellido', 'ch.nombre'])
+      .select('ch.apellido', 'ch.nombre', 'ch.dni', 'ch.telefono', 'ch.patente', 'ch.vehiculo',
+        db.raw("(select string_agg(c.nombre, ', ' order by c.nombre) from chofer_clientes cc join clientes c on c.id = cc.cliente_id where cc.chofer_id = ch.id) as clientes")),
+    [['Apellido', 'apellido'], ['Nombre', 'nombre'], ['DNI', 'dni'], ['Teléfono', 'telefono'], ['Patente', 'patente'], ['Vehículo', 'vehiculo', vehiculo], ['Carga para', 'clientes']]) },
+  ordenes: { titulo: 'Órdenes de venta (un renglón por pallet cargado)', modulo: 'ventas', periodo: true, armar: async (p) => csv(
+    await db('ordenes as o').join('clientes as c', 'c.id', 'o.cliente_id').leftJoin('choferes as ch', 'ch.id', 'o.chofer_id')
+      .leftJoin('orden_palets as op', function () { this.on('op.orden_id', 'o.id').andOn('op.vigente', db.raw('true')); }).leftJoin('palets as pa', 'pa.id', 'op.palet_id').leftJoin('variantes as v', 'v.id', 'pa.variante_id')
+      .modify(entre('o.fecha', p)).orderBy(['o.fecha', 'o.numero', 'pa.numero'])
+      .select('o.fecha', 'o.numero', 'o.estado', 'o.condicion_pago', 'c.nombre as cliente', db.raw("trim(coalesce(ch.nombre, '') || ' ' || coalesce(ch.apellido, '')) as chofer"), 'ch.patente',
+        'pa.numero as palet', 'v.codigo', 'pa.alto', db.raw('pa.paquetes * v.maples_por_paquete as maples'), 'op.created_at as escaneado'),
+    [['Fecha', 'fecha', fecha], ['Orden', 'numero', nro], ['Estado', 'estado'], ['Condición', 'condicion_pago', (v) => LABEL_CONDICION[v as Condicion] ?? ''], ['Cliente', 'cliente'], ['Chofer', 'chofer'], ['Patente', 'patente'],
+      ['Pallet', 'palet', nro], ['Código', 'codigo'], ['Alto', 'alto'], ['Maples', 'maples'], ['Escaneado', 'escaneado', momento]]) },
   proveedores: { titulo: 'Proveedores', modulo: 'proveedores', periodo: false, armar: async () => csv(
     await db('proveedores').whereNull('deleted_at').orderBy('nombre').select('nombre', 'cuit', 'telefono', 'email', 'direccion', db.raw("array_to_string(tipos, ', ') as tipos"), 'notas'),
     [['Nombre', 'nombre'], ['CUIT', 'cuit'], ['Teléfono', 'telefono'], ['Email', 'email'], ['Dirección', 'direccion'], ['Vende', 'tipos'], ['Notas', 'notas']]) },

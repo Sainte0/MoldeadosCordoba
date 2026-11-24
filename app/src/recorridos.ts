@@ -7,7 +7,7 @@ const SIGUIENTE = '.paso-acciones button[type=submit]';
 
 export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
   inicio: [
-    { ruta: '/', en: '.planilla .cifras, .tareas', texto: 'Hoy: arriba el resumen del día; abajo, lo fabricado, lo vendido y el cartón, cada uno con su "Agregar". Al final, otras formas de cargar (con QR o paso a paso).' },
+    { ruta: '/', en: '.planilla .cifras, .tareas', texto: 'Hoy: arriba el resumen del día; abajo, las órdenes para cargar, los pallets que salieron de la plastificadora, lo vendido, el cartón y lo que hay en la fábrica por tipo y alto.' },
     { en: '[data-guia="atencion"]', texto: 'Atención: lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos). El número en rojo es lo urgente; adentro, cada cosa trae su botón para resolverla.' },
     { en: '.campana', texto: 'La campana: recordatorios de la agenda, lo que te agendaron y los pedidos nuevos. El número rojo es lo que no leíste.' },
     { en: '.barra-inferior, .lateral', texto: 'Para moverte: en el iPhone, la barra de abajo (Inicio, tu tarea principal, Escanear un palet, Buscar y "Más" con todas las secciones). En el iPad y la computadora, el menú del costado: Planta, Ventas, Compras, Plata y Tablero, con Buscar arriba y Ajustes y Ayuda abajo.' },
@@ -18,33 +18,31 @@ export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
   avisos: [
     { en: '.campana', texto: 'Tocá la campana para ver tus avisos. Adentro, "Activar avisos" hace que te lleguen al teléfono aunque la app esté cerrada.' },
   ],
-  despacho: [
-    { ruta: '/ventas/nueva', en: '.alveolos', texto: 'Cada alvéolo es un paso; el marcado es donde estás. Son pocos y cada uno pide una sola cosa.' },
-    { en: '.escaner, .escaner-error', texto: 'Apuntá la cámara a la etiqueta de cada palet que sube al camión: se van sumando abajo.' },
-    { en: '[aria-label="Cómo agregar palets"]', texto: 'Si una etiqueta no se lee, pasá a "Lista" y elegí el palet tocándolo.' },
-    { en: '[data-guia="sueltos"]', texto: 'Si se llevan paquetes sin palet, cargalos acá: código y cantidad.' },
-    { en: '.instructivo', texto: 'Cada paso tiene su ayuda. El dueño la puede reescribir con el lápiz.' },
-    { en: SIGUIENTE, texto: 'Con la carga lista, "Siguiente". Después: cliente, quién retira, calidad y precio, factura, si pagó algo, la firma y confirmar.' },
+  orden: [
+    { ruta: '/ordenes/nueva', en: 'select.entrada', texto: 'Elegí el cliente. Después aparecen el chofer (primero los de ese cliente), qué se lleva y la condición de pago.' },
+    { en: '.acciones .boton.primario', texto: '"Emitir orden": queda abierta en la pantalla de carga hasta que se escanee el último pallet.' },
+  ],
+  carga: [
+    { ruta: '/ordenes', en: '.pestanas, .hoja', texto: 'Las órdenes para cargar. Tocá una para abrir su pantalla de carga: un contador grande por renglón y el campo listo para la pistola QR.' },
+  ],
+  palet: [
+    { ruta: '/plastificar', en: '.tecla-grupo', texto: 'Tocá tamaño, color y alto. Botones grandes, nada para escribir.' },
+    { en: '.tecla-confirmar', texto: 'Confirmar: el pallet entra al stock y sale la etiqueta con su QR para pegar en el film.' },
   ],
   planilla: [
-    { ruta: '/', en: '.planilla .cifras', texto: 'El resumen del día: lo fabricado, lo vendido, lo que queda en la fábrica y el cartón que entró.' },
-    { en: '.planilla section:nth-of-type(1) .fila:first-child', texto: 'Lo que se fabricó: maple, turno, comienzo, parada, palets y alto. "Agregar" y listo; quiénes trabajaron es opcional.' },
-    { en: '.planilla section:nth-of-type(2) .fila:first-child', texto: 'Lo que se vendió: cliente, maple, palets y alto. El palet se arma a la medida y toma el precio de lista.' },
-    { en: '.planilla section:nth-of-type(3) .fila:first-child', texto: 'El cartón que entró: proveedor, kilos y precio por kilo.' },
+    { ruta: '/', en: '.planilla .cifras', texto: 'El resumen del día: pallets que salieron, lo vendido, lo cobrado y lo que hay en la fábrica. Cada tarjeta se toca.' },
+    { en: '.planilla > section:first-of-type', texto: 'Las órdenes para cargar (o, si no ves ventas, los pallets de hoy). Tocá una para abrirla.' },
+    { en: '.planilla > section:last-of-type', texto: 'En la fábrica: los pallets por tipo y alto.' },
   ],
   parte: [
     { ruta: '/produccion/nuevo', en: '.paso-cuerpo .opciones', texto: 'Primero el turno. Si cargás un turno de otro día, cambiá la fecha abajo.' },
     { en: '.paso-cuerpo input[type=date]', texto: 'La fecha del turno. Por defecto, hoy.' },
     { en: SIGUIENTE, texto: 'Después: máquina, maple, quiénes trabajaron (ya vienen marcados los del turno), horas, paquetes y lo que se usó.' },
   ],
-  palet: [
-    { ruta: '/palets/nuevo', en: '.paso-cuerpo .opciones', texto: 'Elegí el maple. A la derecha ves cuántos paquetes hay producidos sin armar en palets.' },
-    { en: SIGUIENTE, texto: 'Después: cómo se arma (en qué vehículo va, ancho × largo × alto), para quién es, y al confirmar se imprime la etiqueta con el QR.' },
-  ],
   pesaje: [
     { ruta: '/pesaje', en: '.paso-cuerpo .opciones, .paso-cuerpo .tenue', texto: 'Elegí el proveedor del camión que está en la báscula. Tocándolo pasa solo al paso siguiente.' },
     { en: '[data-guia="nuevo"]', texto: 'Si es la primera vez que viene, "Es un proveedor nuevo": con el nombre alcanza. Se guarda recién al terminar la carga.' },
-    { en: SIGUIENTE, texto: 'Después: bruto y tara del camión (el sistema calcula los kilos), precio por kilo, si viene con factura, y se imprime el ticket.' },
+    { en: SIGUIENTE, texto: 'Después: bruto y tara del camión (el sistema calcula los kilos), precio por kilo, si va a Cuenta 1 o Cuenta 2, y se imprime el ticket.' },
   ],
   cobro: [
     { ruta: '/dinero/nuevo?tipo=cobro', en: '.paso-cuerpo .opciones', texto: 'Los clientes que deben están primero, en rojo con lo que deben; en verde los que están al día. Tocá el que pagó.' },

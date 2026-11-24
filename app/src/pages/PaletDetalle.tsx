@@ -27,19 +27,11 @@ export function PaletDetalle() {
   const [params] = useSearchParams();
   const { puede } = useSesion();
   const qc = useQueryClient();
-  const { data: empresa } = useEmpresa();
   const { data: p, isLoading, error } = useQuery({ queryKey: ['palet', id], queryFn: () => api<Traza>(`/palets/${id}`) });
   useUrlConNumero('/palets', id, p?.numero);
-  const [qr, setQr] = useState('');
   const [anulando, setAnulando] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!p) return;
-    // El QR lleva a esta misma página: con el celular se escanea y se ve la trazabilidad (pide entrar si hace falta).
-    QRCode.toString(`${window.location.origin}/palets/${p.numero}`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' }).then(setQr).catch(() => setQr(''));
-  }, [p?.numero]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <Cargando />;
   if (!p) return <Aviso>{error instanceof Error ? error.message : 'No encontramos ese palet'}</Aviso>;
@@ -60,28 +52,7 @@ export function PaletDetalle() {
   const recien = !!params.get('nuevo') && !p.anuladoAt;
   const maples = p.paquetes * p.maplesPorPaquete;
 
-  const etiqueta = (
-    <article className="etiqueta" aria-label="Etiqueta del palet">
-      <div className="franja" style={{ background: p.colorHex ?? COLOR_CARTON }} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
-        <div>
-          <div className="codigo">{p.codigo}</div>
-          <div>{p.variante}</div>
-        </div>
-        <img src="/logo.webp" width={44} height={44} alt={empresa?.razonSocial ?? ''} style={{ borderRadius: 8 }} />
-      </div>
-      {qr && <div className="qr" dangerouslySetInnerHTML={{ __html: qr }} />}
-      <div className="datos">
-        <div>Palet<b>{nroTicket(p.numero)}</b></div>
-        <div>Paquetes<b>{p.paquetes} × {p.maplesPorPaquete}</b></div>
-        <div>Maples<b>{maples.toLocaleString('es-AR')}</b></div>
-        <div>Armado<b>{p.ancho}×{p.largo}×{p.alto}</b></div>
-        {fechas.length > 0 && <div>Producido<b>{verFecha(fechas[0]!)}{fechas.length > 1 && fechas[0] !== fechas[fechas.length - 1] ? ` al ${verFecha(fechas[fechas.length - 1]!)}` : ''}</b></div>}
-        {p.destino && <div>Para<b>{p.destino}</b></div>}
-      </div>
-      {empresa && <div className="chico">{empresa.razonSocial} · {[empresa.direccion, empresa.telefono].filter(Boolean).join(' · ')}</div>}
-    </article>
-  );
+  const etiqueta = <EtiquetaPalet p={{ ...p, producido: fechas }} />;
 
   // Orden por uso: qué palet es y en qué estado (lo que se busca al escanearlo), qué se puede hacer, de dónde salió,
   // y la etiqueta al final. Recién armado es al revés: lo primero es imprimir la etiqueta.
@@ -90,8 +61,8 @@ export function PaletDetalle() {
       {/* Tamaño de hoja solo para esta página: el ticket y el remito imprimen en A4. */}
       <style>{'@media print { @page { size: 100mm 150mm; margin: 4mm; } }'}</style>
       <Volver a="/palets" texto="Stock y palets" />
-      {recien && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Palet armado. Imprimí la etiqueta y pegala en el film.</div>}
-      {p.anuladoAt && <Aviso>Palet desarmado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
+      {recien && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Pallet cargado al stock. Imprimí la etiqueta y pegala en el film.</div>}
+      {p.anuladoAt && <Aviso>Pallet anulado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
 
       <header className="cabeza-detalle">
         <Muestra color={p.colorHex} grande />
@@ -99,13 +70,12 @@ export function PaletDetalle() {
           <h1>Palet {nroTicket(p.numero)}</h1>
           <p className="tenue">{p.codigo} · {p.variante} · {maples.toLocaleString('es-AR')} maples ({p.paquetes} paq. × {p.maplesPorPaquete})</p>
         </div>
-        {p.anuladoAt ? <Estado nivel="critico">Desarmado</Estado> : vendido ? <span className="marca-texto">Vendido</span> : <Estado nivel="ok">Listo para salir</Estado>}
+        {p.anuladoAt ? <Estado nivel="critico">Anulado</Estado> : vendido ? <span className="marca-texto">Vendido</span> : <Estado nivel="ok">Listo para salir</Estado>}
       </header>
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        {!p.anuladoAt && !vendido && p.puedeDespachar && !recien && <Link to={`/ventas/nueva?palet=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Vender este palet</Link>}
         <button className={`boton ${recien || (!vendido && !p.anuladoAt && !p.puedeDespachar) ? 'primario grande' : 'secundario'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir etiqueta</button>
-        {!p.anuladoAt && !vendido && puede('produccion', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Desarmar</button>}
+        {!p.anuladoAt && !vendido && puede('produccion', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
       </div>
 
       {recien && <><MapleVista color={p.colorHex} alto={160} />{etiqueta}</>}
@@ -162,16 +132,55 @@ export function PaletDetalle() {
       )}
 
       {anulando && (
-        <Dialogo titulo={`Desarmar palet ${nroTicket(p.numero)}`} onCerrar={() => setAnulando(false)}>
-          <p className="tenue">Los paquetes vuelven a quedar sueltos. La etiqueta deja de valer: sacala del palet.</p>
+        <Dialogo titulo={`Anular pallet ${nroTicket(p.numero)}`} onCerrar={() => setAnulando(false)}>
+          <p className="tenue">Para un pallet cargado por error: sale del stock y la etiqueta deja de valer (sacala del film).</p>
           <Campo etiqueta="Motivo"><textarea className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus /></Campo>
           <Aviso>{err}</Aviso>
           <div className="acciones">
             <button className="boton secundario" onClick={() => setAnulando(false)}>Volver</button>
-            <button className="boton peligro" disabled={motivo.trim().length < 3} onClick={anular}>Desarmar</button>
+            <button className="boton peligro" disabled={motivo.trim().length < 3} onClick={anular}>Anular pallet</button>
           </div>
         </Dialogo>
       )}
     </div>
+  );
+}
+
+/**
+ * La etiqueta que se pega en el film: maple, alto, maples, fecha y hora de carga, número de pallet y un QR único
+ * (lleva a la ficha del pallet; la pistola de la zona de carga lee el número de ahí).
+ */
+export function EtiquetaPalet({ p, onLista }: {
+  p: { numero: number; codigo: string; variante: string; colorHex: string | null; alto: number; paquetes: number; maplesPorPaquete: number; armadoAt: string; destino?: string | null; producido?: string[] };
+  onLista?: () => void;
+}) {
+  const { data: empresa } = useEmpresa();
+  const [qr, setQr] = useState('');
+  useEffect(() => {
+    QRCode.toString(`${window.location.origin}/palets/${p.numero}`, { type: 'svg', margin: 0, errorCorrectionLevel: 'M' }).then(setQr).catch(() => setQr(''));
+  }, [p.numero]);
+  useEffect(() => { if (qr) onLista?.(); }, [qr]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fechas = p.producido ?? [];
+  return (
+    <article className="etiqueta" aria-label="Etiqueta del pallet">
+      <div className="franja" style={{ background: p.colorHex ?? COLOR_CARTON }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+        <div>
+          <div className="codigo">{p.codigo}</div>
+          <div>{p.variante} · {p.alto} de alto</div>
+        </div>
+        <img src="/logo.webp" width={44} height={44} alt={empresa?.razonSocial ?? ''} style={{ borderRadius: 8 }} />
+      </div>
+      {qr && <div className="qr" dangerouslySetInnerHTML={{ __html: qr }} />}
+      <div className="datos">
+        <div>Pallet<b>{nroTicket(p.numero)}</b></div>
+        <div>Alto<b>{p.alto}</b></div>
+        <div>Maples<b>{(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')}</b></div>
+        <div>Cargado<b>{verMomento(p.armadoAt)}</b></div>
+        {fechas.length > 0 && <div>Producido<b>{verFecha(fechas[0]!)}{fechas.length > 1 && fechas[0] !== fechas[fechas.length - 1] ? ` al ${verFecha(fechas[fechas.length - 1]!)}` : ''}</b></div>}
+        {p.destino && <div>Para<b>{p.destino}</b></div>}
+      </div>
+      {empresa && <div className="chico">{empresa.razonSocial} · {[empresa.direccion, empresa.telefono].filter(Boolean).join(' · ')}</div>}
+    </article>
   );
 }

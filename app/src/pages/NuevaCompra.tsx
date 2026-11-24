@@ -102,8 +102,8 @@ export function NuevaCompra() {
       listo: items.length > 0 ? true : 'Agregá al menos un producto',
     },
     {
-      titulo: '¿Vino con factura?',
-      ayuda: 'La tinta y el aglutinante normalmente vienen con factura. Elegí la alícuota de IVA que figura en la factura.',
+      titulo: '¿Cuenta 1 o Cuenta 2?',
+      ayuda: 'La tinta y el aglutinante normalmente van a Cuenta 1. Elegí la alícuota de IVA del comprobante.',
       contenido: <PasoFactura v={factura} set={setFactura} />,
       listo: facturaLista(factura),
     },
@@ -112,7 +112,7 @@ export function NuevaCompra() {
       ayuda: 'Al guardar se suma lo comprado al stock de materia prima.',
       contenido: (
         <>
-          <p><b>{proveedor?.nombre}</b> · {factura.conFactura ? `Con factura, ${formatIva(factura.ivaBp)}` : 'Sin factura'}</p>
+          <p><b>{proveedor?.nombre}</b> · {factura.conFactura ? `Cuenta 1, ${formatIva(factura.ivaBp)}` : 'Cuenta 2'}</p>
           {listaItems}
           <div className="lectura"><span>Total{totales.iva ? ` (IVA ${formatPesos(totales.iva)})` : ''}</span><span className="cifra">{formatPesos(totales.total)}</span></div>
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}>

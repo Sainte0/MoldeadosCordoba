@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { TipoMp, Unidad, Vehiculo } from '@moldeados/shared/base';
+import type { Condicion, TipoMp, Unidad, Vehiculo } from '@moldeados/shared/base';
 import { api } from './api';
 
 // Tipos de lo que devuelve la API y las consultas que usan varias pantallas.
@@ -34,7 +34,7 @@ export const useEmpleados = () => useQuery({ queryKey: ['empleados'], queryFn: (
 export const useEmpresa = () => useQuery({ queryKey: ['empresa'], queryFn: () => api<Empresa>('/empresa'), staleTime: Infinity });
 export const useStockMaples = (enabled = true) => useQuery({ queryKey: ['stock-maples'], queryFn: () => api<StockMaple[]>('/stock-maples'), enabled });
 
-export interface Cliente { id: string; nombre: string; cuit: string | null; telefono: string | null; email: string | null; direccion: string | null; vehiculoHabitual: Vehiculo | null; notas: string | null; ultimaVenta?: string | null }
+export interface Cliente { id: string; nombre: string; cuit: string | null; telefono: string | null; email: string | null; direccion: string | null; vehiculoHabitual: Vehiculo | null; notas: string | null; ultimaVenta?: string | null; condicionPago: Condicion; porcentajeCuenta1: number | null; precios?: Record<string, number> }
 export interface PaletDisponible { id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; destino: string | null; armadoAt: string; varianteId: string; codigo: string; variante: string; colorHex: string | null; maplesPorPaquete: number }
 export interface Banco { id: string; nombre: string; activo: boolean }
 
@@ -44,3 +44,6 @@ export const useBancos = () => useQuery({ queryKey: ['bancos'], queryFn: () => a
 export interface CategoriaGasto { id: string; nombre: string; activo: boolean }
 export const useCategoriasGasto = () => useQuery({ queryKey: ['categorias-gasto'], queryFn: () => api<CategoriaGasto[]>('/categorias-gasto') });
 export const useCaja = () => useQuery({ queryKey: ['caja'], queryFn: () => api<{ saldo: number; movimientos: { id: string; fecha: string; monto: number; motivo: string; concepto: string; gastoId: string | null; cargadoAt: string; usuario: string }[] }>('/caja') });
+
+export interface Chofer { id: string; nombre: string; apellido: string; dni: string | null; telefono: string | null; patente: string | null; vehiculo: Vehiculo | null; clientes: { id: string; nombre: string }[]; delCliente: boolean }
+export const useChoferes = (clienteId = '') => useQuery({ queryKey: ['choferes', clienteId], queryFn: () => api<Chofer[]>(`/choferes?clienteId=${clienteId}`) });

@@ -127,7 +127,7 @@ function DetalleGasto({ id, onCerrar }: { id: string; onCerrar: () => void }) {
         {g.beneficiario && <><dt>Beneficiario</dt><dd>{g.beneficiario}</dd></>}
         {g.medio && <><dt>Forma de pago</dt><dd>{LABEL_MEDIO_GASTO[g.medio]}{g.banco ? ` · ${g.banco}` : ''}{g.pagadoAt ? ` · pagado ${verMomento(g.pagadoAt)} por ${g.pagadoPor}` : ''}</dd></>}
         {g.montoUsd && <><dt>En dólares</dt><dd>US$ {(g.montoUsd / 100).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</dd></>}
-        <dt>Comprobante</dt><dd>{g.conFactura ? `Con factura${g.nroFactura ? ` · ${g.nroFactura}` : ''}` : g.nroFactura ?? 'Sin factura'}</dd>
+        <dt>Comprobante</dt><dd>{g.conFactura ? `Cuenta 1${g.nroFactura ? ` · ${g.nroFactura}` : ''}` : `Cuenta 2${g.nroFactura ? ` · ${g.nroFactura}` : ''}`}</dd>
         {g.notas && <><dt>Observaciones</dt><dd>{g.notas}</dd></>}
         <dt>Registrado por</dt><dd>{g.cargadoPor}, {verMomento(g.cargadoAt)}</dd>
       </dl>

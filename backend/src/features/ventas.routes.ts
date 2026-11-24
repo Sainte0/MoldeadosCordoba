@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import type { Knex } from 'knex';
 import { anularSchema, bancoSchema, clienteSchema, movimientoDineroSchema, pedidoSchema, precioSchema, ventaSchema } from '@moldeados/shared';
 import { db } from '../db.js';
 import { idPorNumero } from '../lib/numero.js';
@@ -15,8 +16,19 @@ import { cobroPorVenta, actualizarEstadoPedido, despachadoDelPedido, guardarFirm
 
 const fechaOk = (v?: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
 const uuidOk = (v?: string) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
-const COLS_CLIENTE = ['id', 'nombre', 'cuit', 'telefono', 'email', 'direccion', 'vehiculo_habitual as vehiculoHabitual', 'notas'];
-const filaCliente = (i: ReturnType<typeof clienteSchema.parse>) => ({ nombre: i.nombre, cuit: i.cuit, telefono: i.telefono, email: i.email, direccion: i.direccion, vehiculo_habitual: i.vehiculoHabitual, notas: i.notas });
+const COLS_CLIENTE = ['id', 'nombre', 'cuit', 'telefono', 'email', 'direccion', 'vehiculo_habitual as vehiculoHabitual', 'notas', 'condicion_pago as condicionPago', 'porcentaje_cuenta1 as porcentajeCuenta1'];
+type ClienteIn = ReturnType<typeof clienteSchema.parse>;
+const filaCliente = (i: ClienteIn) => ({
+  nombre: i.nombre, cuit: i.cuit, telefono: i.telefono, email: i.email, direccion: i.direccion, vehiculo_habitual: i.vehiculoHabitual, notas: i.notas,
+  condicion_pago: i.condicionPago, porcentaje_cuenta1: i.condicionPago === 'mixta' ? i.porcentajeCuenta1 : null,
+});
+/** Precio acordado por maple, en la misma transacción que la ficha. null = vuelve al de lista. */
+async function guardarPreciosCliente(trx: Knex.Transaction, clienteId: string, precios: ClienteIn['precios']) {
+  for (const p of precios ?? []) {
+    await trx('precios_cliente').where({ cliente_id: clienteId, variante_id: p.varianteId }).delete();
+    if (p.precioMaple !== null) await trx('precios_cliente').insert({ cliente_id: clienteId, variante_id: p.varianteId, precio_maple_centavos: p.precioMaple });
+  }
+}
 
 /** Pedido nuevo: les llega a quienes ven ventas o producción (planta tiene que saber qué preparar). */
 async function avisarPedidoNuevo(autor: string, pedidoId: string): Promise<void> {
@@ -61,6 +73,8 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
         .modify(buscar(q, ['c.nombre', 'c.cuit', 'c.telefono']))
         .select(COLS_CLIENTE.map((c) => `c.${c}`))
         .select(db.raw('(select max(v.fecha) from ventas v where v.cliente_id = c.id and v.anulado_at is null) as "ultimaVenta"'))
+        // Para la tabla de clientes: el precio acordado de cada maple (sin fila = el de lista).
+        .select(db.raw(`coalesce((select json_object_agg(p.variante_id, p.precio_maple_centavos) from precios_cliente p where p.cliente_id = c.id), '{}') as precios`))
         .orderBy('c.nombre').limit(200),
     };
   });
@@ -77,6 +91,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
     const i = clienteSchema.parse(req.body);
     const c = await db.transaction(async (trx) => {
       const [f] = await trx('clientes').insert(filaCliente(i)).returning(COLS_CLIENTE);
+      await guardarPreciosCliente(trx, f.id, i.precios);
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'crear', entidad: 'cliente', entidadId: f.id, despues: i });
       return f;
     });
@@ -89,6 +104,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
       const antes = await trx('clientes').where({ id: uuidOk(req.params.id) ?? null }).whereNull('deleted_at').first(COLS_CLIENTE);
       if (!antes) throw new NotFoundError('No encontramos ese cliente');
       await trx('clientes').where({ id: antes.id }).update({ ...filaCliente(i), updated_at: trx.fn.now() });
+      await guardarPreciosCliente(trx, antes.id, i.precios);
       await auditar(trx, { usuarioId: s.usuarioId, accion: 'editar', entidad: 'cliente', entidadId: antes.id, antes, despues: i });
       return { data: { ok: true } };
     });
@@ -165,7 +181,7 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
     };
   });
 
-  app.get<{ Querystring: { desde?: string; hasta?: string; clienteId?: string; pagina?: string; q?: string; cobro?: string } }>('/ventas', async (req) => {
+  app.get<{ Querystring: { desde?: string; hasta?: string; clienteId?: string; pagina?: string; q?: string; cobro?: string; cuenta?: string } }>('/ventas', async (req) => {
     await requerir(db, req, 'ventas', 1);
     const q = req.query;
     const pendientes = q.cobro === 'pendientes';
@@ -175,9 +191,11 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
           if (fechaOk(q.desde)) qb.where('v.fecha', '>=', q.desde!);
           if (fechaOk(q.hasta)) qb.where('v.fecha', '<=', q.hasta!);
           if (uuidOk(q.clienteId)) qb.where('v.cliente_id', q.clienteId!);
+          // "Cuenta 2" es un sector aparte de ventas.
+          if (q.cuenta === '1' || q.cuenta === '2') qb.where('v.con_factura', q.cuenta === '1');
         })
         .modify(buscar(q.q, ['c.nombre', 'v.retira', 'v.patente', 'v.nro_factura'], 'v.numero'))
-        .select('v.id', 'v.numero', 'v.fecha', 'v.total_centavos as total', 'v.con_factura as conFactura', 'v.retira', 'v.anulado_at as anuladoAt', 'c.nombre as cliente',
+        .select('v.id', 'v.numero', 'v.fecha', 'v.total_centavos as total', 'v.con_factura as conFactura', 'v.retira', 'v.anulado_at as anuladoAt', 'c.nombre as cliente', 'v.orden_id as ordenId',
           db.raw('(select count(i.palet_id)::int from venta_items i where i.venta_id = v.id) as palets'),
           db.raw('(select coalesce(sum(i.maples), 0)::int from venta_items i where i.venta_id = v.id) as maples'),
           db.raw("exists (select 1 from venta_items i where i.venta_id = v.id and i.calidad = 'segunda') as segunda"),
