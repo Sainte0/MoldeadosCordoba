@@ -3,7 +3,7 @@
 #
 # Un solo origen: Traefik manda /api al backend y el resto al frontend (estáticos con nginx). Sin CORS.
 # Dos hostnames: ${DOMINIO_SSLIP} (sslip.io, con HTTPS desde el día cero: la cámara del iPhone para escanear
-# QR exige HTTPS) y ${DOMINIO} (el definitivo, en cuanto el DNS del cliente apunte acá; Traefik reintenta solo).
+# QR exige HTTPS), ${DOMINIO_NIP} (nip.io, la misma IP: hay routers que no resuelven sslip.io) y ${DOMINIO} (el definitivo, en cuanto el DNS del cliente apunte acá; Traefik reintenta solo).
 # La base no publica puertos: solo la ve el backend por la red interna. Backups: deploy/backup.sh (cron del host).
 name: moldeados
 
@@ -52,7 +52,7 @@ services:
       com.matias.autorestart: "true"
       traefik.enable: "true"
       traefik.docker.network: "coolify"
-      traefik.http.routers.moldeados-api-http.rule: "(Host(`${DOMINIO_SSLIP}`) || Host(`${DOMINIO}`)) && PathPrefix(`/api`)"
+      traefik.http.routers.moldeados-api-http.rule: "(Host(`${DOMINIO_SSLIP}`) || Host(`${DOMINIO_NIP:-moldeados.179.197.233.245.nip.io}`) || Host(`${DOMINIO}`)) && PathPrefix(`/api`)"
       traefik.http.routers.moldeados-api-http.entryPoints: "http"
       traefik.http.routers.moldeados-api-http.priority: "100"
       traefik.http.routers.moldeados-api-http.service: "moldeados-api"
@@ -63,6 +63,12 @@ services:
       traefik.http.routers.moldeados-api-sslip.tls: "true"
       traefik.http.routers.moldeados-api-sslip.tls.certresolver: "letsencrypt"
       traefik.http.routers.moldeados-api-sslip.service: "moldeados-api"
+      traefik.http.routers.moldeados-api-nip.rule: "Host(`${DOMINIO_NIP:-moldeados.179.197.233.245.nip.io}`) && PathPrefix(`/api`)"
+      traefik.http.routers.moldeados-api-nip.entryPoints: "https"
+      traefik.http.routers.moldeados-api-nip.priority: "100"
+      traefik.http.routers.moldeados-api-nip.tls: "true"
+      traefik.http.routers.moldeados-api-nip.tls.certresolver: "letsencrypt"
+      traefik.http.routers.moldeados-api-nip.service: "moldeados-api"
       traefik.http.routers.moldeados-api-https.rule: "Host(`${DOMINIO}`) && PathPrefix(`/api`)"
       traefik.http.routers.moldeados-api-https.entryPoints: "https"
       traefik.http.routers.moldeados-api-https.priority: "100"
@@ -90,7 +96,7 @@ services:
       com.matias.autorestart: "true"
       traefik.enable: "true"
       traefik.docker.network: "coolify"
-      traefik.http.routers.moldeados-http.rule: "Host(`${DOMINIO_SSLIP}`) || Host(`${DOMINIO}`)"
+      traefik.http.routers.moldeados-http.rule: "Host(`${DOMINIO_SSLIP}`) || Host(`${DOMINIO_NIP:-moldeados.179.197.233.245.nip.io}`) || Host(`${DOMINIO}`)"
       traefik.http.routers.moldeados-http.entryPoints: "http"
       traefik.http.routers.moldeados-http.priority: "10"
       traefik.http.routers.moldeados-http.service: "moldeados"
@@ -100,6 +106,12 @@ services:
       traefik.http.routers.moldeados-sslip.tls: "true"
       traefik.http.routers.moldeados-sslip.tls.certresolver: "letsencrypt"
       traefik.http.routers.moldeados-sslip.service: "moldeados"
+      traefik.http.routers.moldeados-nip.rule: "Host(`${DOMINIO_NIP:-moldeados.179.197.233.245.nip.io}`)"
+      traefik.http.routers.moldeados-nip.entryPoints: "https"
+      traefik.http.routers.moldeados-nip.priority: "10"
+      traefik.http.routers.moldeados-nip.tls: "true"
+      traefik.http.routers.moldeados-nip.tls.certresolver: "letsencrypt"
+      traefik.http.routers.moldeados-nip.service: "moldeados"
       traefik.http.routers.moldeados-https.rule: "Host(`${DOMINIO}`)"
       traefik.http.routers.moldeados-https.entryPoints: "https"
       traefik.http.routers.moldeados-https.priority: "10"
