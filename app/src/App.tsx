@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { cargar, Recuperar } from './Recuperar';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BellRing, CircleHelp, Home, LogOut, Menu, QrCode, Search, X } from 'lucide-react';
 import { AJUSTES, AREAS, enArea, registrarRuta, TAREAS, puedeTarea, type Area } from './navegacion';
@@ -19,49 +20,49 @@ import { desactivarPush, reafirmarPush } from './push';
 import { Inicio } from './pages/Inicio';
 
 // El buscador (con el texto de todas las guías) se baja recién la primera vez que se abre.
-const BuscadorGlobal = lazy(() => import('./BuscadorGlobal').then((m) => ({ default: m.BuscadorGlobal })));
+const BuscadorGlobal = cargar(() => import('./BuscadorGlobal').then((m) => ({ default: m.BuscadorGlobal })));
 // Cada pantalla baja su código recién cuando se abre: el primer ingreso (login + inicio) queda liviano.
-const Pesaje = lazy(() => import('./pages/Pesaje').then((m) => ({ default: m.Pesaje })));
-const NuevaCompra = lazy(() => import('./pages/NuevaCompra').then((m) => ({ default: m.NuevaCompra })));
-const Compras = lazy(() => import('./pages/Compras').then((m) => ({ default: m.Compras })));
-const CompraDetalle = lazy(() => import('./pages/CompraDetalle').then((m) => ({ default: m.CompraDetalle })));
-const Proveedores = lazy(() => import('./pages/Proveedores').then((m) => ({ default: m.Proveedores })));
-const Materias = lazy(() => import('./pages/Materias').then((m) => ({ default: m.Materias })));
-const Equipo = lazy(() => import('./pages/Equipo').then((m) => ({ default: m.Equipo })));
-const Registro = lazy(() => import('./pages/Registro').then((m) => ({ default: m.Registro })));
-const Produccion = lazy(() => import('./pages/Produccion').then((m) => ({ default: m.Produccion })));
-const NuevoParte = lazy(() => import('./pages/NuevoParte').then((m) => ({ default: m.NuevoParte })));
-const ParteDetalle = lazy(() => import('./pages/ParteDetalle').then((m) => ({ default: m.ParteDetalle })));
-const Palets = lazy(() => import('./pages/Palets').then((m) => ({ default: m.Palets })));
-const NuevoPalet = lazy(() => import('./pages/NuevoPalet').then((m) => ({ default: m.NuevoPalet })));
-const Escanear = lazy(() => import('./pages/Escanear').then((m) => ({ default: m.Escanear })));
-const PaletDetalle = lazy(() => import('./pages/PaletDetalle').then((m) => ({ default: m.PaletDetalle })));
-const Maples = lazy(() => import('./pages/Maples').then((m) => ({ default: m.Maples })));
-const Despacho = lazy(() => import('./pages/Despacho').then((m) => ({ default: m.Despacho })));
-const Ventas = lazy(() => import('./pages/Ventas').then((m) => ({ default: m.Ventas })));
-const VentaDetalle = lazy(() => import('./pages/VentaDetalle').then((m) => ({ default: m.VentaDetalle })));
-const Clientes = lazy(() => import('./pages/Clientes').then((m) => ({ default: m.Clientes })));
-const Precios = lazy(() => import('./pages/Precios').then((m) => ({ default: m.Precios })));
-const Cuentas = lazy(() => import('./pages/Cuentas').then((m) => ({ default: m.Cuentas })));
-const CuentaDetalle = lazy(() => import('./pages/CuentaDetalle').then((m) => ({ default: m.CuentaDetalle })));
-const NuevoMovimiento = lazy(() => import('./pages/NuevoMovimiento').then((m) => ({ default: m.NuevoMovimiento })));
-const Tablero = lazy(() => import('./pages/Tablero').then((m) => ({ default: m.Tablero })));
-const Gastos = lazy(() => import('./pages/Gastos').then((m) => ({ default: m.Gastos })));
-const NuevoGasto = lazy(() => import('./pages/NuevoGasto').then((m) => ({ default: m.NuevoGasto })));
-const Caja = lazy(() => import('./pages/Caja').then((m) => ({ default: m.Caja })));
-const Ayuda = lazy(() => import('./pages/Ayuda').then((m) => ({ default: m.Ayuda })));
-const Pedidos = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.Pedidos })));
-const NuevoPedido = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.NuevoPedido })));
-const PedidoDetalleVista = lazy(() => import('./pages/Pedidos').then((m) => ({ default: m.PedidoDetalleVista })));
-const Importar = lazy(() => import('./pages/Importar').then((m) => ({ default: m.Importar })));
-const Agenda = lazy(() => import('./pages/Agenda').then((m) => ({ default: m.Agenda })));
-const NuevoRecordatorio = lazy(() => import('./pages/Agenda').then((m) => ({ default: m.NuevoRecordatorio })));
-const Plastificar = lazy(() => import('./pages/Plastificar').then((m) => ({ default: m.Plastificar })));
-const Ordenes = lazy(() => import('./pages/Ordenes').then((m) => ({ default: m.Ordenes })));
-const NuevaOrden = lazy(() => import('./pages/Ordenes').then((m) => ({ default: m.NuevaOrden })));
-const OrdenCarga = lazy(() => import('./pages/Ordenes').then((m) => ({ default: m.OrdenCarga })));
-const Choferes = lazy(() => import('./pages/Choferes').then((m) => ({ default: m.Choferes })));
-const Exportar = lazy(() => import('./pages/Exportar').then((m) => ({ default: m.Exportar })));
+const Pesaje = cargar(() => import('./pages/Pesaje').then((m) => ({ default: m.Pesaje })));
+const NuevaCompra = cargar(() => import('./pages/NuevaCompra').then((m) => ({ default: m.NuevaCompra })));
+const Compras = cargar(() => import('./pages/Compras').then((m) => ({ default: m.Compras })));
+const CompraDetalle = cargar(() => import('./pages/CompraDetalle').then((m) => ({ default: m.CompraDetalle })));
+const Proveedores = cargar(() => import('./pages/Proveedores').then((m) => ({ default: m.Proveedores })));
+const Materias = cargar(() => import('./pages/Materias').then((m) => ({ default: m.Materias })));
+const Equipo = cargar(() => import('./pages/Equipo').then((m) => ({ default: m.Equipo })));
+const Registro = cargar(() => import('./pages/Registro').then((m) => ({ default: m.Registro })));
+const Produccion = cargar(() => import('./pages/Produccion').then((m) => ({ default: m.Produccion })));
+const NuevoParte = cargar(() => import('./pages/NuevoParte').then((m) => ({ default: m.NuevoParte })));
+const ParteDetalle = cargar(() => import('./pages/ParteDetalle').then((m) => ({ default: m.ParteDetalle })));
+const Palets = cargar(() => import('./pages/Palets').then((m) => ({ default: m.Palets })));
+const NuevoPalet = cargar(() => import('./pages/NuevoPalet').then((m) => ({ default: m.NuevoPalet })));
+const Escanear = cargar(() => import('./pages/Escanear').then((m) => ({ default: m.Escanear })));
+const PaletDetalle = cargar(() => import('./pages/PaletDetalle').then((m) => ({ default: m.PaletDetalle })));
+const Maples = cargar(() => import('./pages/Maples').then((m) => ({ default: m.Maples })));
+const Despacho = cargar(() => import('./pages/Despacho').then((m) => ({ default: m.Despacho })));
+const Ventas = cargar(() => import('./pages/Ventas').then((m) => ({ default: m.Ventas })));
+const VentaDetalle = cargar(() => import('./pages/VentaDetalle').then((m) => ({ default: m.VentaDetalle })));
+const Clientes = cargar(() => import('./pages/Clientes').then((m) => ({ default: m.Clientes })));
+const Precios = cargar(() => import('./pages/Precios').then((m) => ({ default: m.Precios })));
+const Cuentas = cargar(() => import('./pages/Cuentas').then((m) => ({ default: m.Cuentas })));
+const CuentaDetalle = cargar(() => import('./pages/CuentaDetalle').then((m) => ({ default: m.CuentaDetalle })));
+const NuevoMovimiento = cargar(() => import('./pages/NuevoMovimiento').then((m) => ({ default: m.NuevoMovimiento })));
+const Tablero = cargar(() => import('./pages/Tablero').then((m) => ({ default: m.Tablero })));
+const Gastos = cargar(() => import('./pages/Gastos').then((m) => ({ default: m.Gastos })));
+const NuevoGasto = cargar(() => import('./pages/NuevoGasto').then((m) => ({ default: m.NuevoGasto })));
+const Caja = cargar(() => import('./pages/Caja').then((m) => ({ default: m.Caja })));
+const Ayuda = cargar(() => import('./pages/Ayuda').then((m) => ({ default: m.Ayuda })));
+const Pedidos = cargar(() => import('./pages/Pedidos').then((m) => ({ default: m.Pedidos })));
+const NuevoPedido = cargar(() => import('./pages/Pedidos').then((m) => ({ default: m.NuevoPedido })));
+const PedidoDetalleVista = cargar(() => import('./pages/Pedidos').then((m) => ({ default: m.PedidoDetalleVista })));
+const Importar = cargar(() => import('./pages/Importar').then((m) => ({ default: m.Importar })));
+const Agenda = cargar(() => import('./pages/Agenda').then((m) => ({ default: m.Agenda })));
+const NuevoRecordatorio = cargar(() => import('./pages/Agenda').then((m) => ({ default: m.NuevoRecordatorio })));
+const Plastificar = cargar(() => import('./pages/Plastificar').then((m) => ({ default: m.Plastificar })));
+const Ordenes = cargar(() => import('./pages/Ordenes').then((m) => ({ default: m.Ordenes })));
+const NuevaOrden = cargar(() => import('./pages/Ordenes').then((m) => ({ default: m.NuevaOrden })));
+const OrdenCarga = cargar(() => import('./pages/Ordenes').then((m) => ({ default: m.OrdenCarga })));
+const Choferes = cargar(() => import('./pages/Choferes').then((m) => ({ default: m.Choferes })));
+const Exportar = cargar(() => import('./pages/Exportar').then((m) => ({ default: m.Exportar })));
 
 function Marca() {
   return (
@@ -166,7 +167,7 @@ export function App() {
           <button onClick={() => (pendientes ? setConfirmarSalir(true) : cerrarSesion())}><LogOut size={16} aria-hidden /> Salir</button>
         </div>
       </nav>
-      {buscando && <Suspense fallback={null}><BuscadorGlobal abierto onCerrar={() => setBuscando(false)} /></Suspense>}
+      {buscando && <Recuperar clave="buscar"><Suspense fallback={null}><BuscadorGlobal abierto onCerrar={() => setBuscando(false)} /></Suspense></Recuperar>}
       {confirmarSalir && (
         <Dialogo titulo="Tenés cargas sin subir" onCerrar={() => setConfirmarSalir(false)}>
           <p>{pendientes === 1 ? 'Hay 1 carga' : `Hay ${pendientes} cargas`} guardadas en este teléfono que todavía no se subieron. Si salís, quedan guardadas y se suben la próxima vez que entres vos.</p>
@@ -191,6 +192,7 @@ export function App() {
         </div>
         <ColaPendiente />
         <Pestanas path={pathname} puede={p} />
+        <Recuperar clave={pathname}>
         <Suspense fallback={<p className="tenue" role="status">Cargando…</p>}>
         <Routes>
           <Route path="/" element={<Inicio />} />
@@ -249,6 +251,7 @@ export function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Suspense>
+        </Recuperar>
       </main>
       <BarraInferior pathname={pathname} puede={p} onMas={() => setAbierto(true)} onBuscar={() => setBuscando(true)} />
     </div>
