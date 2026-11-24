@@ -103,11 +103,6 @@ export function Plastificar() {
   );
 }
 
-/** "MCH-ROJ: 12 pallets de 7 y 3 de 6" — el stock por tipo y alto. */
-export function textoStock(filas: StockPallet[]): string {
-  return filas.map((f, i) => `${f.pallets}${i === 0 ? (f.pallets === 1 ? ' pallet' : ' pallets') : ''} de ${f.alto}`).join(', ').replace(/, ([^,]*)$/, ' y $1');
-}
-
 export function porMaple(stock: StockPallet[]) {
   const m = new Map<string, StockPallet[]>();
   for (const s of stock) m.set(s.varianteId, [...(m.get(s.varianteId) ?? []), s]);

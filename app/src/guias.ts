@@ -68,9 +68,10 @@ export const GUIAS: Guia[] = [
     id: 'inicio', area: 'Primeros pasos', titulo: 'Qué muestra la pantalla Hoy (el inicio)', pantallas: ['/'],
     palabras: 'inicio tareas avisos para vender hay que comprar',
     pasos: [
-      'Al entrar ves "Hoy": arriba los pallets que salieron hoy, lo vendido, lo cobrado y cuántos pallets hay en la fábrica. Cada tarjeta se toca y lleva al detalle.',
+      'Arriba, en botones grandes, lo de todos los días según tu puesto: "Pallet terminado" (plastificadora), "Cargar camión" (las órdenes abiertas) y "Orden de venta" (gerente).',
+      'Al entrar ves "Hoy": debajo, los pallets que salieron hoy, lo vendido, lo cobrado y cuántos pallets hay en la fábrica. Cada tarjeta se toca y lleva al detalle.',
       '"Para cargar": las órdenes de venta abiertas, con cuántos pallets van cargados. Tocá una para abrir la pantalla de carga.',
-      'Después, los pallets que salieron de la plastificadora, lo que se vendió, el cartón que entró y lo que hay en la fábrica por tipo y alto (por ejemplo "MCH-ROJ: 12 pallets de 7 y 3 de 6").',
+      'Después, lo que hay en la fábrica en una tabla por tipo y alto (cuántos pallets de 7, de 6, de 5 y de 4), los pallets que salieron de la plastificadora, lo vendido y el cartón que entró.',
       'Materia prima: tocá una (por ejemplo Aglutinante) para anotar que entró (cantidad, precio y proveedor) o para corregir lo que hay de verdad.',
       'En cualquier carga paso a paso, "Salir" (arriba a la derecha) te saca desde el paso en que estés, sin guardar.',
       'Arriba a la derecha: el triángulo de Atención (lo urgente) y la campana con tus avisos. Cuando a un cliente le toca comprar te llega una notificación a la campana.',

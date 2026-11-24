@@ -103,7 +103,7 @@ export function Inicio() {
           <h3>Otras formas de cargar</h3>
           <div>
             <Link to="/escanear" className="chip-carga"><QrCode size={18} aria-hidden /> Escanear un palet</Link>
-            {otras.filter((t) => t.a !== '/planilla').map((t) => <Link key={t.a} to={t.a} className="chip-carga"><t.icono size={18} aria-hidden /> {t.titulo}</Link>)}
+            {otras.filter((t) => !['/plastificar', '/ordenes', '/ordenes/nueva'].includes(t.a)).map((t) => <Link key={t.a} to={t.a} className="chip-carga"><t.icono size={18} aria-hidden /> {t.titulo}</Link>)}
           </div>
         </section>
       )}

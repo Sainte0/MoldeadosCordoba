@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Layers, Plus, Truck } from 'lucide-react';
-import { aCentavos, formatPesos } from '@moldeados/shared/base';
+import { Layers, Plus, ScanLine, Truck } from 'lucide-react';
+import { aCentavos, ALTOS_PALET, formatPesos } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useMaterias, useProveedores } from '../datos';
 import { Muestra } from '../MapleVista';
 import { Aviso, Campo, Entrada } from '../ui';
-import { porMaple, textoStock, type StockPallet } from './Plastificar';
+import { porMaple, type StockPallet } from './Plastificar';
 
 // Hoy (el inicio): todo lo del día en una pantalla. Los pallets que salieron de la plastificadora, las órdenes para
 // cargar, lo vendido, el cartón que entró y lo que hay en la fábrica por tipo y alto.
@@ -36,36 +36,50 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
   const salieron = dia.ventas.filter((v, i) => !v.ordenId || dia.ventas.findIndex((x) => x.ordenId === v.ordenId) === i).reduce((a, v) => a + v.palets, 0);
   const enFabrica = dia.stock.reduce((a, s) => a + s.pallets, 0);
   const esHoy = fecha === hoy();
+  const abiertas = ordenes ?? [];
   return (
     <div className="planilla" style={{ display: 'grid', gap: 16 }}>
+      {/* Lo que hace cada uno (pedido 01): pallet que sale de la plastificadora, camión para cargar, orden de venta. */}
+      {esHoy && (puede('produccion', 2) || verOrdenes) && (
+        <nav className="accesos-grandes" aria-label="Lo de todos los días">
+          {puede('produccion', 2) && <Link to="/plastificar" className="acceso-grande"><Layers size={30} aria-hidden /><b>Pallet terminado</b><small>Tamaño, color, alto y listo</small></Link>}
+          {verOrdenes && (
+            <Link to={abiertas.length === 1 ? `/ordenes/${abiertas[0]!.numero}` : '/ordenes'} className="acceso-grande">
+              <ScanLine size={30} aria-hidden /><b>Cargar camión</b>
+              <small>{abiertas.length ? `${abiertas.length === 1 ? '1 orden abierta' : `${abiertas.length} órdenes abiertas`}` : 'No hay órdenes abiertas'}</small>
+            </Link>
+          )}
+          {puede('ventas', 3) && <Link to="/ordenes/nueva" className="acceso-grande"><Truck size={30} aria-hidden /><b>Orden de venta</b><small>Cliente, chofer y qué se lleva</small></Link>}
+        </nav>
+      )}
       {/* Lo más importante del día, en cifras cortas: lo detallado está abajo en cada bloque. */}
       <div className="cifras resumen-dia">
         <Tarjeta a="/palets" titulo={esHoy ? 'Pallets de hoy' : `Pallets del ${verFecha(fecha)}`} numero={pallets(dia.pallets.length)} detalle={`${dia.pallets.reduce((a, p) => a + p.maples, 0).toLocaleString('es-AR')} maples`} />
-        <Tarjeta a={`/ventas?desde=${fecha}&hasta=${fecha}`} titulo="Vendido" numero={formatPesos(vendido)} detalle={`${pallets(salieron)} salieron`} />
-        <Tarjeta a="/cuentas" titulo="Cobrado" numero={formatPesos(dia.cobrado)} detalle="lo que entró de plata" />
+        {puede('ventas') && <Tarjeta a={`/ventas?desde=${fecha}&hasta=${fecha}`} titulo="Vendido" numero={formatPesos(vendido)} detalle={`${pallets(salieron)} salieron`} />}
+        {puede('cuentas') && <Tarjeta a="/cuentas" titulo="Cobrado" numero={formatPesos(dia.cobrado)} detalle="lo que entró de plata" />}
         <Tarjeta a="/palets" titulo="En la fábrica" numero={pallets(enFabrica)} detalle="listos para vender" />
       </div>
 
-      {verOrdenes && (
+      {verOrdenes && abiertas.length > 0 && (
         <section className="hoja">
-          <div className="fila"><h3>Para cargar</h3>{puede('ventas', 3) && <Link to="/ordenes/nueva" className="boton secundario"><Truck size={18} aria-hidden /> Nueva orden</Link>}</div>
+          <div className="fila"><h3>Para cargar</h3><Link to="/ordenes" className="chico">Ver órdenes</Link></div>
           {(ordenes ?? []).map((o) => (
             <Link key={o.id} to={`/ordenes/${o.numero}`} className="fila">
               <span><span className="principal">{o.cliente}</span><br /><span className="chico tenue">{o.detalle}{o.chofer ? ` · ${o.chofer}` : ''}</span></span>
               <span className="cifra">{o.cargados} de {o.pedidos}</span>
             </Link>
           ))}
-          {!ordenes?.length && <p className="chico tenue" style={{ padding: '0 18px 14px' }}>No hay órdenes abiertas.</p>}
         </section>
       )}
 
+      <EnLaFabrica stock={dia.stock} />
+
       {puede('produccion') && (
         <section className="hoja">
-          <div className="fila"><div><h3>Pallets que salieron de la plastificadora</h3></div>{puede('produccion', 2) && <Link to="/plastificar" className="boton secundario"><Layers size={18} aria-hidden /> Pallet terminado</Link>}</div>
+          <div className="fila"><h3>Pallets que salieron de la plastificadora</h3></div>
           {dia.pallets.slice(0, 8).map((p) => (
             <Link key={p.id} to={`/palets/${p.numero}`} className="fila">
-              <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo} de {p.alto}</span><br /><span className="chico tenue">Pallet {nroTicket(p.numero)} · {verMomento(p.cargadoAt)}</span></span></span>
-              <span className="cifra">{p.maples.toLocaleString('es-AR')}</span>
+              <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo} de {p.alto}</span><br /><span className="chico tenue">Pallet {nroTicket(p.numero)} · {p.maples.toLocaleString('es-AR')} maples · {verMomento(p.cargadoAt)}</span></span></span>
             </Link>
           ))}
           {dia.pallets.length > 8 && <Link to="/palets" className="fila chico">Ver los {dia.pallets.length}</Link>}
@@ -87,24 +101,39 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
 
       {puede('compras') && <Carton dia={dia} edita={puede('compras', 2)} />}
 
-      <EnLaFabrica stock={dia.stock} />
     </div>
   );
 }
 
-/** Stock por tipo y alto: "MCH-ROJ: 12 pallets de 7 y 3 de 6". */
+/** Stock por tipo y alto (pedido 01): una fila por maple y una columna por alto, como lo cuentan en la planta. */
 export function EnLaFabrica({ stock }: { stock: StockPallet[] }) {
   const grupos = porMaple(stock);
+  const altos = [...new Set([...ALTOS_PALET, ...stock.map((s) => s.alto)])].sort((x, y) => y - x);
+  const enCarga = stock.reduce((n, s) => n + s.enCarga, 0);
   return (
     <section className="hoja">
-      <div className="fila"><h3>En la fábrica</h3></div>
-      {grupos.map((g) => (
-        <Link to={`/palets?q=${g[0]!.codigo}`} className="fila" key={g[0]!.varianteId}>
-          <span className="con-muestra"><Muestra color={g[0]!.colorHex} /> <span className="principal">{g[0]!.codigo}</span></span>
-          <span className="derecha"><span className="cifra">{textoStock(g)}</span>{g.some((x) => x.enCarga) ? <><br /><span className="chico tenue">{g.reduce((n, x) => n + x.enCarga, 0)} ya en un camión cargando</span></> : null}</span>
-        </Link>
-      ))}
-      {!grupos.length && <p className="chico tenue" style={{ padding: '0 18px 14px' }}>No hay pallets en la fábrica.</p>}
+      <div className="fila"><div><h3>En la fábrica</h3><span className="chico tenue">Pallets por tipo y alto{enCarga ? ` · ${enCarga} ya en un camión cargando` : ''}</span></div></div>
+      {grupos.length ? (
+        <div className="tabla-scroll">
+          <table className="tabla-stock">
+            <thead><tr><th>Maple</th>{altos.map((a) => <th key={a}>de {a}</th>)}<th>Pallets</th><th>Maples</th></tr></thead>
+            <tbody>
+              {grupos.map((g) => {
+                const v = g[0]!;
+                const total = g.reduce((n, x) => n + x.pallets, 0);
+                return (
+                  <tr key={v.varianteId}>
+                    <th><Link to={`/palets?q=${v.codigo}`} className="con-muestra"><Muestra color={v.colorHex} /> {v.codigo}</Link></th>
+                    {altos.map((a) => { const n = g.find((x) => x.alto === a)?.pallets ?? 0; return <td key={a} className={n ? '' : 'cero'}>{n || '·'}</td>; })}
+                    <td><b>{total}</b></td>
+                    <td className="tenue">{g.reduce((n, x) => n + x.paquetes * x.maplesPorPaquete, 0).toLocaleString('es-AR')}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : <p className="chico tenue" style={{ padding: '0 18px 14px' }}>No hay pallets en la fábrica.</p>}
     </section>
   );
 }
