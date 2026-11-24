@@ -180,6 +180,34 @@ export function Dialogo({ titulo, children, onCerrar }: { titulo: string; childr
 }
 
 /**
+ * Doble seguridad para crear o borrar: un diálogo aparte (no el mismo botón que cambia de texto, que con un doble toque
+ * se confirma solo) y el botón de confirmar recién se habilita al instante siguiente. Muestra el error si falla.
+ */
+export function Confirmar({ titulo, children, texto, peligro, onSi, onNo }: {
+  titulo: string; children?: ReactNode; texto: string; peligro?: boolean; onSi: () => Promise<unknown> | void; onNo: () => void;
+}) {
+  const [listo, setListo] = useState(false);
+  const [trabajando, setTrabajando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => { const t = setTimeout(() => setListo(true), 600); return () => clearTimeout(t); }, []);
+  const si = async () => {
+    setTrabajando(true); setError(null);
+    try { await onSi(); } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo'); }
+    setTrabajando(false);
+  };
+  return (
+    <Dialogo titulo={titulo} onCerrar={() => !trabajando && onNo()}>
+      {children}
+      <Aviso>{error}</Aviso>
+      <div className="acciones confirmar">
+        <button type="button" className="boton secundario grande" onClick={onNo} disabled={trabajando}>Volver</button>
+        <button type="button" className={`boton grande ${peligro ? 'peligro' : 'primario'}`} disabled={!listo || trabajando} onClick={si}>{trabajando ? 'Un momento…' : texto}</button>
+      </div>
+    </Dialogo>
+  );
+}
+
+/**
  * Filtros de un listado que no se usan a diario (fechas, categoría, exportar): plegados para que los datos aparezcan
  * arriba. Se abren solos si hay alguno puesto, y de entrada en pantallas anchas.
  */

@@ -6,7 +6,7 @@ import { ALTOS_PALET, PALET_DEFAULT } from '@moldeados/shared/base';
 import { api, nroTicket } from '../api';
 import { useVariantes } from '../datos';
 import { Muestra } from '../MapleVista';
-import { Aviso, Cabecera, Cargando } from '../ui';
+import { Aviso, Cabecera, Cargando, Confirmar } from '../ui';
 import { EtiquetaPalet } from './PaletDetalle';
 
 // Tablet de la plastificadora: terminó un pallet → tamaño, color, alto, Confirmar. Botones grandes, nada para tipear.
@@ -20,10 +20,13 @@ export const useStockPallets = (enabled = true) => useQuery({ queryKey: ['stock-
 export function Plastificar() {
   const qc = useQueryClient();
   const { data: variantes, isLoading } = useVariantes();
-  const [tamano, setTamano] = useState<'chico' | 'grande' | null>(null);
-  const [color, setColor] = useState<string | null>(null); // clave del color: '' = natural
-  const [alto, setAlto] = useState<number | null>(null);
+  // La última elección queda puesta (también si se recarga la tablet): el pallet siguiente suele ser igual.
+  const previa = (() => { try { return JSON.parse(localStorage.getItem('moldeados:plastificar') ?? 'null') as { tamano: 'chico' | 'grande'; color: string; alto: number } | null; } catch { return null; } })();
+  const [tamano, setTamano] = useState<'chico' | 'grande' | null>(previa?.tamano ?? null);
+  const [color, setColor] = useState<string | null>(previa?.color ?? null); // clave del color: '' = natural
+  const [alto, setAlto] = useState<number | null>(previa?.alto ?? null);
   const [guardando, setGuardando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ultimo, setUltimo] = useState<{ numero: number; codigo: string; variante: string; colorHex: string | null; alto: number; paquetes: number; maplesPorPaquete: number; armadoAt: string; imprimir: boolean } | null>(null);
 
@@ -35,9 +38,10 @@ export function Plastificar() {
 
   const confirmar = async () => {
     if (!variante || !alto) return;
-    setError(null); setGuardando(true);
+    setError(null); setGuardando(true); setConfirmando(false);
     try {
       const p = await api<{ id: string; numero: number }>('/palets/plastificado', { method: 'POST', body: { varianteId: variante.id, alto } });
+      try { localStorage.setItem('moldeados:plastificar', JSON.stringify({ tamano, color, alto })); } catch { /* sin almacenamiento */ }
       setUltimo({ numero: p.numero, codigo: variante.codigo, variante: variante.nombre, colorHex: variante.colorHex, alto, paquetes, maplesPorPaquete: variante.maplesPorPaquete, armadoAt: new Date().toISOString(), imprimir: true });
       void qc.invalidateQueries({ queryKey: ['stock-palets'] });
       void qc.invalidateQueries({ queryKey: ['palets'] });
@@ -78,10 +82,19 @@ export function Plastificar() {
       </section>
 
       <Aviso>{error}</Aviso>
-      <button type="button" className="boton primario tecla-confirmar" disabled={!variante || !alto || guardando} onClick={confirmar}>
+      <button type="button" className="boton primario tecla-confirmar" disabled={!variante || !alto || guardando} onClick={() => setConfirmando(true)}>
         {guardando ? 'Cargando…' : variante && alto ? `4 · Confirmar ${variante.codigo} de ${alto} (${(paquetes * variante.maplesPorPaquete).toLocaleString('es-AR')} maples)` : '4 · Confirmar'}
       </button>
 
+      {/* Doble seguridad: lo que se va a cargar, en grande, antes de que entre al stock. */}
+      {confirmando && variante && alto && (
+        <Confirmar titulo="¿Cargar este pallet?" texto="Sí, cargar e imprimir" onSi={confirmar} onNo={() => setConfirmando(false)}>
+          <div className="confirmar-pallet">
+            <Muestra color={variante.colorHex} grande />
+            <div><b>{variante.codigo} de {alto}</b><span>{variante.nombre} · {paquetes} paquetes · {(paquetes * variante.maplesPorPaquete).toLocaleString('es-AR')} maples</span></div>
+          </div>
+        </Confirmar>
+      )}
       {ultimo && (
         <section className="hoja relleno ultimo-pallet">
           <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>

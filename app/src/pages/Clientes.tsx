@@ -7,7 +7,7 @@ import { api, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { useClientes, useVariantes, type Cliente } from '../datos';
 import { ParaVender } from './Avisos';
-import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';
+import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones, Confirmar } from '../ui';
 
 const VACIO: Omit<Cliente, 'id'> = { nombre: '', cuit: '', telefono: '', email: '', direccion: '', vehiculoHabitual: null, notas: '', condicionPago: 'cuenta1', porcentajeCuenta1: null };
 
@@ -140,10 +140,15 @@ function FichaCliente({ inicial, onCerrar }: { inicial: Partial<Cliente>; onCerr
       )}
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {!nuevo && puede('ventas', 3) && (borrar ? <button className="boton peligro" onClick={eliminar}>Confirmar baja</button> : <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>)}
+        {!nuevo && puede('ventas', 3) && <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>}
         <button className="boton secundario" onClick={onCerrar}>{editable ? 'Cancelar' : 'Cerrar'}</button>
         {editable && <button className="boton primario" onClick={guardar}>{nuevo ? 'Agregar cliente' : 'Guardar cambios'}</button>}
       </div>
+      {borrar && (
+        <Confirmar titulo={`¿Dar de baja a ${c.nombre}?`} texto="Sí, dar de baja" peligro onSi={async () => { setBorrar(false); await eliminar(); }} onNo={() => setBorrar(false)}>
+          <p className="tenue">Deja de aparecer en las listas. Sus ventas y su cuenta corriente quedan guardadas.</p>
+        </Confirmar>
+      )}
     </Dialogo>
   );
 }

@@ -2,7 +2,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { cargar, Recuperar } from './Recuperar';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { BellRing, CircleHelp, Home, LogOut, Menu, QrCode, Search, X } from 'lucide-react';
-import { AJUSTES, AREAS, enArea, registrarRuta, TAREAS, puedeTarea, type Area } from './navegacion';
+import { AJUSTES, AREAS, enArea, registrarRuta, tareasDe, type Area } from './navegacion';
 import { Reloj } from './Reloj';
 import { ColaPendiente } from './ColaPendiente';
 import { useCola } from './cola';
@@ -134,6 +134,7 @@ export function App() {
         <Marca />
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <Reloj />
+          <button type="button" className="boton icono buscar-movil" onClick={() => setBuscando(true)} aria-label="Buscar"><Search size={22} aria-hidden /></button>
           <BotonAtencion />
           <Campana alAbrir={() => setAsoma(null)} />
           {/* En el teléfono, arriba solo lo que avisa; navegar es abajo, al alcance del pulgar (BarraInferior). */}
@@ -253,7 +254,7 @@ export function App() {
         </Suspense>
         </Recuperar>
       </main>
-      <BarraInferior pathname={pathname} puede={p} onMas={() => setAbierto(true)} onBuscar={() => setBuscando(true)} />
+      <BarraInferior pathname={pathname} puede={p} onMas={() => setAbierto(true)} />
     </div>
   );
 }
@@ -275,16 +276,17 @@ function Pestanas({ path, puede }: { path: string; puede: (m: Modulo) => boolean
  * rol, escanear un palet, buscar y "Más" (el menú completo). En iPad y computadora no aparece: ahí está el menú lateral.
  * Se esconde dentro de los asistentes, que tienen sus propios botones abajo.
  */
-function BarraInferior({ pathname, puede, onMas, onBuscar }: { pathname: string; puede: (m: Modulo, n?: 1 | 2 | 3) => boolean; onMas: () => void; onBuscar: () => void }) {
+function BarraInferior({ pathname, puede, onMas }: { pathname: string; puede: (m: Modulo, n?: 1 | 2 | 3) => boolean; onMas: () => void }) {
   if (/\/(nuevo|nueva)$|^\/pesaje|^\/dinero\/nuevo/.test(pathname)) return null;
-  const tarea = TAREAS.find((t) => puedeTarea(puede, t));
-  const enTarea = !!tarea && pathname === tarea.a.split('?')[0];
+  // Las dos tareas más importantes de su puesto, a los costados del escáner (al alcance del pulgar).
+  const [t1, t2] = tareasDe(puede);
+  const tab = (t: typeof t1) => t && <NavLink to={t.a} end className={pathname === t.a.split('?')[0] ? 'activo' : ''}><t.icono size={22} aria-hidden /><span>{t.corto}</span></NavLink>;
   return (
     <nav className="barra-inferior" aria-label="Accesos rápidos">
       <NavLink to="/" end className={({ isActive }) => (isActive ? 'activo' : '')}><Home size={22} aria-hidden /><span>Hoy</span></NavLink>
-      {tarea && <NavLink to={tarea.a} className={enTarea ? 'activo' : ''}><tarea.icono size={22} aria-hidden /><span>{tarea.corto}</span></NavLink>}
+      {tab(t1)}
       <NavLink to="/escanear" className={({ isActive }) => `central${isActive ? ' activo' : ''}`}><span className="disco"><QrCode size={22} aria-hidden /></span><span>Escanear</span></NavLink>
-      <button type="button" onClick={onBuscar}><Search size={22} aria-hidden /><span>Buscar</span></button>
+      {tab(t2)}
       <button type="button" onClick={onMas}><Menu size={22} aria-hidden /><span>Más</span></button>
     </nav>
   );

@@ -977,3 +977,8 @@ a.fila:active, button.fila:active { background: #ececf0; }
   .tabla-stock th:last-child, .tabla-stock td:last-child { display: none; }
   .tabla-stock td:nth-last-child(2) { padding-right: 14px; }
 }
+.confirmar-pallet { display: flex; gap: 16px; align-items: center; padding: 16px; border-radius: 14px; background: var(--superficie-2, #f2f2f7); }
+.confirmar-pallet b { display: block; font-size: 1.8rem; line-height: 1.1; }
+.confirmar-pallet span { color: var(--tinta-2); }
+.acciones.confirmar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.acciones.confirmar .boton { width: 100%; justify-content: center; }

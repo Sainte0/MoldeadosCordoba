@@ -6,7 +6,7 @@ import { formatPesos, LABEL_TIPO_MP, TIPOS_MP, type TipoMp } from '@moldeados/sh
 import { api, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { useProveedores, type Proveedor } from '../datos';
-import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada } from '../ui';
+import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Confirmar } from '../ui';
 
 const VACIO: Omit<Proveedor, 'id'> = { nombre: '', cuit: '', telefono: '', email: '', direccion: '', tipos: [], notas: '' };
 
@@ -109,12 +109,15 @@ function FichaProveedor({ inicial, onCerrar }: { inicial: Partial<Proveedor>; on
       <Campo etiqueta="Observaciones"><textarea className="entrada" value={p.notas ?? ''} disabled={!editable} onChange={(e) => setP({ ...p, notas: e.target.value })} /></Campo>
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {!nuevo && puede('proveedores', 3) && (borrar
-          ? <button className="boton peligro" onClick={eliminar}>Confirmar baja</button>
-          : <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>)}
+        {!nuevo && puede('proveedores', 3) && <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>}
         <button className="boton secundario" onClick={onCerrar}>{editable ? 'Cancelar' : 'Cerrar'}</button>
         {editable && <button className="boton primario" onClick={guardar}>{nuevo ? 'Agregar proveedor' : 'Guardar cambios'}</button>}
       </div>
+      {borrar && (
+        <Confirmar titulo={`¿Dar de baja a ${p.nombre}?`} texto="Sí, dar de baja" peligro onSi={async () => { setBorrar(false); await eliminar(); }} onNo={() => setBorrar(false)}>
+          <p className="tenue">Deja de aparecer en las listas. Sus compras y su cuenta corriente quedan guardadas.</p>
+        </Confirmar>
+      )}
     </Dialogo>
   );
 }

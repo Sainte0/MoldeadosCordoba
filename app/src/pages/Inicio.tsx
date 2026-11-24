@@ -6,7 +6,7 @@ import { estadoStock, formatCantidad, ORDEN_NIVEL } from '@moldeados/shared/base
 import { hoy, useSesion, verFecha } from '../api';
 import { useMaterias, type MateriaPrima } from '../datos';
 import { MateriaRapida } from './MateriaRapida';
-import { TAREAS, puedeTarea } from '../navegacion';
+import { tareasDe } from '../navegacion';
 import { PedidosProximos } from './Avisos';
 import { Dialogo } from '../ui';
 import { Estado } from '../Estado';
@@ -29,7 +29,7 @@ export function Inicio() {
   // El inicio es "Hoy": la planilla del día. Se puede mirar o completar otro día (queda en la dirección).
   const [f, setF] = useFiltros({ fecha: hoyStr });
   const conPlanilla = puede('produccion') || puede('ventas') || puede('compras');
-  const otras = TAREAS.filter((t) => puedeTarea(puede, t));
+  const otras = tareasDe(puede);
   const [materia, setMateria] = useState<MateriaPrima | null>(null);
   return (
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>

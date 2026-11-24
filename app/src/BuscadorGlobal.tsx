@@ -5,7 +5,7 @@ import { ArrowRight, BookOpen, CornerDownLeft, FileText, Search, Zap } from 'luc
 import { api, useSesion } from './api';
 import { useDemorado } from './filtros';
 import { GUIAS, normalizar } from './guias';
-import { AJUSTES, AREAS, TAREAS, puedeTarea } from './navegacion';
+import { AJUSTES, AREAS, tareasDe } from './navegacion';
 
 interface Item { clave: string; grupo: 'Acciones' | 'Ir a' | 'Datos' | 'Ayuda'; titulo: string; detalle?: string; ruta: string }
 interface Dato { tipo: string; id: string; titulo: string; detalle: string; ruta: string }
@@ -41,7 +41,7 @@ export function BuscadorGlobal({ abierto, onCerrar }: { abierto: boolean; onCerr
   const items = useMemo<Item[]>(() => {
     const palabras = normalizar(q).split(/\s+/).filter(Boolean);
     const coincide = (t: string) => palabras.every((p) => normalizar(t).includes(p));
-    const acciones: Item[] = TAREAS.filter((t) => puedeTarea(puede, t)).map((t) => ({ clave: 'a' + t.a, grupo: 'Acciones', titulo: t.titulo, detalle: t.detalle, ruta: t.a }));
+    const acciones: Item[] = tareasDe(puede).map((t) => ({ clave: 'a' + t.a, grupo: 'Acciones', titulo: t.titulo, detalle: t.detalle, ruta: t.a }));
     const secciones: Item[] = [...AREAS, AJUSTES].flatMap((area) => area.pestanas.filter((p) => puede(p.modulo)).map((p) => ({
       clave: 's' + p.a, grupo: 'Ir a' as const, titulo: p.texto === area.texto ? p.texto : `${area.texto} › ${p.texto}`, ruta: p.a,
     })));

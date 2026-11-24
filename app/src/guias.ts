@@ -171,7 +171,7 @@ export const GUIAS: Guia[] = [
     palabras: 'palet pallet etiqueta qr imprimir plastificar plastificadora film tablet alto stock terminado',
     pasos: [
       'En la tablet de la plastificadora, cuando terminás de plastificar un pallet, abrí Planta › Plastificadora (o "Pallet terminado" en Hoy).',
-      'Tocá 1) el tamaño (chico o grande), 2) el color (natural o rojo), 3) el alto (4, 5, 6 o 7) y 4) Confirmar. No hay nada para escribir.',
+      'Tocá 1) el tamaño (chico o grande), 2) el color (natural o rojo), 3) el alto (4, 5, 6 o 7) y 4) Confirmar. Te muestra en grande qué vas a cargar: "Sí, cargar e imprimir". No hay nada para escribir.',
       'El pallet entra al stock en el momento y sale la etiqueta con su QR, el maple, el alto, los maples, la fecha y hora y el número de pallet. Pegala en el film.',
       'La elección queda puesta: si el siguiente es igual, solo tocás Confirmar.',
       'Cuentas: 1 paquete = 60 maples, cada camada son 6 paquetes (3 × 2). Un pallet de 7 = 42 paquetes = 2.520 maples.',
@@ -198,7 +198,7 @@ export const GUIAS: Guia[] = [
       'Elegí el cliente y el chofer: aparecen primero los choferes que cargan para ese cliente.',
       'Qué se lleva: maple, alto y cuántos pallets. Lo normal es un renglón (ej.: 20 MCH-ROJ de 7); con "Otro renglón" agregás más (ej.: + 10 MGR-NAT de 6).',
       'El precio lo trae la ficha del cliente. La condición de pago también (Cuenta 1, Cuenta 2 o Mixta); se puede cambiar solo para esta orden.',
-      'Tocá "Emitir orden": queda abierta en la pantalla de carga.',
+      'Tocá "Revisar y emitir": ves el resumen (cliente, chofer, qué se lleva, condición y total) y confirmás con "Sí, emitir orden". Si un maple no tiene precio o no alcanza el stock, te avisa antes.',
     ],
   },
   {
@@ -209,7 +209,7 @@ export const GUIAS: Guia[] = [
       'A medida que sube cada pallet, escanealo. Suena un OK y el contador del renglón sube (ej.: "MCH-ROJ de 7: 8 de 10").',
       'Si no corresponde (otro tamaño, color o alto), si ese renglón ya está completo, si el pallet ya se vendió o ya se escaneó, o si el QR no existe, suena un error y lo dice en grande.',
       'Con el último pallet la orden se cierra sola: descuenta los pallets del stock, registra la venta (pendiente de cobro) e imprime la orden por duplicado: el original lo firma el chofer, el duplicado queda en la fábrica.',
-      'Si en el camión entran menos de lo pedido, el gerente toca "Cerrar con lo cargado" desde la compu. El mulero no puede.',
+      'Si en el camión entran menos de lo pedido, el gerente toca "Cerrar con lo cargado" (abajo de todo, en "Si el camión no se lleva todo") y confirma. El mulero no lo ve.',
       'Si el camión no se lleva nada, el gerente toca "Cancelar orden": los pallets escaneados vuelven al stock.',
     ],
   },

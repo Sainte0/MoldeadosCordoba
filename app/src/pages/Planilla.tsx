@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Layers, Plus, ScanLine, Truck } from 'lucide-react';
+import { Plus } from 'lucide-react';
+import { tareasDe } from '../navegacion';
 import { aCentavos, ALTOS_PALET, formatPesos } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useMaterias, useProveedores } from '../datos';
@@ -37,19 +38,19 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
   const enFabrica = dia.stock.reduce((a, s) => a + s.pallets, 0);
   const esHoy = fecha === hoy();
   const abiertas = ordenes ?? [];
+  // Los botones grandes, en el orden de su puesto (el primero, en azul).
+  const grandes = tareasDe(puede).filter((t) => ['/plastificar', '/ordenes', '/ordenes/nueva'].includes(t.a));
   return (
     <div className="planilla" style={{ display: 'grid', gap: 16 }}>
       {/* Lo que hace cada uno (pedido 01): pallet que sale de la plastificadora, camión para cargar, orden de venta. */}
-      {esHoy && (puede('produccion', 2) || verOrdenes) && (
+      {esHoy && grandes.length > 0 && (
         <nav className="accesos-grandes" aria-label="Lo de todos los días">
-          {puede('produccion', 2) && <Link to="/plastificar" className="acceso-grande"><Layers size={30} aria-hidden /><b>Pallet terminado</b><small>Tamaño, color, alto y listo</small></Link>}
-          {verOrdenes && (
-            <Link to={abiertas.length === 1 ? `/ordenes/${abiertas[0]!.numero}` : '/ordenes'} className="acceso-grande">
-              <ScanLine size={30} aria-hidden /><b>Cargar camión</b>
-              <small>{abiertas.length ? `${abiertas.length === 1 ? '1 orden abierta' : `${abiertas.length} órdenes abiertas`}` : 'No hay órdenes abiertas'}</small>
+          {grandes.map((t) => (
+            <Link key={t.a} to={t.a === '/ordenes' && abiertas.length === 1 ? `/ordenes/${abiertas[0]!.numero}` : t.a} className="acceso-grande">
+              <t.icono size={30} aria-hidden /><b>{t.titulo}</b>
+              <small>{t.a === '/ordenes' ? (abiertas.length ? `${abiertas.length === 1 ? '1 orden para cargar' : `${abiertas.length} órdenes para cargar`}` : 'No hay órdenes para cargar') : t.a === '/plastificar' ? 'Tamaño, color, alto y listo' : 'Cliente, chofer y qué se lleva'}</small>
             </Link>
-          )}
-          {puede('ventas', 3) && <Link to="/ordenes/nueva" className="acceso-grande"><Truck size={30} aria-hidden /><b>Orden de venta</b><small>Cliente, chofer y qué se lleva</small></Link>}
+          ))}
         </nav>
       )}
       {/* Lo más importante del día, en cifras cortas: lo detallado está abajo en cada bloque. */}

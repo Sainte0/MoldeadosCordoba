@@ -7,7 +7,7 @@ import { useDemorado, useFiltros } from '../filtros';
 import { useEmpresa } from '../datos';
 import { GUIAS, normalizar, type Guia } from '../guias';
 import { hayRecorrido, iniciarRecorrido } from '../Recorrido';
-import { Aviso, Buscador, Cabecera, Campo, Dialogo, Entrada } from '../ui';
+import { Aviso, Buscador, Cabecera, Campo, Confirmar, Dialogo, Entrada } from '../ui';
 
 interface Procedimiento { id: string; titulo: string; resumen: string | null; pasos: string; actualizado: string }
 type Imprimir = { guias: Guia[]; procedimientos: Procedimiento[]; titulo: string } | null;
@@ -182,10 +182,15 @@ function EditarProcedimiento({ inicial, onCerrar }: { inicial: Partial<Procedimi
       </Campo>
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {inicial.id && (borrar ? <button className="boton peligro" onClick={eliminar}>Confirmar borrado</button> : <button className="boton fantasma" onClick={() => setBorrar(true)}>Borrar</button>)}
+        {inicial.id && <button className="boton fantasma" onClick={() => setBorrar(true)}>Borrar</button>}
         <button className="boton secundario" onClick={onCerrar}>Cancelar</button>
         <button className="boton primario" onClick={guardar}>Guardar</button>
       </div>
+      {borrar && (
+        <Confirmar titulo={`¿Borrar "${titulo}"?`} texto="Sí, borrar" peligro onSi={async () => { setBorrar(false); await eliminar(); }} onNo={() => setBorrar(false)}>
+          <p className="tenue">El procedimiento deja de verse en Ayuda.</p>
+        </Confirmar>
+      )}
     </Dialogo>
   );
 }

@@ -7,7 +7,7 @@ import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useFiltros } from '../filtros';
 import { useChoferes, useClientes, useEmpresa, useVariantes } from '../datos';
 import { Muestra } from '../MapleVista';
-import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones, Volver } from '../ui';
+import { Aviso, Cabecera, Campo, Cargando, Confirmar, Entrada, Opciones, Volver } from '../ui';
 import { useStockPallets } from './Plastificar';
 
 // Orden de venta (pedido N° 01, punto 3): el gerente la emite desde la compu, queda abierta en la pantalla de carga,
@@ -67,7 +67,6 @@ export function NuevaOrden() {
   const [condicion, setCondicion] = useState<{ c: Condicion; pct: string } | null>(null);
   const [renglones, setRenglones] = useState<Renglon[]>([{ varianteId: '', alto: 7, cantidad: '' }]);
   const [error, setError] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
 
   // La condición de pago la trae la ficha del cliente; el gerente la puede cambiar para esta orden.
   useEffect(() => { if (cliente) setCondicion({ c: cliente.condicionPago, pct: String(cliente.porcentajeCuenta1 ?? '') }); setChoferId(''); }, [cliente?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -79,25 +78,41 @@ export function NuevaOrden() {
     return n + (v ? (Number(r.cantidad) || 0) * 6 * r.alto * v.maplesPorPaquete * (precios?.[v.id] ?? 0) : 0);
   }, 0);
   const pct = condicion?.c === 'mixta' ? Number(condicion.pct) || 0 : condicion?.c === 'cuenta1' ? 100 : 0;
+  // Si el cliente tiene un solo chofer, ya queda elegido (un paso menos).
+  useEffect(() => {
+    const suyos = (choferes ?? []).filter((c) => c.delCliente);
+    if (cliente && !choferId && suyos.length === 1) setChoferId(suyos[0]!.id);
+  }, [choferes, cliente?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const faltan = renglones.flatMap((r) => {
+    const v = activas.find((x) => x.id === r.varianteId); const s = v ? enStock(v.id, r.alto) : undefined;
+    const hay = s ? s.pallets - s.enCarga : 0;
+    return v && Number(r.cantidad) > hay ? [`de ${v.codigo} de ${r.alto} hay ${hay} en la fábrica`] : [];
+  });
   const cambiar = (i: number, r: Partial<Renglon>) => setRenglones(renglones.map((x, j) => (j === i ? { ...x, ...r } : x)));
 
-  const emitir = async (e: React.FormEvent) => {
+  const [confirmando, setConfirmando] = useState(false);
+  const validos = renglones.filter((r) => r.varianteId && Number(r.cantidad) > 0);
+  const revisar = (e: React.FormEvent) => {
     e.preventDefault();
     if (!cliente || !condicion) return setError('Elegí el cliente');
-    setError(null); setGuardando(true);
-    try {
-      const o = await api<{ numero: number }>('/ordenes', { method: 'POST', body: {
-        clienteId, choferId: choferId || null, condicionPago: condicion.c, porcentajeCuenta1: condicion.c === 'mixta' ? Number(condicion.pct) || null : null,
-        items: renglones.filter((r) => r.varianteId).map((r) => ({ varianteId: r.varianteId, alto: r.alto, cantidad: Number(r.cantidad) || 0 })),
-      } });
-      await qc.invalidateQueries({ queryKey: ['ordenes'] });
-      nav(`/ordenes/${o.numero}`, { replace: true });
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo emitir la orden'); }
-    setGuardando(false);
+    if (!validos.length) return setError('Completá qué se lleva: maple, alto y cuántos pallets');
+    const sinPrecio = validos.map((r) => activas.find((v) => v.id === r.varianteId)).find((v) => v && !precios?.[v.id]);
+    if (sinPrecio) return setError(`El ${sinPrecio.codigo} no tiene precio para ${cliente.nombre}. Cargalo en su ficha (Ventas › Clientes) o en Ajustes › Precios.`);
+    if (condicion.c === 'mixta' && !(Number(condicion.pct) > 0 && Number(condicion.pct) < 100)) return setError('En Mixta poné qué porcentaje va a Cuenta 1 (de 1 a 99)');
+    setError(null); setConfirmando(true);
   };
+  const emitir = async () => {
+    const o = await api<{ numero: number }>('/ordenes', { method: 'POST', body: {
+      clienteId, choferId: choferId || null, condicionPago: condicion!.c, porcentajeCuenta1: condicion!.c === 'mixta' ? Number(condicion!.pct) || null : null,
+      items: validos.map((r) => ({ varianteId: r.varianteId, alto: r.alto, cantidad: Number(r.cantidad) })),
+    } });
+    await qc.invalidateQueries({ queryKey: ['ordenes'] });
+    nav(`/ordenes/${o.numero}`, { replace: true });
+  };
+  const chofer = choferes?.find((c) => c.id === choferId);
 
   return (
-    <form className="columna" style={{ display: 'grid', gap: 18 }} onSubmit={emitir}>
+    <form className="columna" style={{ display: 'grid', gap: 18 }} onSubmit={revisar}>
       <Volver a="/ordenes" texto="Órdenes" />
       <Cabecera titulo="Nueva orden de venta" bajada="Queda abierta en la pantalla de carga hasta que se escanee el último pallet." />
       <div className="hoja relleno" style={{ display: 'grid', gap: 14 }}>
@@ -157,9 +172,21 @@ export function NuevaOrden() {
       )}
 
       <Aviso>{error}</Aviso>
+      {confirmando && cliente && condicion && (
+        <Confirmar titulo="¿Emitir esta orden?" texto="Sí, emitir orden" onSi={emitir} onNo={() => setConfirmando(false)}>
+          <dl className="resumen">
+            <dt>Cliente</dt><dd>{cliente.nombre}</dd>
+            <dt>Chofer</dt><dd>{chofer ? `${chofer.nombre} ${chofer.apellido}${chofer.patente ? ` · ${chofer.patente}` : ''}` : 'Sin chofer'}</dd>
+            <dt>Se lleva</dt><dd>{validos.map((r) => `${r.cantidad} ${activas.find((v) => v.id === r.varianteId)?.codigo} de ${r.alto}`).join(' + ')}</dd>
+            <dt>Condición</dt><dd>{verCondicion(condicion.c, Number(condicion.pct) || null)}</dd>
+            {total > 0 && <><dt>Total aprox.</dt><dd>{formatPesos(Math.round(total * (1 + (pct / 100) * (IVA_CUENTA1 / 10000))))}</dd></>}
+          </dl>
+          {faltan.length > 0 && <p className="aviso">Ojo: {faltan.join(', ')}. La orden se puede emitir igual y se carga cuando haya.</p>}
+        </Confirmar>
+      )}
       <div className="acciones">
         <Link to="/ordenes" className="boton secundario">Cancelar</Link>
-        <button className="boton primario" disabled={!cliente || guardando}><Truck size={18} aria-hidden /> {guardando ? 'Emitiendo…' : 'Emitir orden'}</button>
+        <button className="boton primario grande" disabled={!cliente}><Truck size={18} aria-hidden /> Revisar y emitir</button>
       </div>
     </form>
   );
@@ -243,8 +270,6 @@ export function OrdenCarga() {
         <Cabecera titulo={`${o.cliente}`} bajada={`Orden ${nroTicket(o.numero)} · ${o.chofer ? `${o.chofer}${o.patente ? ` (${o.patente})` : ''}` : 'sin chofer'} · ${verCondicion(o.condicionPago, o.porcentajeCuenta1)}`}>
           <div className="acciones-titulo">
             {o.estado === 'cerrada' && <button className="boton primario" onClick={() => window.print()}><Printer size={18} aria-hidden /> Imprimir orden</button>}
-            {abierta && puede('ventas', 3) && <button className="boton secundario" onClick={() => setDialogo('cerrar')} disabled={!cargados}>Cerrar con lo cargado</button>}
-            {abierta && puede('ventas', 3) && <button className="boton fantasma" onClick={() => setDialogo('cancelar')}><Ban size={18} aria-hidden /> Cancelar orden</button>}
           </div>
         </Cabecera>
 
@@ -278,6 +303,17 @@ export function OrdenCarga() {
             ))}
           </section>
         )}
+        {/* Lo del gerente, al pie y lejos del campo de la pistola: cerrar corta o cancelar (el mulero no lo ve). */}
+        {abierta && puede('ventas', 3) && (
+          <section className="hoja relleno" style={{ display: 'grid', gap: 10 }}>
+            <h3>Si el camión no se lleva todo</h3>
+            <p className="chico tenue">Solo el gerente. Cerrar registra la venta por lo cargado ({cargados} de {pedidos}) e imprime la orden.</p>
+            <div className="acciones" style={{ justifyContent: 'flex-start' }}>
+              <button className="boton secundario" onClick={() => setDialogo('cerrar')} disabled={!cargados}>Cerrar con lo cargado</button>
+              <button className="boton fantasma" onClick={() => setDialogo('cancelar')}><Ban size={18} aria-hidden /> Cancelar orden</button>
+            </div>
+          </section>
+        )}
         {o.ventas.length > 0 && (
           <section className="hoja">
             <div className="fila"><h3>Venta registrada</h3></div>
@@ -294,15 +330,12 @@ export function OrdenCarga() {
       {o.estado === 'cerrada' && <ImpresionOrden o={o} />}
 
       {dialogo && (
-        <Dialogo titulo={dialogo === 'cerrar' ? `Cerrar con ${cargados} de ${pedidos} pallets` : 'Cancelar la orden'} onCerrar={() => setDialogo(null)}>
+        <Confirmar titulo={dialogo === 'cerrar' ? `¿Cerrar con ${cargados} de ${pedidos} pallets?` : '¿Cancelar la orden?'} texto={dialogo === 'cerrar' ? 'Sí, cerrar e imprimir' : 'Sí, cancelar orden'} peligro={dialogo === 'cancelar'}
+          onSi={async () => { if (dialogo === 'cancelar' && motivo.trim().length < 3) throw new Error('Escribí el motivo'); await accion(); }} onNo={() => setDialogo(null)}>
           <p className="tenue">{dialogo === 'cerrar' ? 'Se descuentan del stock los pallets cargados, se registra la venta por lo cargado y se imprime la orden por duplicado.' : 'El camión no se lleva nada. Si había pallets escaneados, vuelven al stock.'}</p>
           <Campo etiqueta="Motivo"><Entrada value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder={dialogo === 'cerrar' ? 'Ej.: no entraron en el camión' : 'Ej.: no vino el camión'} autoFocus /></Campo>
           <Aviso>{err}</Aviso>
-          <div className="acciones">
-            <button className="boton secundario" onClick={() => setDialogo(null)}>Volver</button>
-            <button className={`boton ${dialogo === 'cerrar' ? 'primario' : 'peligro'}`} disabled={dialogo === 'cancelar' && motivo.trim().length < 3} onClick={accion}>{dialogo === 'cerrar' ? 'Cerrar e imprimir' : 'Cancelar orden'}</button>
-          </div>
-        </Dialogo>
+        </Confirmar>
       )}
     </div>
   );

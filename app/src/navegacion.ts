@@ -46,8 +46,8 @@ export const enArea = (area: Area, path: string) => [...area.pestanas.map((x) =>
 // Las 4 primeras que el rol puede hacer, en orden de frecuencia en planta. El resto está en su área del menú.
 export const TAREAS: { a: string; titulo: string; corto: string; detalle: string; icono: typeof Factory; modulo: Modulo; nivel?: 2 | 3 }[] = [
   { a: '/plastificar', titulo: 'Pallet terminado', corto: 'Pallet', detalle: 'Salió de la plastificadora: entra al stock con su etiqueta', icono: Layers, modulo: 'produccion' },
-  { a: '/ordenes/nueva', titulo: 'Orden de venta', corto: 'Orden', detalle: 'Cliente, chofer y qué se lleva', icono: Truck, modulo: 'ventas', nivel: 3 },
   { a: '/ordenes', titulo: 'Cargar camión', corto: 'Carga', detalle: 'Escanear los pallets de una orden', icono: ScanLine, modulo: 'produccion' },
+  { a: '/ordenes/nueva', titulo: 'Orden de venta', corto: 'Orden', detalle: 'Cliente, chofer y qué se lleva', icono: Truck, modulo: 'ventas', nivel: 3 },
   { a: '/pesaje', titulo: 'Entrada de cartón', corto: 'Cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
   { a: '/dinero/nuevo?tipo=cobro', titulo: 'Pago a cuenta', corto: 'Cobro', detalle: 'Un cliente paga: efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
   { a: '/egresos/nuevo', titulo: 'Cargar egreso', corto: 'Egreso', detalle: 'Pagado o pendiente, con foto del comprobante', icono: Coins, modulo: 'gastos' },
@@ -87,3 +87,14 @@ export function nombreDeRuta(ruta: string): string {
 
 /** Si el rol puede hacer la tarea (algunas piden más que cargar: la orden de venta es del gerente). */
 export const puedeTarea = (puede: (m: Modulo, n?: 1 | 2 | 3) => boolean, t: (typeof TAREAS)[number]) => puede(t.modulo, t.nivel ?? 2);
+
+/**
+ * Las tareas que puede hacer, en orden de importancia para su puesto (pedido 01): quien emite órdenes (gerente, dueño)
+ * empieza por la orden de venta y la carga del camión; planta, por el pallet que sale de la plastificadora.
+ */
+export function tareasDe(puede: (m: Modulo, n?: 1 | 2 | 3) => boolean) {
+  const mias = TAREAS.filter((t) => puedeTarea(puede, t));
+  if (!puede('ventas', 3)) return mias;
+  const primero = ['/ordenes/nueva', '/ordenes'];
+  return [...primero.flatMap((a) => mias.filter((t) => t.a === a)), ...mias.filter((t) => !primero.includes(t.a))];
+}

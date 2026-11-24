@@ -4,7 +4,7 @@ import { ChevronRight, Plus } from 'lucide-react';
 import { LABEL_VEHICULO, VEHICULOS, type Vehiculo } from '@moldeados/shared/base';
 import { api, useSesion } from '../api';
 import { useChoferes, useClientes, type Chofer } from '../datos';
-import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
+import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones, Confirmar } from '../ui';
 
 // Base de choferes (pedido N° 01): se eligen después en la orden de venta. Un chofer puede cargar para varios clientes.
 
@@ -56,6 +56,7 @@ function FichaChofer({ inicial, onCerrar }: { inicial: Chofer | null; onCerrar: 
     try { await p; await qc.invalidateQueries({ queryKey: ['choferes'] }); onCerrar(); } catch (e) { setError(e instanceof Error ? e.message : 'No se pudo guardar'); }
   };
   const guardar = () => listo(api(inicial ? `/choferes/${inicial.id}` : '/choferes', { method: inicial ? 'PUT' : 'POST', body: { ...c, dni: c.dni || undefined, telefono: c.telefono || undefined, patente: c.patente || undefined } }));
+  const eliminar = () => listo(api(`/choferes/${inicial!.id}`, { method: 'DELETE' }));
   const alternar = (id: string) => setC({ ...c, clienteIds: c.clienteIds.includes(id) ? c.clienteIds.filter((x) => x !== id) : [...c.clienteIds, id] });
 
   return (
@@ -79,10 +80,15 @@ function FichaChofer({ inicial, onCerrar }: { inicial: Chofer | null; onCerrar: 
       </Campo>
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {inicial && editable && (borrar ? <button className="boton peligro" onClick={() => listo(api(`/choferes/${inicial.id}`, { method: 'DELETE' }))}>Confirmar baja</button> : <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>)}
+        {inicial && editable && <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>}
         <button className="boton secundario" onClick={onCerrar}>{editable ? 'Cancelar' : 'Cerrar'}</button>
         {editable && <button className="boton primario" onClick={guardar}>{inicial ? 'Guardar cambios' : 'Agregar chofer'}</button>}
       </div>
+      {borrar && (
+        <Confirmar titulo={`¿Dar de baja a ${`${c.nombre} ${c.apellido}`}?`} texto="Sí, dar de baja" peligro onSi={async () => { setBorrar(false); await eliminar(); }} onNo={() => setBorrar(false)}>
+          <p className="tenue">Deja de aparecer al elegir chofer en una orden. Las órdenes viejas lo siguen mostrando.</p>
+        </Confirmar>
+      )}
     </Dialogo>
   );
 }
