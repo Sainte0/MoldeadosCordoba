@@ -982,3 +982,23 @@ a.fila:active, button.fila:active { background: #ececf0; }
 .confirmar-pallet span { color: var(--tinta-2); }
 .acciones.confirmar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .acciones.confirmar .boton { width: 100%; justify-content: center; }
+
+/* ---------- Que lo tocable se vea tocable (pedido: "botones que no parecen botones") ---------- */
+/* Botón "fantasma": ya no es texto suelto, tiene fondo y forma de botón. */
+.boton.fantasma { background: rgba(118, 118, 128, 0.12); color: var(--tinta); padding: 0 16px; }
+.boton.fantasma:hover { background: rgba(118, 118, 128, 0.2); }
+.boton.fantasma.peligro, .dialogo .boton.fantasma { color: var(--peligro); background: var(--peligro-claro); }
+/* Renglón que abre algo: flecha a la derecha, como en iOS (si no trae la suya). */
+a.fila:not(:has(.lucide-chevron-right)):not(.mostrar-mas), button.fila:not(:disabled):not(:has(.lucide-chevron-right)):not(.mostrar-mas) {
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23b0b0b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+}
+.fila-accion > .fila-enlace { padding-right: 0; background-image: none !important; }
+/* "Ver todos / ver más": un renglón-botón en azul, centrado. */
+.fila.mostrar-mas { justify-content: center; text-align: center; color: var(--accion); font-weight: 600; cursor: pointer; background: none; border: 0; width: 100%; min-height: 48px; display: flex; align-items: center; }
+/* Diálogos en el teléfono: botones a lo ancho, el principal arriba; borrar/dar de baja queda abajo, lejos. */
+@media (max-width: 560px) {
+  .dialogo .acciones:not(.confirmar) { display: flex; flex-direction: column-reverse; align-items: stretch; }
+  .dialogo .acciones:not(.confirmar) .boton { width: 100%; justify-content: center; min-height: 50px; }
+}

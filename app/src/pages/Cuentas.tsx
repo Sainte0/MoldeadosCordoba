@@ -26,6 +26,10 @@ export function Cuentas() {
   };
   const filas = (data ?? []).filter((s) => !q || s.nombre.toLowerCase().includes(q.toLowerCase())).map((s) => ({ ...s, saldo: s.debe - s.haber }));
   const total = filas.reduce((a, s) => a + s.saldo, 0);
+  // Lo que importa primero: quién debe (o a quién le debemos). Los que están al día, plegados.
+  const [todos, setTodos] = useState(false);
+  const alDia = filas.filter((s) => s.saldo === 0).length;
+  const visibles = todos || q ? filas : filas.filter((s) => s.saldo !== 0);
 
   return (
     <div className="ancho" style={{ display: 'grid', gap: 16 }}>
@@ -54,7 +58,7 @@ export function Cuentas() {
 
       {isLoading ? <Cargando /> : (
         <div className="hoja filas">
-          {filas.sort((a, b) => b.saldo - a.saldo).map((s) => (
+          {visibles.sort((a, b) => b.saldo - a.saldo).map((s) => (
             // Quien debe tiene su botón a mano: cobrar (o pagar) sin entrar a la cuenta ni buscarlo de nuevo.
             <div key={s.id} className="fila fila-accion">
               <Link to={`/cuentas/${de}/${s.id}`} className="fila-enlace">
@@ -67,7 +71,8 @@ export function Cuentas() {
               {s.saldo > 0 && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=${de === 'cliente' ? 'cobro' : 'pago'}&id=${s.id}`} className="boton secundario boton-fila">{de === 'cliente' ? 'Cobrar' : 'Pagar'}</Link>}
             </div>
           ))}
-          {!filas.length && <p className="tenue" style={{ padding: 16 }}>No hay cuentas para mostrar.</p>}
+          {!visibles.length && <p className="tenue" style={{ padding: 16 }}>{alDia ? 'Nadie debe nada: todos al día.' : 'No hay cuentas para mostrar.'}</p>}
+          {!q && alDia > 0 && <button type="button" className="fila mostrar-mas" onClick={() => setTodos(!todos)}>{todos ? 'Ocultar los que están al día' : `Ver los ${alDia} que están al día`}</button>}
         </div>
       )}
 

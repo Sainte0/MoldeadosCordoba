@@ -23,6 +23,7 @@ interface Dia {
 }
 interface OrdenAbierta { id: string; numero: number; cliente: string; detalle: string; pedidos: number; cargados: number; chofer: string | null }
 
+const hora = (iso: string) => new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(iso));
 const pallets = (n: number) => `${n} ${n === 1 ? 'pallet' : 'pallets'}`;
 
 /** El día en el inicio ("Hoy"). */
@@ -63,7 +64,7 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
 
       {verOrdenes && abiertas.length > 0 && (
         <section className="hoja">
-          <div className="fila"><h3>Para cargar</h3><Link to="/ordenes" className="chico">Ver órdenes</Link></div>
+          <div className="fila"><h3>Para cargar</h3></div>
           {(ordenes ?? []).map((o) => (
             <Link key={o.id} to={`/ordenes/${o.numero}`} className="fila">
               <span><span className="principal">{o.cliente}</span><br /><span className="chico tenue">{o.detalle}{o.chofer ? ` · ${o.chofer}` : ''}</span></span>
@@ -78,12 +79,12 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
       {puede('produccion') && (
         <section className="hoja">
           <div className="fila"><h3>Pallets que salieron de la plastificadora</h3></div>
-          {dia.pallets.slice(0, 8).map((p) => (
+          {dia.pallets.slice(0, 3).map((p) => (
             <Link key={p.id} to={`/palets/${p.numero}`} className="fila">
-              <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo} de {p.alto}</span><br /><span className="chico tenue">Pallet {nroTicket(p.numero)} · {p.maples.toLocaleString('es-AR')} maples · {verMomento(p.cargadoAt)}</span></span></span>
+              <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo} de {p.alto}</span><br /><span className="chico tenue">N.º {nroTicket(p.numero)} · {hora(p.cargadoAt)}</span></span></span>
             </Link>
           ))}
-          {dia.pallets.length > 8 && <Link to="/palets" className="fila chico">Ver los {dia.pallets.length}</Link>}
+          {dia.pallets.length > 3 && <Link to="/palets" className="fila mostrar-mas">Ver los {dia.pallets.length} de hoy</Link>}
           {!dia.pallets.length && <p className="chico tenue" style={{ padding: '0 18px 14px' }}>Todavía no salió ninguno{esHoy ? ' hoy' : ''}.</p>}
         </section>
       )}
@@ -176,7 +177,7 @@ function Carton({ dia, edita }: { dia: Dia; edita: boolean }) {
   const [r, setR] = useState({ proveedor: '', kilos: '', precio: '', conFactura: false });
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
-  const [abierto, setAbierto] = useState(dia.carton.length === 0);
+  const [abierto, setAbierto] = useState(false);
   const carton = (materias ?? []).find((m) => m.tipo === 'carton' && m.activo);
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();

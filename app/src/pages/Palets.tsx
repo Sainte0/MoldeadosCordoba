@@ -11,7 +11,7 @@ import { BotonExportar } from './Exportar';
 import { Buscador, Cabecera, Cargando } from '../ui';
 import { Estado } from '../Estado';
 
-interface PaletFila { suelto: boolean; ventaId: string | null; remito: number | null; cliente: string | null; id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; vehiculo: Vehiculo | null; destino: string | null; armadoAt: string; anuladoAt: string | null; codigo: string; variante: string; colorHex: string | null }
+interface PaletFila { suelto: boolean; ventaId: string | null; remito: number | null; cliente: string | null; id: string; numero: number; paquetes: number; ancho: number; largo: number; alto: number; vehiculo: Vehiculo | null; destino: string | null; armadoAt: string; anuladoAt: string | null; codigo: string; variante: string; colorHex: string | null; maplesPorPaquete: number }
 
 export function Palets() {
   const { puede } = useSesion();
@@ -49,11 +49,11 @@ export function Palets() {
                 <div className="con-muestra">
                   <Muestra color={p.colorHex} />
                   <div>
-                    <div className="principal">{p.suelto ? `${p.paquetes} paquetes sueltos` : `Palet ${nroTicket(p.numero)}`} · {p.codigo}</div>
-                    <div className="chico tenue">{p.ventaId ? `Vendido a ${p.cliente} · remito ${nroTicket(p.remito ?? 0)}` : `${p.suelto ? '' : `${p.ancho}×${p.largo}×${p.alto} · `}${p.destino ? `para ${p.destino} · ` : ''}armado ${verMomento(p.armadoAt)}`}</div>
+                    <div className="principal">{p.suelto ? `${p.paquetes} paquetes sueltos · ${p.codigo}` : `${p.codigo} de ${p.alto}`}</div>
+                    <div className="chico tenue">N.º {nroTicket(p.numero)} · {p.ventaId ? `vendido a ${p.cliente}` : verMomento(p.armadoAt)}</div>
                   </div>
                 </div>
-                <div className="derecha"><div className="cifra">{p.paquetes} paq.</div>{p.anuladoAt ? <span className="marca-texto">Anulado</span> : p.ventaId ? <span className="marca-texto">Vendido</span> : <Estado nivel="ok">Listo para salir</Estado>}</div>
+                <div className="derecha"><div className="cifra">{(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')} <small className="tenue">maples</small></div>{p.anuladoAt ? <span className="marca-texto">Anulado</span> : p.ventaId ? (f.estado !== 'vendidos' && <span className="marca-texto">Vendido</span>) : f.estado !== 'listos' && <Estado nivel="ok">En la fábrica</Estado>}</div>
               </Link>
             ))}
           </div>

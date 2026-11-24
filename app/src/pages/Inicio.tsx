@@ -76,7 +76,7 @@ export function Inicio() {
           <section className="hoja">
             <div className="fila">
               <div><h3>Materia prima</h3><span className="chico tenue">Tocá una para anotar que entró o corregir</span></div>
-              {puede('materias') && <Link to="/materia-prima" className="chico">Ver todo</Link>}
+              {puede('materias') && <Link to="/materia-prima" className="boton secundario chico-boton">Ver todo</Link>}
             </div>
             {materias.filter((m) => m.activo)
               .map((m) => ({ m, e: estadoStock(m), sinCargar: m.stock === 0 && m.dias === null }))
