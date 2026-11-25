@@ -95,6 +95,41 @@ function ClienteRapido({ onCerrar, onListo }: { onCerrar: () => void; onListo: (
   );
 }
 
+/** Chofer en el momento: nombre, apellido y patente. Queda cargando para este cliente; el resto en Ventas › Choferes. */
+function ChoferRapido({ cliente, onCerrar, onListo }: { cliente: { id: string; nombre: string }; onCerrar: () => void; onListo: (id: string) => void }) {
+  const qc = useQueryClient();
+  const [ch, setCh] = useState({ nombre: '', apellido: '', patente: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const guardar = async (e: React.FormEvent) => {
+    e.preventDefault(); e.stopPropagation(); // está dentro del formulario de la orden: que no lo envíe
+    if (ch.nombre.trim().length < 2 || ch.apellido.trim().length < 2) return setError('Poné nombre y apellido del chofer');
+    setError(null); setGuardando(true);
+    try {
+      const n = await api<{ id: string }>('/choferes', { method: 'POST', body: { nombre: ch.nombre.trim(), apellido: ch.apellido.trim(), patente: ch.patente.trim() || undefined, clienteIds: [cliente.id] } });
+      await qc.invalidateQueries({ queryKey: ['choferes'] });
+      onListo(n.id);
+    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo agregar'); setGuardando(false); }
+  };
+  return (
+    <Dialogo titulo="Chofer nuevo" onCerrar={onCerrar}>
+      <form onSubmit={guardar} style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <Campo etiqueta="Nombre"><Entrada value={ch.nombre} onChange={(e) => setCh({ ...ch, nombre: e.target.value })} autoFocus required /></Campo>
+          <Campo etiqueta="Apellido"><Entrada value={ch.apellido} onChange={(e) => setCh({ ...ch, apellido: e.target.value })} required /></Campo>
+        </div>
+        <Campo etiqueta="Patente (opcional)"><Entrada value={ch.patente} maxLength={15} autoCapitalize="characters" onChange={(e) => setCh({ ...ch, patente: e.target.value })} /></Campo>
+        <p className="chico tenue">Queda como chofer de {cliente.nombre}. DNI, teléfono y vehículo se completan después en Ventas › Choferes.</p>
+        <Aviso>{error}</Aviso>
+        <div className="acciones">
+          <button type="button" className="boton secundario" onClick={onCerrar}>Cancelar</button>
+          <button className="boton primario" disabled={guardando}>{guardando ? 'Agregando…' : 'Agregar chofer'}</button>
+        </div>
+      </form>
+    </Dialogo>
+  );
+}
+
 /** El maple no tiene precio para este cliente: se pone acá y queda guardado en su ficha. */
 function PrecioAcordado({ clienteId, varianteId, codigo }: { clienteId: string; varianteId: string; codigo: string }) {
   const qc = useQueryClient();
@@ -133,6 +168,7 @@ export function NuevaOrden() {
   const { data: pedido } = useQuery({ queryKey: ['pedido', desdePedido], queryFn: () => api<{ id: string; numero: number; clienteId: string; estado: string; items: { varianteId: string; paquetes: number; despachado: number }[] }>(`/pedidos/${desdePedido}`), enabled: !!desdePedido });
   const [clienteId, setClienteId] = useState('');
   const [clienteNuevo, setClienteNuevo] = useState(false);
+  const [choferNuevo, setChoferNuevo] = useState(false);
   const cliente = clientes?.find((c) => c.id === clienteId);
   const { data: choferes } = useChoferes(clienteId);
   const { data: precios } = useQuery({ queryKey: ['precios-cliente', clienteId], queryFn: () => api<Record<string, number>>(`/precios/cliente/${clienteId}`), enabled: !!clienteId });
@@ -209,14 +245,6 @@ export function NuevaOrden() {
             <button type="button" className="boton secundario" onClick={() => setClienteNuevo(true)}><Plus size={18} aria-hidden /> Nuevo</button>
           </div>
         </Campo>
-        {cliente && (
-          <Campo etiqueta="Chofer" ayuda={choferes?.some((c) => c.delCliente) ? 'Primero, los que cargan para este cliente.' : 'Se cargan en Ventas › Choferes.'}>
-            <select className="entrada" value={choferId} onChange={(e) => setChoferId(e.target.value)}>
-              <option value="">Sin chofer</option>
-              {(choferes ?? []).map((c) => <option key={c.id} value={c.id}>{c.apellido}, {c.nombre}{c.patente ? ` · ${c.patente}` : ''}{c.vehiculo ? ` · ${LABEL_VEHICULO[c.vehiculo]}` : ''}{c.delCliente ? '' : ' (otro cliente)'}</option>)}
-            </select>
-          </Campo>
-        )}
       </div>
 
       {cliente && (
@@ -259,14 +287,29 @@ export function NuevaOrden() {
         </section>
       )}
 
+      {cliente && (
+        <section className="hoja relleno" style={{ display: 'grid', gap: 12 }}>
+          <Campo etiqueta="Chofer (opcional)" ayuda={choferId ? undefined : 'Si retira el mismo cliente o todavía no sabés quién viene, dejalo así.'}>
+            <div className="elegir-o-nuevo">
+              <select className="entrada" value={choferId} onChange={(e) => setChoferId(e.target.value)}>
+                <option value="">Sin chofer / retira el cliente</option>
+                {(choferes ?? []).map((c) => <option key={c.id} value={c.id}>{c.apellido}, {c.nombre}{c.patente ? ` · ${c.patente}` : ''}{c.vehiculo ? ` · ${LABEL_VEHICULO[c.vehiculo]}` : ''}{c.delCliente ? '' : ' (otro cliente)'}</option>)}
+              </select>
+              <button type="button" className="boton secundario" onClick={() => setChoferNuevo(true)}><Plus size={18} aria-hidden /> Nuevo</button>
+            </div>
+          </Campo>
+        </section>
+      )}
+
       <Aviso>{error}</Aviso>
+      {choferNuevo && cliente && <ChoferRapido cliente={cliente} onCerrar={() => setChoferNuevo(false)} onListo={(id) => { setChoferNuevo(false); setChoferId(id); }} />}
       {clienteNuevo && <ClienteRapido onCerrar={() => setClienteNuevo(false)} onListo={(id) => { setClienteNuevo(false); setClienteId(id); }} />}
       {confirmando && cliente && condicion && (
         <Confirmar titulo="¿Emitir esta orden?" texto="Sí, emitir orden" onSi={emitir} onNo={() => setConfirmando(false)}>
           <dl className="resumen">
             <dt>Cliente</dt><dd>{cliente.nombre}</dd>
             {pedido?.estado === 'abierto' && pedido.clienteId === clienteId && <><dt>Pedido</dt><dd>{nroTicket(pedido.numero)}</dd></>}
-            <dt>Chofer</dt><dd>{chofer ? `${chofer.nombre} ${chofer.apellido}${chofer.patente ? ` · ${chofer.patente}` : ''}` : 'Sin chofer'}</dd>
+            <dt>Chofer</dt><dd>{chofer ? `${chofer.nombre} ${chofer.apellido}${chofer.patente ? ` · ${chofer.patente}` : ''}` : 'Sin chofer (retira el cliente)'}</dd>
             <dt>Se lleva</dt><dd>{validos.map((r) => `${r.cantidad} ${activas.find((v) => v.id === r.varianteId)?.codigo} de ${r.alto}`).join(' + ')}</dd>
             <dt>Condición</dt><dd>{verCondicion(condicion.c, Number(condicion.pct) || null)}</dd>
             {total > 0 && <><dt>Total aprox.</dt><dd>{formatPesos(Math.round(total * (1 + (pct / 100) * (IVA_CUENTA1 / 10000))))}</dd></>}
