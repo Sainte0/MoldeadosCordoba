@@ -1,13 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { tareasDe } from '../navegacion';
-import { aCentavos, ALTOS_PALET, formatPesos } from '@moldeados/shared/base';
+import { ALTOS_PALET, formatPesos } from '@moldeados/shared/base';
 import { api, hoy, nroTicket, useSesion, verFecha, verMomento } from '../api';
-import { useMaterias, useProveedores } from '../datos';
 import { Muestra } from '../MapleVista';
-import { Aviso, Campo, Entrada } from '../ui';
 import { porMaple, type StockPallet } from './Plastificar';
 
 // Hoy (el inicio): todo lo del día en una pantalla. Los pallets que salieron de la plastificadora, las órdenes para
@@ -101,7 +98,6 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
         </section>
       )}
 
-      {puede('compras') && <Carton dia={dia} edita={puede('compras', 2)} />}
 
     </div>
   );
@@ -152,72 +148,5 @@ export function Cuenta({ valor, onChange }: { valor: boolean; onChange: (cuenta1
       <button type="button" aria-pressed={valor} onClick={() => onChange(true)}>Cuenta 1</button>
       <button type="button" aria-pressed={!valor} onClick={() => onChange(false)}>Cuenta 2</button>
     </div>
-  );
-}
-
-/** Encabezado de cada bloque: el título y "Agregar", que abre el renglón para cargar. */
-function Cabeza({ titulo, detalle, edita, abierto, onAbrir }: { titulo: string; detalle?: string; edita: boolean; abierto: boolean; onAbrir: () => void }) {
-  return (
-    <div className="fila">
-      <div><h3>{titulo}</h3>{detalle && <span className="chico tenue">{detalle}</span>}</div>
-      {edita && !abierto && <button type="button" className="boton secundario" onClick={onAbrir}><Plus size={18} aria-hidden /> Agregar</button>}
-    </div>
-  );
-}
-
-function useRefrescar() {
-  const qc = useQueryClient();
-  return () => qc.invalidateQueries();
-}
-
-function Carton({ dia, edita }: { dia: Dia; edita: boolean }) {
-  const { data: proveedores } = useProveedores('', 'carton');
-  const { data: materias } = useMaterias();
-  const refrescar = useRefrescar();
-  const [r, setR] = useState({ proveedor: '', kilos: '', precio: '', conFactura: false });
-  const [error, setError] = useState<string | null>(null);
-  const [guardando, setGuardando] = useState(false);
-  const [abierto, setAbierto] = useState(false);
-  const carton = (materias ?? []).find((m) => m.tipo === 'carton' && m.activo);
-  const guardar = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const precio = aCentavos(r.precio);
-    if (!carton) return setError('No hay materia prima "cartón" cargada');
-    if (precio === null) return setError('Revisá el precio por kilo');
-    setGuardando(true);
-    try {
-      const nombre = r.proveedor.trim();
-      const existente = (proveedores ?? []).find((p) => p.nombre.toLowerCase() === nombre.toLowerCase());
-      const prov = existente ?? await api<{ id: string }>('/proveedores', { method: 'POST', body: { nombre, tipos: ['carton'] } });
-      await api('/compras/pesaje', { method: 'POST', body: { proveedorId: prov.id, materiaPrimaId: carton.id, fecha: dia.fecha, brutoG: Math.round(Number(r.kilos.replace(',', '.')) * 1000), taraG: 0, precioPorKg: precio, conFactura: r.conFactura, ivaBp: 2100, notas: 'Planilla del día' } });
-      setR({ ...r, proveedor: '', kilos: '' });
-      await refrescar();
-    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo guardar'); }
-    setGuardando(false);
-  };
-  return (
-    <section className="hoja">
-      <Cabeza titulo="Cartón que entró" detalle={dia.carton.length ? `${(dia.carton.reduce((a, c) => a + c.gramos, 0) / 1000).toLocaleString('es-AR')} kg` : undefined} edita={edita} abierto={abierto} onAbrir={() => setAbierto(true)} />
-      {dia.carton.map((c) => (
-        <Link to={`/compras/${c.numero}`} className="fila" key={c.id}>
-          <span><span className="principal">{c.proveedor}</span><br /><span className="chico tenue">{(c.gramos / 1000).toLocaleString('es-AR')} kg</span></span>
-          <span className="cifra">{formatPesos(c.total)}</span>
-        </Link>
-      ))}
-      {edita && abierto && (
-        <form className="planilla-renglon" onSubmit={guardar}>
-          <Campo etiqueta="Proveedor">
-            <Entrada list="planilla-proveedores" value={r.proveedor} onChange={(e) => setR({ ...r, proveedor: e.target.value })} placeholder="Nombre" autoComplete="off" required />
-            <datalist id="planilla-proveedores">{(proveedores ?? []).map((p) => <option key={p.id} value={p.nombre} />)}</datalist>
-          </Campo>
-          <Campo etiqueta="Kilos"><Entrada inputMode="decimal" value={r.kilos} onChange={(e) => setR({ ...r, kilos: e.target.value.replace(/[^\d,]/g, '') })} placeholder="5000" required /></Campo>
-          <Campo etiqueta="$ por kilo"><Entrada inputMode="decimal" value={r.precio} onChange={(e) => setR({ ...r, precio: e.target.value.replace(/[^\d,]/g, '') })} placeholder="Sin IVA" required /></Campo>
-          <Cuenta valor={r.conFactura} onChange={(conFactura) => setR({ ...r, conFactura })} />
-          <button className="boton primario" disabled={guardando || !r.proveedor.trim() || !r.kilos}><Plus size={18} aria-hidden /> {guardando ? 'Guardando…' : 'Agregar'}</button>
-          <Aviso>{error}</Aviso>
-        </form>
-      )}
-    </section>
   );
 }

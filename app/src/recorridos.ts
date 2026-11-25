@@ -7,7 +7,7 @@ const SIGUIENTE = '.paso-acciones button[type=submit]';
 
 export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
   inicio: [
-    { ruta: '/', en: '.planilla .cifras, .tareas', texto: 'Hoy: arriba el resumen del día; abajo, las órdenes para cargar, los pallets que salieron de la plastificadora, lo vendido, el cartón y lo que hay en la fábrica por tipo y alto.' },
+    { ruta: '/', en: '.planilla .cifras, .tareas', texto: 'Hoy: arriba el resumen del día; abajo, las órdenes para cargar, los pallets que salieron de la plastificadora, lo vendido y lo que hay en la fábrica por tipo y alto.' },
     { en: '[data-guia="atencion"]', texto: 'Atención: lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos). El número en rojo es lo urgente; adentro, cada cosa trae su botón para resolverla.' },
     { en: '.campana', texto: 'La campana: recordatorios de la agenda, lo que te agendaron y los pedidos nuevos. El número rojo es lo que no leíste.' },
     { en: '.barra-inferior, .lateral', texto: 'Para moverte: en el iPhone, la barra de abajo (Inicio, tu tarea principal, Escanear un palet, Buscar y "Más" con todas las secciones). En el iPad y la computadora, el menú del costado: Planta, Ventas, Compras, Plata y Tablero, con Buscar arriba y Ajustes y Ayuda abajo.' },

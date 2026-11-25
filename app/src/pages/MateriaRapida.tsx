@@ -31,7 +31,9 @@ export function MateriaRapida({ m, onCerrar }: { m: MateriaPrima; onCerrar: () =
 function Entro({ m, unidad, onListo }: { m: MateriaPrima; unidad: string; onListo: () => void }) {
   const qc = useQueryClient();
   const { data: proveedores } = useProveedores('', m.tipo);
-  const [r, setR] = useState({ cantidad: '', proveedor: '', precio: '', conFactura: m.tipo !== 'carton' });
+  // Proveedor: se elige de la lista; "Proveedor nuevo" abre el campo del nombre (los datos se completan después en Proveedores).
+  const [r, setR] = useState({ cantidad: '', proveedorId: '', nuevo: '', precio: '', conFactura: m.tipo !== 'carton' });
+  const esNuevo = r.proveedorId === 'nuevo' || (proveedores !== undefined && proveedores.length === 0);
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const cantidad = aMili(r.cantidad);
@@ -40,11 +42,12 @@ function Entro({ m, unidad, onListo }: { m: MateriaPrima; unidad: string; onList
     e.preventDefault();
     if (!cantidad || cantidad <= 0) return setError(`Ingresá cuántos ${unidad} entraron`);
     if (precio === null) return setError(`Ingresá el precio por ${unidad}`);
+    if (esNuevo ? !r.nuevo.trim() : !r.proveedorId) return setError(esNuevo ? 'Escribí el nombre del proveedor nuevo' : 'Elegí el proveedor');
     setError(null); setGuardando(true);
     try {
-      const nombre = r.proveedor.trim();
-      // Escribiendo el nombre: si existe se usa; si no, se crea (los datos se completan después en Proveedores).
-      const existente = (proveedores ?? []).find((p) => p.nombre.toLowerCase() === nombre.toLowerCase());
+      const nombre = r.nuevo.trim();
+      // Si el "nuevo" ya existía con ese nombre, se usa ese (no se duplica).
+      const existente = esNuevo ? (proveedores ?? []).find((p) => p.nombre.toLowerCase() === nombre.toLowerCase()) : { id: r.proveedorId };
       const prov = existente ?? await api<{ id: string }>('/proveedores', { method: 'POST', body: { nombre, tipos: [m.tipo] } });
       await api('/compras', { method: 'POST', body: { proveedorId: prov.id, fecha: hoy(), conFactura: r.conFactura, ivaBp: 2100, items: [{ materiaPrimaId: m.id, cantidad, precioUnitario: precio }] } });
       await qc.invalidateQueries();
@@ -58,10 +61,20 @@ function Entro({ m, unidad, onListo }: { m: MateriaPrima; unidad: string; onList
         <Campo etiqueta={`Cuántos ${unidad}`}><Entrada inputMode="decimal" value={r.cantidad} onChange={(e) => setR({ ...r, cantidad: e.target.value.replace(/[^\d,]/g, '') })} autoFocus required /></Campo>
         <Campo etiqueta={`$ por ${unidad}`}><Entrada inputMode="decimal" value={r.precio} onChange={(e) => setR({ ...r, precio: e.target.value.replace(/[^\d,]/g, '') })} placeholder="Sin IVA" required /></Campo>
       </div>
-      <Campo etiqueta="Proveedor">
-        <Entrada list="rapida-proveedores" value={r.proveedor} onChange={(e) => setR({ ...r, proveedor: e.target.value })} placeholder="Nombre" autoComplete="off" required />
-        <datalist id="rapida-proveedores">{(proveedores ?? []).map((p) => <option key={p.id} value={p.nombre} />)}</datalist>
-      </Campo>
+      {!!proveedores?.length && (
+        <Campo etiqueta="Proveedor">
+          <select className="entrada" value={r.proveedorId} onChange={(e) => setR({ ...r, proveedorId: e.target.value })} required>
+            <option value="" disabled>Elegí el proveedor</option>
+            {proveedores.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            <option value="nuevo">+ Proveedor nuevo…</option>
+          </select>
+        </Campo>
+      )}
+      {esNuevo && (
+        <Campo etiqueta="Nombre del proveedor nuevo" ayuda="Queda en Proveedores; el resto de sus datos se completa ahí.">
+          <Entrada value={r.nuevo} onChange={(e) => setR({ ...r, nuevo: e.target.value })} placeholder="Nombre o razón social" autoComplete="off" autoFocus={r.proveedorId === 'nuevo'} required />
+        </Campo>
+      )}
       <Cuenta valor={r.conFactura} onChange={(conFactura) => setR({ ...r, conFactura })} />
       {cantidad && precio !== null ? <p className="chico tenue">Total sin IVA: {formatPesos(subtotalItem(cantidad, precio))}. Se suma al stock y a la cuenta del proveedor.</p> : null}
       <Aviso>{error}</Aviso>

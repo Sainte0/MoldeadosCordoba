@@ -137,7 +137,7 @@ export const GUIAS: Guia[] = [
       'Es lo primero que ves al entrar ("Hoy"). Para mirar otro día, tocá "Otro día" arriba.',
       'Los pallets entran al stock desde la plastificadora ("Pallet terminado"): no hace falta cargar la producción del turno.',
       'Lo vendido sale de las órdenes de venta: cuando se escanea el último pallet, la venta queda registrada sola.',
-      'Cartón que entró: tocá "Agregar" y completá proveedor, kilos, precio por kilo y si va a Cuenta 1 o Cuenta 2.',
+      'Entró cartón, tinta o aglutinante: tocalo en "Materia prima", elegí el proveedor (o "Proveedor nuevo") y completá cantidad, precio y Cuenta 1 o Cuenta 2.',
     ],
   },
 
