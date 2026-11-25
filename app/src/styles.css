@@ -1036,3 +1036,6 @@ a.fila:not(:has(.lucide-chevron-right)):not(.mostrar-mas), button.fila:not(:disa
 }
 .precio-acordado .entrada { flex: 1; min-width: 0; }
 .precio-acordado .boton { flex: none; }
+.elegir-o-nuevo { display: flex; gap: 8px; }
+.elegir-o-nuevo .entrada { flex: 1; min-width: 0; }
+.elegir-o-nuevo .boton { flex: none; }

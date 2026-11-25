@@ -200,11 +200,14 @@ export function NuevaOrden() {
         : <p className="aviso info">El pedido {nroTicket(pedido.numero)} ya no está abierto: esta orden queda suelta.</p>)}
       <div className="hoja relleno" style={{ display: 'grid', gap: 14 }}>
         <Campo etiqueta="Cliente">
-          <select className="entrada" value={clienteId} onChange={(e) => e.target.value === 'nuevo' ? setClienteNuevo(true) : setClienteId(e.target.value)} required autoFocus>
-            <option value="">Elegí el cliente</option>
-            {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            <option value="nuevo">+ Cliente nuevo…</option>
-          </select>
+          {/* Dos caminos a la vista: elegir uno que ya está o cargar uno nuevo en el momento. */}
+          <div className="elegir-o-nuevo">
+            <select className="entrada" value={clienteId} onChange={(e) => setClienteId(e.target.value)} required autoFocus>
+              <option value="">Elegí el cliente</option>
+              {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            </select>
+            <button type="button" className="boton secundario" onClick={() => setClienteNuevo(true)}><Plus size={18} aria-hidden /> Nuevo</button>
+          </div>
         </Campo>
         {cliente && (
           <Campo etiqueta="Chofer" ayuda={choferes?.some((c) => c.delCliente) ? 'Primero, los que cargan para este cliente.' : 'Se cargan en Ventas › Choferes.'}>

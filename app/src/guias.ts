@@ -160,7 +160,7 @@ export const GUIAS: Guia[] = [
     palabras: 'venta vender orden camion cliente chofer patente remito pallets despacho gerente',
     pasos: [
       'Desde la compu del sector de carga, en Ventas › Órdenes tocá "Nueva orden". La emite el gerente (o el dueño).',
-      'Elegí el cliente y el chofer: aparecen primero los choferes que cargan para ese cliente. Si el cliente no está, al final de la lista está "+ Cliente nuevo": nombre y condición alcanzan.',
+      'Elegí el cliente y el chofer: aparecen primero los choferes que cargan para ese cliente. Si el cliente no está, tocá "Nuevo", al lado de la lista: nombre y condición alcanzan.',
       'Qué se lleva: maple, alto y cuántos pallets. Lo normal es un renglón (ej.: 20 MCH-ROJ de 7); con "Otro renglón" agregás más (ej.: + 10 MGR-NAT de 6).',
       'El precio lo trae la ficha del cliente; si un maple no tiene precio, se pone ahí mismo en el renglón y queda guardado en su ficha. La condición de pago también (Cuenta 1, Cuenta 2 o Mixta); se puede cambiar solo para esta orden.',
       'Tocá "Revisar y emitir": ves el resumen (cliente, chofer, qué se lleva, condición y total) y confirmás con "Sí, emitir orden". Si un maple no tiene precio o no alcanza el stock, te avisa antes.',
