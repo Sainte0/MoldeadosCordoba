@@ -7,7 +7,7 @@ import { api, useSesion, verFecha } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { useBancos, type Banco } from '../datos';
 import { BotonExportar } from './Exportar';
-import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones } from '../ui';
+import { Aviso, Buscador, Cabecera, Campo, Cargando, Dialogo, Entrada, Opciones, Confirmar } from '../ui';
 
 interface Saldo { id: string; nombre: string; debe: number; haber: number; ultimoMovimiento: string | null }
 interface Cheque { id: string; tipo: 'cobro' | 'pago'; medio: Medio; monto: number; chequeNumero: string | null; chequeFechaCobro: string | null; banco: string | null; contraparte: string; estado: 'cartera' | 'depositado' | 'endosado' | null }
@@ -28,6 +28,7 @@ export function Cuentas() {
   const total = filas.reduce((a, s) => a + s.saldo, 0);
   // Lo que importa primero: quién debe (o a quién le debemos). Los que están al día, plegados.
   const [todos, setTodos] = useState(false);
+  const [depositando, setDepositando] = useState<Cheque | null>(null);
   const alDia = filas.filter((s) => s.saldo === 0).length;
   const visibles = todos || q ? filas : filas.filter((s) => s.saldo !== 0);
 
@@ -86,12 +87,17 @@ export function Cuentas() {
                 <div className="chico tenue">{LABEL_MEDIO[c.medio]} {c.banco}{c.chequeNumero ? ` n.º ${c.chequeNumero}` : ''} · {c.tipo === 'cobro' ? 'recibido, en cartera' : 'emitido por nosotros'}</div>
               </div>
               <span className={`cifra ${c.tipo === 'pago' ? 'saldo-mas' : ''}`}>{formatPesos(c.monto)}</span>
-              {c.estado === 'cartera' && puede('cuentas', 2) ? <button className="boton secundario" onClick={() => depositar(c.id)}>Depositado</button> : <span />}
+              {c.estado === 'cartera' && puede('cuentas', 2) ? <button className="boton secundario" onClick={() => setDepositando(c)}>Depositado</button> : <span />}
             </div>
           ))}
         </section>
       )}
 
+      {depositando && (
+        <Confirmar titulo="¿Marcar el cheque como depositado?" texto="Sí, depositado" onSi={async () => { const c = depositando; setDepositando(null); await depositar(c.id); }} onNo={() => setDepositando(null)}>
+          <p className="tenue">{formatPesos(depositando.monto)} de {depositando.contraparte}{depositando.chequeNumero ? `, n.º ${depositando.chequeNumero}` : ''}. Sale de la lista de cheques en cartera.</p>
+        </Confirmar>
+      )}
       {puede('cuentas', 1) && <Bancos />}
     </div>
   );
@@ -103,6 +109,8 @@ function Bancos() {
   const { data } = useBancos();
   const [editando, setEditando] = useState<Partial<Banco> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Es configuración: plegado, para que Saldos muestre primero quién debe.
+  const [abierto, setAbierto] = useState(false);
   const guardar = async () => {
     if (!editando) return;
     try {
@@ -114,10 +122,11 @@ function Bancos() {
   return (
     <section>
       <Cabecera titulo="Bancos" bajada="Los que aparecen al registrar un e-cheq, un cheque o una transferencia.">
-        {puede('cuentas', 3) && <button className="boton secundario" onClick={() => setEditando({ activo: true })}><Plus size={18} aria-hidden /> Agregar banco</button>}
+        {abierto && puede('cuentas', 3) && <button className="boton secundario" onClick={() => setEditando({ activo: true })}><Plus size={18} aria-hidden /> Agregar banco</button>}
       </Cabecera>
       <div className="hoja filas">
-        {data?.map((b) => (
+        {!abierto && <button type="button" className="fila mostrar-mas" onClick={() => setAbierto(true)}>Ver los {data?.length ?? 0} bancos</button>}
+        {abierto && data?.map((b) => (
           <button key={b.id} className="fila" disabled={!puede('cuentas', 3)} onClick={() => setEditando(b)} style={{ opacity: b.activo ? 1 : 0.55 }}>
             <span className="principal">{b.nombre}</span><span className="chico tenue">{b.activo ? '' : 'No se usa'}</span>
           </button>

@@ -65,16 +65,16 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
-    id: 'inicio', area: 'Primeros pasos', titulo: 'Qué muestra la pantalla Hoy (el inicio)', pantallas: ['/'],
-    palabras: 'inicio tareas avisos para vender hay que comprar',
+    id: 'inicio', area: 'Primeros pasos', titulo: 'Hoy: el día en una pantalla', pantallas: ['/'],
+    palabras: 'inicio tareas avisos planilla diaria dia vendido cobrado palets pallets alto stock fabrica rapido',
     pasos: [
-      'Arriba, en botones grandes, lo de todos los días según tu puesto: "Pallet terminado" (plastificadora), "Cargar camión" (las órdenes abiertas) y "Orden de venta" (gerente).',
-      'Al entrar ves "Hoy": debajo, los pallets que salieron hoy, lo vendido, lo cobrado y cuántos pallets hay en la fábrica. Cada tarjeta se toca y lleva al detalle.',
+      'Es lo primero que ves al entrar. Arriba, en botones grandes, lo de todos los días según tu puesto: "Pallet terminado" (plastificadora), "Cargar camión" (las órdenes abiertas) y "Orden de venta" (gerente).',
+      'Si ves ventas o cuentas: lo vendido y lo cobrado del día. Cada tarjeta se toca y lleva al detalle.',
       '"Para cargar": las órdenes de venta abiertas, con cuántos pallets van cargados. Tocá una para abrir la pantalla de carga.',
-      'Después, lo que hay en la fábrica en una tabla por tipo y alto (cuántos pallets de 7, de 6, de 5 y de 4), los pallets que salieron de la plastificadora, lo vendido y el cartón que entró.',
-      'Materia prima: tocá una (por ejemplo Aglutinante) para anotar que entró (cantidad, precio y proveedor) o para corregir lo que hay de verdad.',
-      'En cualquier carga paso a paso, "Salir" (arriba a la derecha) te saca desde el paso en que estés, sin guardar.',
-      'Arriba a la derecha: el triángulo de Atención (lo urgente) y la campana con tus avisos. Cuando a un cliente le toca comprar te llega una notificación a la campana.',
+      'Después: lo que hay en la fábrica por tipo y alto (cuántos pallets de 7, de 6, de 5 y de 4), los pallets de hoy y lo vendido.',
+      'Entró cartón, tinta o aglutinante: tocalo en "Materia prima", elegí el proveedor (o "Proveedor nuevo") y completá cantidad, precio y Cuenta 1 o Cuenta 2. Ahí también se corrige lo que hay de verdad.',
+      'Para mirar otro día, tocá "Otro día" arriba.',
+      'Arriba a la derecha, la campana: primero lo urgente (stock agotado, atrasos, cheques), cada cosa con su botón para resolverla; después los recordatorios y los pedidos nuevos.',
     ],
   },
 
@@ -125,47 +125,12 @@ export const GUIAS: Guia[] = [
     palabras: 'stock inventario conteo corregir ajuste minimo dias alcanza carton tinta',
     pasos: [
       'En Planta › Materia prima ves cuánto hay de cada cosa y para cuántos días alcanza según lo que se viene usando.',
-      'Tocá una para ver todos sus movimientos: compras, producción y correcciones.',
-      'Si el conteo físico no coincide, tocá "Corregir stock", elegí sumar o restar, la cantidad y el motivo.',
+      'Tocá una para ver sus movimientos. Ahí mismo: "Anotar que entró" (elegís el proveedor o "Proveedor nuevo") o "Corregir lo que hay".',
+      'Si el conteo físico no coincide, tocá "Corregir lo que hay", escribí cuánto hay de verdad y confirmá.',
       'En "Editar datos" ponés el stock mínimo y con cuántos días de anticipación avisar que hay que comprar.',
     ],
   },
-  {
-    id: 'planilla', area: 'Primeros pasos', titulo: 'Hoy: el día en una pantalla', pantallas: ['/'],
-    palabras: 'planilla diaria dia fabricado vendido retiraron palets pallets alto stock fabrica carton kilos rapido',
-    pasos: [
-      'Es lo primero que ves al entrar ("Hoy"). Para mirar otro día, tocá "Otro día" arriba.',
-      'Los pallets entran al stock desde la plastificadora ("Pallet terminado"): no hace falta cargar la producción del turno.',
-      'Lo vendido sale de las órdenes de venta: cuando se escanea el último pallet, la venta queda registrada sola.',
-      'Entró cartón, tinta o aglutinante: tocalo en "Materia prima", elegí el proveedor (o "Proveedor nuevo") y completá cantidad, precio y Cuenta 1 o Cuenta 2.',
-    ],
-  },
 
-  {
-    id: 'parte', area: 'Planta', titulo: 'Cargar la producción de un turno', pantallas: ['/produccion'],
-    palabras: 'parte turno maquina mp-1 mp-2 paquetes pulpeadas horas operarios produccion',
-    pasos: [
-      'Al terminar el turno, desde Inicio tocá "Producción del turno".',
-      'Elegí el turno (mañana o tarde) y, si es de otro día, la fecha.',
-      'Elegí la máquina y el maple que se hizo. Si se cambió de color en el turno, cargá la producción de cada código por separado.',
-      'Marcá quiénes trabajaron.',
-      'Anotá las horas que anduvo la máquina (7,5 o 7:30) y las pulpeadas.',
-      'Anotá los paquetes de 60 que salieron. Te muestra cuántos debería haber hecho la máquina.',
-      'Revisá la materia prima usada: viene calculada por la receta. Corregí solo lo que se usó distinto.',
-      'Tocá "Guardar producción": los paquetes entran al stock y se descuenta la materia prima.',
-    ],
-  },
-  {
-    id: 'planilla', area: 'Planta', titulo: 'Leer la planilla de producción', pantallas: ['/produccion'],
-    palabras: 'rendimiento promedio paquetes por hora consumo desvio receta planilla',
-    pasos: [
-      'En Planta › Producción elegí el período (hoy, 7 días, 30 días o las fechas que quieras).',
-      'Arriba: paquetes, maples, horas de máquina y paquetes por hora.',
-      '"Por máquina y maple" muestra el rendimiento contra lo que debería hacer la máquina (verde: bien; amarillo o rojo: revisar).',
-      '"Materia prima usada" compara lo usado contra la receta: un + en rojo es que se gastó de más.',
-      'Con "Exportar a Excel" bajás la producción del período.',
-    ],
-  },
   {
     id: 'palet', area: 'Planta', titulo: 'Pallet terminado: cargarlo al stock e imprimir su etiqueta', pantallas: ['/palets', '/plastificar'],
     palabras: 'palet pallet etiqueta qr imprimir plastificar plastificadora film tablet alto stock terminado',
@@ -176,7 +141,7 @@ export const GUIAS: Guia[] = [
       'La elección queda puesta: si el siguiente es igual, solo tocás Confirmar.',
       'Cuentas: 1 paquete = 60 maples, cada camada son 6 paquetes (3 × 2). Un pallet de 7 = 42 paquetes = 2.520 maples.',
       'Si la etiqueta no salió o se rompió, tocá "Reimprimir etiqueta" (o abrí el pallet y "Imprimir etiqueta").',
-      'Si un pallet se cargó por error, abrilo y tocá "Anular". Solo lo pueden hacer el gerente o el dueño.',
+      'Si un pallet se cargó por error, abrilo y tocá "Anular este pallet" (al pie). Solo lo pueden hacer el gerente o el dueño.',
       'En Planta › Stock de pallets ves lo que hay por tipo y alto.',
     ],
   },
@@ -242,7 +207,7 @@ export const GUIAS: Guia[] = [
     id: 'avisos', area: 'Primeros pasos', titulo: 'Avisos: la campana y los avisos en el teléfono', pantallas: ['/'],
     palabras: 'notificaciones campana avisos push alertas celular sonido aviso nuevo',
     pasos: [
-      'La campana (arriba) muestra cuántos avisos tenés sin leer: recordatorios que tocan, cosas que te agendaron y pedidos nuevos.',
+      'La campana (arriba) muestra cuántas cosas tenés para ver: arriba lo urgente para atender (stock agotado, atrasos, cheques) y abajo los recordatorios que tocan, lo que te agendaron y los pedidos nuevos.',
       'Los avisos llegan al instante con la app abierta y asoman abajo unos segundos; tocalos para ir a lo que dicen.',
       'Para que lleguen con la app cerrada: abrí la campana y tocá "Activar avisos". En iPhone primero hay que agregar el sistema a la pantalla de inicio y abrirlo desde el ícono.',
       'Si alguien más usa el mismo teléfono, al salir de tu usuario dejan de llegarte ahí.',
@@ -255,7 +220,7 @@ export const GUIAS: Guia[] = [
       'Cuando un cliente encarga maples, en Ventas › Pedidos tocá "Nuevo pedido".',
       'Elegí el cliente, qué maples y cuántos (en palets o en paquetes): te avisa si hay stock o falta producir.',
       'Poné para cuándo es y en qué vehículo lo buscan.',
-      'Los pedidos aparecen en Inicio cuando están por vencer. Para entregarlo, abrilo y tocá "Vender".',
+      'Los pedidos aparecen en Inicio cuando están por vencer. Para entregarlo, abrilo y tocá "Hacer orden de venta": ya viene con el cliente y lo que falta. Cuando se carga el camión, el pedido descuenta lo entregado solo.',
       'Se cierra solo cuando se entregó todo. Puede entregarse en varios viajes.',
       'En Stock y palets ves cuánto está comprometido en pedidos.',
     ],
@@ -398,16 +363,6 @@ export const GUIAS: Guia[] = [
     ],
   },
   {
-    id: 'horas', area: 'Planta', titulo: 'Horas trabajadas por persona', pantallas: ['/produccion'],
-    palabras: 'horas empleado operario sueldo quincena pago personal asistencia',
-    pasos: [
-      'En Planta › Producción elegí el período (por ejemplo la quincena).',
-      '"Horas por persona" suma las horas de máquina de cada turno en que figura cada uno, por turno.',
-      'Si cargás el valor de la hora de cada persona (Ajustes › Equipo y permisos › Planta), te muestra el estimado a pagar.',
-      'Con "Exportar" lo bajás a Excel para liquidar.',
-    ],
-  },
-  {
     id: 'equipo', area: 'Ajustes', titulo: 'Agregar personas y elegir qué puede hacer cada una', pantallas: ['/equipo'],
     palabras: 'usuario empleado permiso rol operario encargado personal planta contraseña',
     pasos: [
@@ -445,7 +400,7 @@ export const GUIAS: Guia[] = [
       'Egresos: en Ajustes › Importar planillas elegí "Egresos" y subí la hoja EGRESOS tal cual. Las columnas se reconocen solas; probá primero y después importá. Los "Pendiente" quedan para pagar.',
       'Lo que deben los clientes al empezar: "Saldos iniciales de clientes" (cliente y saldo). Lo mismo con proveedores.',
       'Remitos: en Ajustes › Equipo y permisos › Empresa poné el próximo número de remito para seguir con la numeración de papel.',
-      'Desde ahí, las ventas se cargan con "Vender palets" (con lo que pagó en el momento) y los egresos con "Cargar egreso".',
+      'Desde ahí, las ventas salen de la "Orden de venta" (se registran solas al cargar el último pallet) y los egresos con "Cargar egreso".',
     ],
   },
   {

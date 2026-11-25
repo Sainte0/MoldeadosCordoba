@@ -234,6 +234,8 @@ export const paletPlastificadoSchema = z.object({
 export const ordenSchema = z.object({
   clienteId: z.string().uuid('Elegí el cliente'),
   choferId: z.string().uuid().nullable().default(null),
+  /** Si sale de un pedido: al cerrar, el pedido descuenta lo entregado. */
+  pedidoId: z.string().uuid().nullable().default(null),
   condicionPago: z.enum(CONDICIONES),
   porcentajeCuenta1: z.number().int().min(1).max(99).nullable().default(null),
   items: z.array(z.object({

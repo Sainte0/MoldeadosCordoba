@@ -102,6 +102,8 @@ async function anularVentaDeOrden(trx: Knex.Transaction, usuarioId: string, orde
   await trx('palets').whereIn('venta_id', ventas).update({ venta_id: null, updated_at: trx.fn.now() });
   await trx('orden_palets').where({ orden_id: ordenId, vigente: true }).update({ vigente: false });
   await trx('ordenes').where({ id: ordenId }).update({ estado: 'cancelada', motivo: `Venta anulada: ${motivo}`, updated_at: trx.fn.now() });
+  const pedido = (await trx('ordenes').where({ id: ordenId }).first('pedido_id'))?.pedido_id as string | null;
+  if (pedido) await actualizarEstadoPedido(trx, pedido);
   for (const id of ventas) await auditar(trx, { usuarioId, accion: 'anular', entidad: 'venta', entidadId: id, motivo });
 }
 

@@ -31,6 +31,12 @@ export function Inicio() {
   const conPlanilla = puede('produccion') || puede('ventas') || puede('compras');
   const otras = tareasDe(puede);
   const [materia, setMateria] = useState<MateriaPrima | null>(null);
+  // Lo que ya se hace desde Hoy no se repite en "Otras formas": los botones grandes y, si se ve el bloque de
+  // Materia prima, la entrada de cartón y la compra de insumos (se anotan tocando la materia prima).
+  // En el iPhone las dos primeras tareas ya están en la barra de abajo: sus chips quedan solo para iPad y compu.
+  const enBarra = otras.slice(0, 2).map((t) => t.a);
+  const yaEnHoy: string[] = ['/plastificar', '/ordenes', '/ordenes/nueva', ...(materias && puede('compras', 2) ? ['/pesaje', '/compras/nueva'] : [])];
+  const chips = otras.filter((t) => !yaEnHoy.includes(t.a));
   return (
     <div className="ancho" style={{ display: 'grid', gap: 20 }}>
       {aviso && <div className="aviso ok" role="status">{aviso}</div>}
@@ -52,7 +58,7 @@ export function Inicio() {
       </header>
 
       <Bienvenida />
-      {/* Orden: lo que hay que cargar primero (lo urgente está en el ícono de Atención, arriba a la derecha), lo que viene
+      {/* Orden: lo que hay que cargar primero (lo urgente está en la campana, arriba a la derecha), lo que viene
           y después cómo estamos. */}
       <AgendaHoy />
 
@@ -98,12 +104,14 @@ export function Inicio() {
       </div>
 
       {/* Los asistentes paso a paso y el escáner: para quien prefiere cargar de a una cosa o con el QR. */}
-      {conPlanilla && otras.length > 0 && (
-        <section className="otras-cargas">
+      {conPlanilla && (
+        // Si en el iPhone no queda ningún chip (todo está en la barra de abajo), tampoco el título.
+        <section className={`otras-cargas${chips.every((t) => enBarra.includes(t.a)) ? ' solo-ancho' : ''}`}>
           <h3>Otras formas de cargar</h3>
           <div>
-            <Link to="/escanear" className="chip-carga"><QrCode size={18} aria-hidden /> Escanear un palet</Link>
-            {otras.filter((t) => !['/plastificar', '/ordenes', '/ordenes/nueva'].includes(t.a)).map((t) => <Link key={t.a} to={t.a} className="chip-carga"><t.icono size={18} aria-hidden /> {t.titulo}</Link>)}
+            {/* En el iPhone escanear ya está en el medio de la barra de abajo: este chip queda para iPad y compu. */}
+            <Link to="/escanear" className="chip-carga solo-ancho"><QrCode size={18} aria-hidden /> Escanear un pallet</Link>
+            {chips.map((t) => <Link key={t.a} to={t.a} className={`chip-carga${enBarra.includes(t.a) ? ' solo-ancho' : ''}`}><t.icono size={18} aria-hidden /> {t.titulo}</Link>)}
           </div>
         </section>
       )}
@@ -129,13 +137,10 @@ function Bienvenida() {
   );
 }
 
-/** "Miércoles 11 de noviembre · turno mañana" (hora argentina; la planta trabaja en dos turnos). */
+/** "Miércoles 11 de noviembre" (hora argentina). El turno ya no se muestra: la producción por turno quedó escondida (pedido 01). */
 function diaYTurno(): string {
   const z = { timeZone: 'America/Argentina/Buenos_Aires' } as const;
   const ahora = new Date();
   const dia = new Intl.DateTimeFormat('es-AR', { ...z, weekday: 'long', day: 'numeric', month: 'long' }).format(ahora).replace(',', '');
-  const h = Number(new Intl.DateTimeFormat('es-AR', { ...z, hour: 'numeric', hour12: false }).format(ahora));
-  // El turno solo en horario de planta (mañana 6 a 14, tarde 14 a 22); de noche, solo el día.
-  const turno = h >= 6 && h < 14 ? ' · turno mañana' : h >= 14 && h < 22 ? ' · turno tarde' : '';
-  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)}${turno}`;
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)}`;
 }

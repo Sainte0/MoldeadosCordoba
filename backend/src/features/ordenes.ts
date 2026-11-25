@@ -6,7 +6,7 @@ import { requerir, requerirAlguno } from '../lib/auth.js';
 import { auditar } from '../lib/auditoria.js';
 import { ConflictError, NotFoundError, ValidationError } from '../lib/errors.js';
 import { idPorNumero } from '../lib/numero.js';
-import { preciosParaCliente } from './ventas.service.js';
+import { actualizarEstadoPedido, preciosParaCliente } from './ventas.service.js';
 
 // Pedido N° 01: choferes, pallets cargados en la plastificadora (sin depender de la producción por turno) y la
 // orden de venta: el gerente la emite, el mulero escanea cada pallet al subirlo y al completar se registra la venta.
@@ -46,6 +46,7 @@ export async function crearOrden(k: Knex, usuarioId: string, i: OrdenInput) {
   return k.transaction(async (trx) => {
     const c = await trx('clientes').where({ id: i.clienteId }).whereNull('deleted_at').first('id');
     if (!c) throw new NotFoundError('No encontramos ese cliente');
+    if (i.pedidoId && !(await trx('pedidos').where({ id: i.pedidoId, cliente_id: i.clienteId, estado: 'abierto' }).first('id'))) throw new ValidationError('Ese pedido ya no está abierto o es de otro cliente');
     if (i.choferId && !(await trx('choferes').where({ id: i.choferId }).whereNull('deleted_at').first('id'))) throw new NotFoundError('No encontramos ese chofer');
     const precios = await preciosParaCliente(trx, i.clienteId);
     const variantes = new Map((await trx('variantes').whereIn('id', i.items.map((x) => x.varianteId)).whereNull('deleted_at').select('id', 'codigo')).map((v) => [v.id as string, v.codigo as string]));
@@ -59,7 +60,7 @@ export async function crearOrden(k: Knex, usuarioId: string, i: OrdenInput) {
       vistos.add(clave);
     }
     const [o] = await trx('ordenes').insert({
-      cliente_id: i.clienteId, chofer_id: i.choferId, fecha: trx.raw('current_date'), condicion_pago: i.condicionPago,
+      cliente_id: i.clienteId, chofer_id: i.choferId, pedido_id: i.pedidoId, fecha: trx.raw('current_date'), condicion_pago: i.condicionPago,
       porcentaje_cuenta1: i.condicionPago === 'mixta' ? i.porcentajeCuenta1 : null, notas: i.notas, usuario_id: usuarioId,
     }).returning(['id', 'numero']);
     await trx('orden_items').insert(i.items.map((it) => ({ orden_id: o.id, variante_id: it.varianteId, alto: it.alto, cantidad: it.cantidad, precio_maple_centavos: precios.get(it.varianteId) })));
@@ -71,7 +72,7 @@ export async function crearOrden(k: Knex, usuarioId: string, i: OrdenInput) {
 /** Lo que muestra la pantalla de carga: cada renglón con cuántos van escaneados. */
 export async function verOrden(k: Knex | Knex.Transaction, id: string) {
   const o = await k('ordenes as o').join('clientes as c', 'c.id', 'o.cliente_id').leftJoin('choferes as ch', 'ch.id', 'o.chofer_id').where('o.id', id)
-    .first('o.id', 'o.numero', 'o.fecha', 'o.estado', 'o.condicion_pago as condicionPago', 'o.porcentaje_cuenta1 as porcentajeCuenta1', 'o.notas', 'o.motivo',
+    .first('o.id', 'o.numero', 'o.fecha', 'o.estado', 'o.condicion_pago as condicionPago', 'o.porcentaje_cuenta1 as porcentajeCuenta1', 'o.notas', 'o.motivo', db.raw('(select numero from pedidos where id = o.pedido_id) as "pedidoNumero"'),
       'o.created_at as creadaAt', 'o.cerrada_at as cerradaAt', 'c.id as clienteId', 'c.nombre as cliente', 'c.cuit',
       k.raw("nullif(trim(coalesce(ch.nombre, '') || ' ' || coalesce(ch.apellido, '')), '') as chofer"), 'ch.dni', 'ch.patente', 'ch.vehiculo');
   if (!o) throw new NotFoundError('No encontramos esa orden');
@@ -127,7 +128,7 @@ export async function escanear(k: Knex, usuarioId: string, ordenId: string, codi
  * la condición de pago. Mixta = dos ventas, una por cuenta, con los maples repartidos por el porcentaje.
  */
 async function cerrar(trx: Knex.Transaction, usuarioId: string, ordenId: string, motivo: string | null) {
-  const o = await trx('ordenes').where({ id: ordenId }).first('id', 'numero', 'cliente_id', 'fecha', 'condicion_pago', 'porcentaje_cuenta1', 'chofer_id');
+  const o = await trx('ordenes').where({ id: ordenId }).first('id', 'numero', 'cliente_id', 'fecha', 'condicion_pago', 'porcentaje_cuenta1', 'chofer_id', 'pedido_id');
   const palets = await trx('orden_palets as op').join('palets as p', 'p.id', 'op.palet_id').join('variantes as v', 'v.id', 'p.variante_id').join('orden_items as i', 'i.id', 'op.item_id')
     .where({ 'op.orden_id': ordenId, 'op.vigente': true })
     .select('p.id', 'p.variante_id', 'p.paquetes', 'v.maples_por_paquete', 'i.precio_maple_centavos as precio');
@@ -141,7 +142,7 @@ async function cerrar(trx: Knex.Transaction, usuarioId: string, ordenId: string,
     const ivaBp = cuenta === 'cuenta1' ? IVA_CUENTA1 : 0;
     const t = calcularVenta(items, ivaBp);
     const [v] = await trx('ventas').insert({
-      orden_id: ordenId, cliente_id: o.cliente_id, fecha: o.fecha, con_factura: cuenta === 'cuenta1', iva_bp: ivaBp,
+      orden_id: ordenId, pedido_id: o.pedido_id, cliente_id: o.cliente_id, fecha: o.fecha, con_factura: cuenta === 'cuenta1', iva_bp: ivaBp,
       neto_centavos: t.neto, iva_centavos: t.iva, total_centavos: t.total, vehiculo: ch?.vehiculo ?? null, patente: ch?.patente ?? null,
       retira: ch ? `${ch.nombre} ${ch.apellido}` : null, notas: `Orden ${nro(o.numero)}`, usuario_id: usuarioId,
     }).returning(['id', 'numero']);
@@ -153,6 +154,7 @@ async function cerrar(trx: Knex.Transaction, usuarioId: string, ordenId: string,
   // El pallet queda ligado a la primera venta (si es Mixta, la otra tiene sus mismos pallets con la otra parte de los maples).
   await trx('palets').whereIn('id', palets.map((p) => p.id)).update({ venta_id: ventas[0], updated_at: trx.fn.now() });
   await trx('ordenes').where({ id: ordenId }).update({ estado: 'cerrada', cerrada_at: trx.fn.now(), cerrada_por: usuarioId, motivo, updated_at: trx.fn.now() });
+  if (o.pedido_id) await actualizarEstadoPedido(trx, o.pedido_id);
   await auditar(trx, { usuarioId, accion: 'editar', entidad: 'orden', entidadId: ordenId, despues: { estado: 'cerrada', palets: palets.length, ventas }, motivo });
 }
 

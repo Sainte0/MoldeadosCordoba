@@ -80,7 +80,7 @@ function FichaChofer({ inicial, onCerrar }: { inicial: Chofer | null; onCerrar: 
       </Campo>
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {inicial && editable && <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>}
+        {inicial && editable && <button className="boton fantasma peligro" onClick={() => setBorrar(true)}>Dar de baja</button>}
         <button className="boton secundario" onClick={onCerrar}>{editable ? 'Cancelar' : 'Cerrar'}</button>
         {editable && <button className="boton primario" onClick={guardar}>{inicial ? 'Guardar cambios' : 'Agregar chofer'}</button>}
       </div>

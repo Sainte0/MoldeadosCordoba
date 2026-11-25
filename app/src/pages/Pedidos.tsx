@@ -190,13 +190,14 @@ export function PedidoDetalleVista() {
       {p.notas && <p><b>Notas:</b> {p.notas}</p>}
       {p.ventas.length > 0 && (
         <section className="hoja">
-          <div className="fila"><h3>Despachos</h3></div>
-          {p.ventas.map((v) => <Link key={v.id} to={`/ventas/${v.numero}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}><span>Remito {nroTicket(v.numero)} · {verFecha(v.fecha)}{v.retira ? ` · retiró ${v.retira}` : ''}</span><span className="chico tenue">Ver</span></Link>)}
+          <div className="fila"><h3>Entregas</h3></div>
+          {p.ventas.map((v) => <Link key={v.id} to={`/ventas/${v.numero}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}><span>Remito {nroTicket(v.numero)} · {verFecha(v.fecha)}{v.retira ? ` · ${v.retira}` : ''}</span></Link>)}
         </section>
       )}
       <p className="chico tenue">Registrado por {p.cargadoPor}</p>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        {p.estado === 'abierto' && puede('ventas', 2) && <Link to={`/ventas/nueva?pedido=${p.id}`} className="boton primario grande"><Truck size={20} aria-hidden /> Vender</Link>}
+        {/* Se entrega con una orden de venta (pedido 01): la emite el gerente y se carga escaneando los pallets. */}
+        {p.estado === 'abierto' && puede('ventas', 3) && <Link to={`/ordenes/nueva?pedido=${p.numero}`} className="boton primario grande"><Truck size={20} aria-hidden /> Hacer orden de venta</Link>}
         {p.estado === 'abierto' && puede('ventas', 2) && <button className="boton secundario" onClick={() => setCancelando(true)}><Ban size={18} aria-hidden /> Cancelar pedido</button>}
         {p.estado === 'cancelado' && puede('ventas', 2) && <button className="boton secundario" onClick={() => estado(false)}><RotateCcw size={18} aria-hidden /> Reabrir</button>}
       </div>

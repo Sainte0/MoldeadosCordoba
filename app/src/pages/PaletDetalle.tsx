@@ -34,7 +34,7 @@ export function PaletDetalle() {
   const [err, setErr] = useState<string | null>(null);
 
   if (isLoading) return <Cargando />;
-  if (!p) return <Aviso>{error instanceof Error ? error.message : 'No encontramos ese palet'}</Aviso>;
+  if (!p) return <Aviso>{error instanceof Error ? error.message : 'No encontramos ese pallet'}</Aviso>;
   const fechas = p.lotes?.map((l) => l.fecha).sort() ?? [];
 
   const anular = async () => {
@@ -60,14 +60,14 @@ export function PaletDetalle() {
     <div className="columna solo-etiqueta detalle-palet" style={{ display: 'grid', gap: 20 }}>
       {/* Tamaño de hoja solo para esta página: el ticket y el remito imprimen en A4. */}
       <style>{'@media print { @page { size: 100mm 150mm; margin: 4mm; } }'}</style>
-      <Volver a="/palets" texto="Stock y palets" />
+      <Volver a="/palets" texto="Stock de pallets" />
       {recien && <div className="aviso ok" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Pallet cargado al stock. Imprimí la etiqueta y pegala en el film.</div>}
       {p.anuladoAt && <Aviso>Pallet anulado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
 
       <header className="cabeza-detalle">
         <Muestra color={p.colorHex} grande />
         <div>
-          <h1>Palet {nroTicket(p.numero)}</h1>
+          <h1>Pallet {nroTicket(p.numero)}</h1>
           <p className="tenue">{p.codigo} · {p.variante} · {maples.toLocaleString('es-AR')} maples ({p.paquetes} paq. × {p.maplesPorPaquete})</p>
         </div>
         {p.anuladoAt ? <Estado nivel="critico">Anulado</Estado> : vendido ? <span className="marca-texto">Vendido</span> : <Estado nivel="ok">Listo para salir</Estado>}
@@ -75,7 +75,6 @@ export function PaletDetalle() {
 
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <button className={`boton ${recien || (!vendido && !p.anuladoAt && !p.puedeDespachar) ? 'primario grande' : 'secundario'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir etiqueta</button>
-        {!p.anuladoAt && !vendido && puede('produccion', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
       </div>
 
       {recien && <><MapleVista color={p.colorHex} alto={160} />{etiqueta}</>}
@@ -88,7 +87,7 @@ export function PaletDetalle() {
         </section>
       )}
 
-      {p.lotes && (
+      {!!p.lotes?.length && (
         <section className="hoja">
           <div className="fila"><h3>De qué producción salió</h3></div>
           {p.lotes.map((l) => (
@@ -118,10 +117,10 @@ export function PaletDetalle() {
       )}
 
       <dl className="resumen hoja relleno">
-        <dt>Armado por</dt><dd>{p.armadoPor}, {verMomento(p.armadoAt)}</dd>
+        <dt>Cargado por</dt><dd>{p.armadoPor}, {verMomento(p.armadoAt)}</dd>
         <dt>Medidas</dt><dd>{p.ancho} × {p.largo} paquetes, {p.alto} de alto{p.vehiculo ? ` · para ${LABEL_VEHICULO[p.vehiculo].toLowerCase()}` : ''}</dd>
         {p.destino && <><dt>Para</dt><dd>{p.destino}</dd></>}
-        {p.notas && <><dt>Observaciones</dt><dd>{p.notas}</dd></>}
+        {p.notas && <><dt>{p.notas === 'Plastificadora' ? 'Dónde' : 'Observaciones'}</dt><dd>{p.notas}</dd></>}
       </dl>
 
       {!recien && (
@@ -131,13 +130,18 @@ export function PaletDetalle() {
         </section>
       )}
 
+      {/* Anular es la excepción (pallet cargado por error): al pie, lejos de Imprimir. */}
+      {!p.anuladoAt && !vendido && puede('produccion', 3) && (
+        <div style={{ display: 'flex', justifyContent: 'center' }}><button className="boton fantasma peligro" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular este pallet</button></div>
+      )}
+
       {anulando && (
         <Dialogo titulo={`Anular pallet ${nroTicket(p.numero)}`} onCerrar={() => setAnulando(false)}>
           <p className="tenue">Para un pallet cargado por error: sale del stock y la etiqueta deja de valer (sacala del film).</p>
           <Campo etiqueta="Motivo"><textarea className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus /></Campo>
           <Aviso>{err}</Aviso>
           <div className="acciones">
-            <button className="boton secundario" onClick={() => setAnulando(false)}>Volver</button>
+            <button className="boton secundario" onClick={() => setAnulando(false)}>No anular</button>
             <button className="boton peligro" disabled={motivo.trim().length < 3} onClick={anular}>Anular pallet</button>
           </div>
         </Dialogo>

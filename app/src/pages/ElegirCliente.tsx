@@ -33,12 +33,12 @@ export function ElegirCliente({ valor, onChange, conDeuda }: { valor: Cliente | 
   return (
     <div style={{ display: 'grid', gap: 18 }}>
       <Buscador placeholder="Buscar cliente" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Buscar cliente" />
-      {isLoading ? <Cargando /> : (
+      {isLoading || (conDeuda && !saldos) ? <Cargando /> : (
         <Opciones
           valor={valor?.id ?? null}
           onChange={(id) => { const c = data?.find((x) => x.id === id); if (c) onChange(c); }}
-          opciones={(data ?? []).map((c) => ({ valor: c.id, titulo: c.nombre, detalle: conDeuda && debe(c.id) > 0 ? `Debe ${formatPesos(debe(c.id))}` : conDeuda && debe(c.id) < 0 ? `A favor ${formatPesos(-debe(c.id))}` : conDeuda ? 'Al día' : c.ultimaVenta ? `Última compra: ${verFecha(c.ultimaVenta)}` : 'Cliente nuevo',
-            tono: conDeuda ? (debe(c.id) > 0 ? 'critico' as const : 'ok' as const) : undefined }))}
+          opciones={(data ?? []).map((c) => ({ valor: c.id, titulo: c.nombre, detalle: conDeuda && debe(c.id) > 0 ? `Debe ${formatPesos(debe(c.id))}` : conDeuda && debe(c.id) < 0 ? `A favor ${formatPesos(-debe(c.id))}` : conDeuda ? undefined : c.ultimaVenta ? `Última compra: ${verFecha(c.ultimaVenta)}` : 'Cliente nuevo',
+            tono: conDeuda && debe(c.id) > 0 ? 'critico' as const : undefined }))}
         />
       )}
       {data?.length === 0 && <p className="tenue">{q ? 'No hay clientes con ese nombre.' : 'Todavía no hay clientes cargados.'}</p>}

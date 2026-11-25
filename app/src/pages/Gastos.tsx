@@ -140,14 +140,20 @@ function DetalleGasto({ id, onCerrar }: { id: string; onCerrar: () => void }) {
       )}
       {anulando && <Campo etiqueta="Motivo de la anulación"><textarea className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus /></Campo>}
       <Aviso>{error}</Aviso>
+      {/* Una cosa por vez: anular o marcar pagado, cada una con su "Volver". */}
       <div className="acciones">
-        {!g.anuladoAt && puede('gastos', 3) && (anulando
-          ? <button className="boton peligro" disabled={motivo.trim().length < 3} onClick={anular}>Anular egreso</button>
-          : <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={16} aria-hidden /> Anular</button>)}
-        {!g.anuladoAt && g.aPagar && puede('gastos', 2) && (pagando
-          ? <button className="boton primario" disabled={!medio || (medio !== 'transferencia' && conBanco && !bancoId)} onClick={pagar}>Confirmar pago</button>
-          : <button className="boton primario" onClick={() => setPagando(true)}>Marcar pagado</button>)}
-        {!(g.aPagar && !g.anuladoAt) && <button className="boton primario" onClick={onCerrar}>Listo</button>}
+        {anulando ? <>
+          <button className="boton secundario" onClick={() => { setAnulando(false); setMotivo(''); }}>Volver</button>
+          <button className="boton peligro" disabled={motivo.trim().length < 3} onClick={anular}>Anular egreso</button>
+        </> : pagando ? <>
+          <button className="boton secundario" onClick={() => { setPagando(false); setMedio(null); }}>Volver</button>
+          <button className="boton primario" disabled={!medio || (medio !== 'transferencia' && conBanco && !bancoId)} onClick={pagar}>Confirmar pago</button>
+        </> : <>
+          {!g.anuladoAt && puede('gastos', 3) && <button className="boton fantasma peligro" onClick={() => setAnulando(true)}><Ban size={16} aria-hidden /> Anular</button>}
+          {!g.anuladoAt && g.aPagar && puede('gastos', 2)
+            ? <button className="boton primario" onClick={() => setPagando(true)}>Marcar pagado</button>
+            : <button className="boton primario" onClick={onCerrar}>Listo</button>}
+        </>}
       </div>
     </Dialogo>
   );

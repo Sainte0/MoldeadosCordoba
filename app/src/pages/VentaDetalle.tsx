@@ -15,7 +15,7 @@ interface Detalle {
   id: string; numero: number; fecha: string; conFactura: boolean; nroFactura: string | null; ivaBp: number; neto: number; iva: number; total: number;
   vehiculo: Vehiculo | null; patente: string | null; retira: string | null; notas: string | null; cargadaAt: string; anuladoAt: string | null; motivoAnulacion: string | null;
   anuladoPor: string | null; cargadoPor: string; clienteId: string; cliente: string; clienteCuit: string | null; clienteDireccion: string | null;
-  firmaId: string | null; firmadoAt: string | null; pedidoId: string | null; pedidoNumero: number | null; cobro: { cobrado: number; debe: number } | null;
+  firmaId: string | null; firmadoAt: string | null; pedidoId: string | null; pedidoNumero: number | null; ordenNumero?: number | null; cobro: { cobrado: number; debe: number } | null;
   items: { id: string; paletId: string | null; palet: number; suelto: boolean; paquetes: number; codigo: string; variante: string; colorHex: string | null; maples: number; precioMaple: number; subtotal: number; calidad: 'primera' | 'segunda' }[];
 }
 
@@ -60,7 +60,7 @@ export function VentaDetalle() {
   return (
     <div className="columna" style={{ display: 'grid', gap: 20 }}>
       <Volver a="/ventas" texto="Ventas" className="no-imprimir" />
-      {params.get('nuevo') && !v.anuladoAt && <div className="aviso ok no-imprimir" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Despacho confirmado: la carga quedó vendida{v.firmaId ? ' y el remito firmado' : '. Imprimí el remito para que lo firme quien retira'}.</div>}
+      {params.get('nuevo') && !v.anuladoAt && <div className="aviso ok no-imprimir" style={{ display: 'flex', gap: 10, alignItems: 'center' }}><CheckCircle2 size={22} aria-hidden /> Venta registrada: la carga quedó vendida{v.firmaId ? ' y el remito firmado' : '. Imprimí el remito para que lo firme quien retira'}.</div>}
 
       <header className="cabeza-detalle no-imprimir">
         <span className="ico-detalle"><Truck size={22} aria-hidden /></span>
@@ -71,13 +71,15 @@ export function VentaDetalle() {
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {v.anuladoAt ? <Estado nivel="critico">Anulado</Estado> : <>
             {!v.cobro || v.cobro.debe <= 0 ? <Estado nivel="ok">Cobrado</Estado> : <Estado nivel="atencion">{v.cobro.cobrado > 0 ? `Debe ${formatPesos(v.cobro.debe)}` : 'Pendiente de cobro'}</Estado>}
-            {v.firmaId ? <Estado nivel="ok">Firmado</Estado> : <Estado nivel="atencion">Sin firmar</Estado>}
+            {/* La venta de una orden se firma en la orden impresa: no se pide firma en pantalla. */}
+            {!v.ordenNumero && (v.firmaId ? <Estado nivel="ok">Firmado</Estado> : <Estado nivel="atencion">Sin firmar</Estado>)}
           </>}
         </div>
       </header>
       <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-        {!v.anuladoAt && !v.firmaId && puede('ventas', 2) && <button className="boton primario grande" onClick={() => setFirmando(true)}><PenLine size={20} aria-hidden /> Firmar en pantalla</button>}
-        <button className={`boton ${!v.anuladoAt && !v.firmaId && puede('ventas', 2) ? 'secundario' : 'primario grande'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir remito</button>
+        {!v.anuladoAt && !v.firmaId && !v.ordenNumero && puede('ventas', 2) && <button className="boton primario grande" onClick={() => setFirmando(true)}><PenLine size={20} aria-hidden /> Firmar en pantalla</button>}
+        {v.ordenNumero && <Link to={`/ordenes/${v.ordenNumero}`} className="boton secundario"><Truck size={18} aria-hidden /> Ver orden {nroTicket(v.ordenNumero)}</Link>}
+        <button className={`boton ${!v.anuladoAt && !v.firmaId && !v.ordenNumero && puede('ventas', 2) ? 'secundario' : 'primario grande'}`} onClick={() => window.print()}><Printer size={20} aria-hidden /> Imprimir remito</button>
         {!v.anuladoAt && puede('cuentas', 2) && <Link to={`/dinero/nuevo?tipo=cobro&id=${v.clienteId}`} className="boton secundario"><Wallet size={18} aria-hidden /> Pago a cuenta</Link>}
         {!v.anuladoAt && puede('ventas', 3) && <button className="boton secundario" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
       </div>
@@ -100,7 +102,7 @@ export function VentaDetalle() {
           <dt>Cuenta</dt><dd>{v.conFactura ? `Cuenta 1${v.nroFactura ? ` · ${v.nroFactura}` : ''}` : 'Cuenta 2'}</dd>
         </dl>
         {sinPalets && <p className="chico tenue no-imprimir">Venta anterior al sistema, cargada desde la planilla de finanzas: no tiene palets asignados. Las ventas nuevas muestran acá cada palet que se llevó.</p>}
-        <table>
+        <table className="remito-tabla">
           <thead><tr>{!sinPalets && <th>Palet</th>}<th>Maple</th><th>Maples</th><th>Precio</th><th>Subtotal</th></tr></thead>
           <tbody>
             {v.items.map((i) => (
@@ -142,12 +144,12 @@ export function VentaDetalle() {
       )}
       {anulando && (
         <Dialogo titulo={`Anular remito ${nroTicket(v.numero)}`} onCerrar={() => setAnulando(false)}>
-          <p className="tenue">Los palets vuelven a estar disponibles y se descuenta de la cuenta del cliente. Queda registrado con tu nombre y el motivo.</p>
+          <p className="tenue">{v.ordenNumero ? `Se cancela la orden ${nroTicket(v.ordenNumero)} entera (si es Mixta, también la venta de la otra cuenta)` : 'Se anula este remito'}: los pallets vuelven al stock y se descuenta de la cuenta del cliente. Queda registrado con tu nombre y el motivo.</p>
           <Campo etiqueta="Motivo"><textarea className="entrada" value={motivo} onChange={(e) => setMotivo(e.target.value)} autoFocus /></Campo>
           <Aviso>{err}</Aviso>
           <div className="acciones">
             <button className="boton secundario" onClick={() => setAnulando(false)}>Volver</button>
-            <button className="boton peligro" disabled={motivo.trim().length < 3} onClick={anular}>Anular</button>
+            <button className="boton peligro" disabled={motivo.trim().length < 3} onClick={anular}>Anular remito</button>
           </div>
         </Dialogo>
       )}

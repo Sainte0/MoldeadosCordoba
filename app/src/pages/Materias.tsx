@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Scale, ShoppingCart } from 'lucide-react';
+import { Plus, Scale } from 'lucide-react';
 import { aMili, estadoStock, formatCantidad, LABEL_TIPO_MP, ORDEN_NIVEL, TIPOS_MP, type TipoMp, type Unidad } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verMomento } from '../api';
 import { useMaterias, type MateriaPrima } from '../datos';
 import { Estado } from '../Estado';
+import { MateriaRapida } from './MateriaRapida';
 import { Aviso, Cabecera, Campo, Cargando, Dialogo, Entrada, EntradaNumero, Opciones } from '../ui';
 
 const MOTIVO: Record<string, string> = { compra: 'Compra', anulacion_compra: 'Compra anulada', ajuste: 'Corrección', consumo: 'Producción', anulacion_consumo: 'Producción anulada' };
@@ -15,15 +16,13 @@ export function Materias() {
   const { data, isLoading } = useMaterias();
   const [editando, setEditando] = useState<Partial<MateriaPrima> | null>(null);
   const [viendo, setViendo] = useState<MateriaPrima | null>(null);
+  // Anotar que entró o corregir: el mismo diálogo que en Hoy (una sola forma de hacerlo en toda la app).
+  const [rapida, setRapida] = useState<{ m: MateriaPrima; modo: 'entro' | 'corregir' } | null>(null);
 
   return (
     <div className="ancho">
-      <Cabecera titulo="Materia prima" bajada="Lo que hay en planta. Sube con cada compra y baja con la producción.">
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {puede('compras', 2) && <Link to="/compras/nueva" className="boton primario"><ShoppingCart size={18} aria-hidden /> Cargar compra</Link>}
-          {puede('compras', 2) && <Link to="/pesaje" className="boton secundario"><Scale size={18} aria-hidden /> Entrada de cartón</Link>}
-          {puede('materias', 3) && <button className="boton fantasma" onClick={() => setEditando({ tipo: 'tinta', unidad: 'l', activo: true, stockMinimo: 0 })}><Plus size={18} aria-hidden /> Nueva materia prima</button>}
-        </div>
+      <Cabecera titulo="Materia prima" bajada="Lo que hay en planta. Tocá una para anotar que entró o corregir lo que hay.">
+        {puede('compras', 2) && <Link to="/pesaje" className="boton secundario"><Scale size={18} aria-hidden /> Entrada de cartón</Link>}
       </Cabecera>
       {isLoading ? <Cargando /> : (
         <div className="hoja filas">
@@ -43,7 +42,10 @@ export function Materias() {
             ))}
         </div>
       )}
-      {viendo && <FichaMateria m={viendo} onCerrar={() => setViendo(null)} onEditar={() => { setEditando(viendo); setViendo(null); }} />}
+      {/* Dar de alta una materia prima es de configuración: al pie, no compite con lo diario. */}
+      {puede('materias', 3) && <div style={{ marginTop: 16 }}><button className="boton fantasma" onClick={() => setEditando({ tipo: 'tinta', unidad: 'l', activo: true, stockMinimo: 0 })}><Plus size={18} aria-hidden /> Nueva materia prima</button></div>}
+      {viendo && <FichaMateria m={viendo} onCerrar={() => setViendo(null)} onEditar={() => { setEditando(viendo); setViendo(null); }} onAnotar={(modo) => { setRapida({ m: viendo, modo }); setViendo(null); }} />}
+      {rapida && <MateriaRapida m={rapida.m} inicial={rapida.modo} onCerrar={() => setRapida(null)} />}
       {editando && <EditarMateria inicial={editando} onCerrar={() => setEditando(null)} />}
     </div>
   );
@@ -51,45 +53,19 @@ export function Materias() {
 
 interface Movimiento { id: string; cantidad: number; motivo: string; nota: string | null; fecha: string; usuario: string; compraNumero: number | null; compraId: string | null }
 
-function FichaMateria({ m, onCerrar, onEditar }: { m: MateriaPrima; onCerrar: () => void; onEditar: () => void }) {
+function FichaMateria({ m, onCerrar, onEditar, onAnotar }: { m: MateriaPrima; onCerrar: () => void; onEditar: () => void; onAnotar: (modo: 'entro' | 'corregir') => void }) {
   const { puede } = useSesion();
-  const qc = useQueryClient();
   const { data: movs } = useQuery({ queryKey: ['movimientos', m.id], queryFn: () => api<Movimiento[]>(`/materias/${m.id}/movimientos`) });
-  const [sentido, setSentido] = useState<1 | -1 | null>(null);
-  const [cantidad, setCantidad] = useState('');
-  const [nota, setNota] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const u = m.unidad === 'kg' ? 'kg' : 'L';
-
-  const corregir = async () => {
-    const c = aMili(cantidad);
-    if (!sentido || c === null || c <= 0) return setError('Ingresá cuánto sumar o restar');
-    setError(null);
-    try {
-      await api(`/materias/${m.id}/ajuste`, { method: 'POST', body: { cantidad: sentido * c, nota } });
-      await qc.invalidateQueries();
-      onCerrar();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo corregir');
-    }
-  };
 
   return (
     <Dialogo titulo={m.nombre} onCerrar={onCerrar}>
       <div className="lectura"><span>En stock</span><span className="cifra">{formatCantidad(Math.max(0, m.stock), m.unidad)}</span></div>
       {estadoStock(m).nivel !== 'ok' && <div className={`atencion-item ${estadoStock(m).nivel}`} style={{ gridTemplateColumns: '1fr' }}><div><b>{estadoStock(m).titulo}</b><small>{estadoStock(m).detalle}</small></div></div>}
-      {puede('materias', 3) && (
-        <details className="hoja relleno">
-          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>Corregir stock</summary>
-          <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
-            <p className="chico tenue">Para cuando el conteo físico no coincide. Queda registrado con tu nombre y el motivo.</p>
-            <Opciones columnas valor={sentido} onChange={setSentido} opciones={[{ valor: 1, titulo: 'Sumar' }, { valor: -1, titulo: 'Restar' }]} />
-            <EntradaNumero unidad={u} value={cantidad} onChange={(e) => setCantidad(e.target.value)} aria-label="Cantidad" />
-            <Campo etiqueta="Motivo"><Entrada value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Ej.: conteo del viernes" /></Campo>
-            <Aviso>{error}</Aviso>
-            <button className="boton primario" onClick={corregir}>Guardar corrección</button>
-          </div>
-        </details>
+      {(puede('compras', 2) || puede('materias', 3)) && (
+        <div className="acciones-titulo">
+          {puede('compras', 2) && <button className="boton primario" onClick={() => onAnotar('entro')}><Plus size={18} aria-hidden /> Anotar que entró</button>}
+          {puede('materias', 3) && <button className="boton secundario" onClick={() => onAnotar('corregir')}>Corregir lo que hay</button>}
+        </div>
       )}
       <h3>Movimientos</h3>
       <div className="hoja filas">
@@ -106,7 +82,7 @@ function FichaMateria({ m, onCerrar, onEditar }: { m: MateriaPrima; onCerrar: ()
       </div>
       <div className="acciones">
         {puede('materias', 3) && <button className="boton secundario" onClick={onEditar}>Editar datos</button>}
-        <button className="boton primario" onClick={onCerrar}>Listo</button>
+        <button className="boton secundario" onClick={onCerrar}>Cerrar</button>
       </div>
     </Dialogo>
   );

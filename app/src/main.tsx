@@ -23,7 +23,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       const yaCargado = performance.getEntriesByType('resource').map((r) => r.name)
         .filter((u) => u.startsWith(location.origin) && /\/assets\//.test(u));
       await caches.open('moldeados-v1').then((c) => c.addAll(['/', '/index.html', ...yaCargado])).catch(() => {});
-      setTimeout(() => { void import('./pages/NuevoParte'); void import('./pages/Despacho'); void import('./pages/Pesaje'); void import('./Escaner'); }, 3000);
+      setTimeout(() => { void import('./pages/NuevoParte'); void import('./pages/Pesaje'); void import('./Escaner'); }, 3000);
     });
   });
 }

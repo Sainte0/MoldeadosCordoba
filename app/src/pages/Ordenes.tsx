@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, Plus, Printer, ScanLine, Trash2, Truck } from 'lucide-react';
 import { ALTOS_PALET, CONDICIONES, formatPesos, IVA_CUENTA1, LABEL_CONDICION, LABEL_VEHICULO, verCondicion, type Condicion, type Vehiculo } from '@moldeados/shared/base';
@@ -16,7 +16,7 @@ import { useStockPallets } from './Plastificar';
 interface OrdenFila { id: string; numero: number; fecha: string; estado: string; condicionPago: Condicion; cliente: string; chofer: string | null; patente: string | null; pedidos: number; cargados: number; detalle: string }
 interface Orden {
   id: string; numero: number; fecha: string; estado: 'abierta' | 'cerrada' | 'cancelada'; condicionPago: Condicion; porcentajeCuenta1: number | null; notas: string | null; motivo: string | null;
-  creadaAt: string; cerradaAt: string | null; clienteId: string; cliente: string; cuit: string | null; chofer: string | null; dni: string | null; patente: string | null; vehiculo: Vehiculo | null;
+  creadaAt: string; cerradaAt: string | null; pedidoNumero: number | null; clienteId: string; cliente: string; cuit: string | null; chofer: string | null; dni: string | null; patente: string | null; vehiculo: Vehiculo | null;
   items: { id: string; varianteId: string; codigo: string; nombre: string; colorHex: string | null; maplesPorPaquete: number; alto: number; cantidad: number; precioMaple: number; cargados: number }[];
   palets: { id: string; numero: number; codigo: string; alto: number; paquetes: number; maplesPorPaquete: number; itemId: string; escaneadoAt: string }[];
   ventas: { id: string; numero: number; cuenta1: boolean; total: number; anuladoAt: string | null }[];
@@ -39,10 +39,11 @@ export function Ordenes() {
           {data.map((o) => (
             <Link key={o.id} to={`/ordenes/${o.numero}`} className="fila">
               <div>
-                <div className="principal">{o.cliente} · {o.detalle}</div>
-                <div className="chico tenue">Orden {nroTicket(o.numero)} · {verFecha(o.fecha)}{o.chofer ? ` · ${o.chofer}` : ''}{o.patente ? ` (${o.patente})` : ''} · {LABEL_CONDICION[o.condicionPago]}</div>
+                <div className="principal">{o.cliente}</div>
+                <div className="chico">{o.detalle}</div>
+                <div className="chico tenue">{o.chofer ?? 'Sin chofer'}{o.patente ? ` · ${o.patente}` : ''} · {fechaCorta(o.fecha)}</div>
               </div>
-              <div className="derecha"><div className="cifra">{o.cargados} de {o.pedidos}</div>{o.estado === 'abierta' && <span className="chico tenue">pallets</span>}</div>
+              <div className="derecha"><div className="cifra">{o.cargados}/{o.pedidos}</div><span className="chico tenue">pallets</span></div>
             </Link>
           ))}
         </div>
@@ -50,6 +51,9 @@ export function Ordenes() {
     </div>
   );
 }
+
+/** "25 nov" (el año sobra en una lista de órdenes del día). */
+const fechaCorta = (f: string) => new Date(`${f}T12:00:00-03:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }).replace('.', '');
 
 interface Renglon { varianteId: string; alto: number; cantidad: string }
 
@@ -59,6 +63,9 @@ export function NuevaOrden() {
   const { data: clientes } = useClientes();
   const { data: variantes } = useVariantes();
   const { data: stock } = useStockPallets();
+  // Desde un pedido (Ventas › Pedidos › "Hacer orden de venta"): viene el cliente y lo que falta entregar, en pallets de 7.
+  const desdePedido = useSearchParams()[0].get('pedido');
+  const { data: pedido } = useQuery({ queryKey: ['pedido', desdePedido], queryFn: () => api<{ id: string; numero: number; clienteId: string; estado: string; items: { varianteId: string; paquetes: number; despachado: number }[] }>(`/pedidos/${desdePedido}`), enabled: !!desdePedido });
   const [clienteId, setClienteId] = useState('');
   const cliente = clientes?.find((c) => c.id === clienteId);
   const { data: choferes } = useChoferes(clienteId);
@@ -67,6 +74,13 @@ export function NuevaOrden() {
   const [condicion, setCondicion] = useState<{ c: Condicion; pct: string } | null>(null);
   const [renglones, setRenglones] = useState<Renglon[]>([{ varianteId: '', alto: 7, cantidad: '' }]);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!pedido || pedido.estado !== 'abierto') return;
+    setClienteId(pedido.clienteId);
+    const porPallet = 6 * 7;
+    const faltan = pedido.items.map((i) => ({ varianteId: i.varianteId, alto: 7, cantidad: String(Math.ceil(Math.max(0, i.paquetes - i.despachado) / porPallet)) })).filter((r) => Number(r.cantidad) > 0);
+    if (faltan.length) setRenglones(faltan);
+  }, [pedido?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // La condición de pago la trae la ficha del cliente; el gerente la puede cambiar para esta orden.
   useEffect(() => { if (cliente) setCondicion({ c: cliente.condicionPago, pct: String(cliente.porcentajeCuenta1 ?? '') }); setChoferId(''); }, [cliente?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -103,7 +117,7 @@ export function NuevaOrden() {
   };
   const emitir = async () => {
     const o = await api<{ numero: number }>('/ordenes', { method: 'POST', body: {
-      clienteId, choferId: choferId || null, condicionPago: condicion!.c, porcentajeCuenta1: condicion!.c === 'mixta' ? Number(condicion!.pct) || null : null,
+      clienteId, choferId: choferId || null, pedidoId: pedido && pedido.clienteId === clienteId && pedido.estado === 'abierto' ? pedido.id : null, condicionPago: condicion!.c, porcentajeCuenta1: condicion!.c === 'mixta' ? Number(condicion!.pct) || null : null,
       items: validos.map((r) => ({ varianteId: r.varianteId, alto: r.alto, cantidad: Number(r.cantidad) })),
     } });
     await qc.invalidateQueries({ queryKey: ['ordenes'] });
@@ -115,6 +129,9 @@ export function NuevaOrden() {
     <form className="columna" style={{ display: 'grid', gap: 18 }} onSubmit={revisar}>
       <Volver a="/ordenes" texto="Órdenes" />
       <Cabecera titulo="Nueva orden de venta" bajada="Queda abierta en la pantalla de carga hasta que se escanee el último pallet." />
+      {pedido && (pedido.estado === 'abierto'
+        ? <p className="aviso info">Sale del pedido {nroTicket(pedido.numero)}: ya está puesto lo que falta entregar, en pallets de 7. Ajustalo si hace falta.</p>
+        : <p className="aviso info">El pedido {nroTicket(pedido.numero)} ya no está abierto: esta orden queda suelta.</p>)}
       <div className="hoja relleno" style={{ display: 'grid', gap: 14 }}>
         <Campo etiqueta="Cliente">
           <select className="entrada" value={clienteId} onChange={(e) => setClienteId(e.target.value)} required autoFocus>
@@ -176,6 +193,7 @@ export function NuevaOrden() {
         <Confirmar titulo="¿Emitir esta orden?" texto="Sí, emitir orden" onSi={emitir} onNo={() => setConfirmando(false)}>
           <dl className="resumen">
             <dt>Cliente</dt><dd>{cliente.nombre}</dd>
+            {pedido?.estado === 'abierto' && pedido.clienteId === clienteId && <><dt>Pedido</dt><dd>{nroTicket(pedido.numero)}</dd></>}
             <dt>Chofer</dt><dd>{chofer ? `${chofer.nombre} ${chofer.apellido}${chofer.patente ? ` · ${chofer.patente}` : ''}` : 'Sin chofer'}</dd>
             <dt>Se lleva</dt><dd>{validos.map((r) => `${r.cantidad} ${activas.find((v) => v.id === r.varianteId)?.codigo} de ${r.alto}`).join(' + ')}</dd>
             <dt>Condición</dt><dd>{verCondicion(condicion.c, Number(condicion.pct) || null)}</dd>
@@ -267,12 +285,13 @@ export function OrdenCarga() {
     <div className="ancho carga" style={{ display: 'grid', gap: 18 }}>
       <div className="no-imprimir" style={{ display: 'grid', gap: 18 }}>
         <Volver a="/ordenes" texto="Órdenes" />
-        <Cabecera titulo={`${o.cliente}`} bajada={`Orden ${nroTicket(o.numero)} · ${o.chofer ? `${o.chofer}${o.patente ? ` (${o.patente})` : ''}` : 'sin chofer'} · ${verCondicion(o.condicionPago, o.porcentajeCuenta1)}`}>
+        <Cabecera titulo={`${o.cliente}`} bajada={`Orden ${nroTicket(o.numero)} · ${o.chofer ? `${o.chofer}${o.patente ? ` (${o.patente})` : ''}` : 'sin chofer'}${puede('ventas') ? ` · ${verCondicion(o.condicionPago, o.porcentajeCuenta1)}` : ''}`}>
           <div className="acciones-titulo">
             {o.estado === 'cerrada' && <button className="boton primario" onClick={() => window.print()}><Printer size={18} aria-hidden /> Imprimir orden</button>}
           </div>
         </Cabecera>
 
+        {o.pedidoNumero && <p className="chico tenue">Sale del <Link to={`/pedidos/${o.pedidoNumero}`}>pedido {nroTicket(o.pedidoNumero)}</Link>.</p>}
         {o.estado !== 'abierta' && <Aviso ok={o.estado === 'cerrada'}>{o.estado === 'cerrada' ? `Cerrada ${o.cerradaAt ? verMomento(o.cerradaAt) : ''}: ${cargados} de ${pedidos} pallets.` : 'Orden cancelada.'}{o.motivo ? ` ${o.motivo}.` : ''}</Aviso>}
 
         <div className="contadores">
@@ -314,7 +333,8 @@ export function OrdenCarga() {
             </div>
           </section>
         )}
-        {o.ventas.length > 0 && (
+        {/* La plata y el remito, para quien ve ventas (el mulero no). */}
+        {o.ventas.length > 0 && puede('ventas') && (
           <section className="hoja">
             <div className="fila"><h3>Venta registrada</h3></div>
             {o.ventas.map((v) => (

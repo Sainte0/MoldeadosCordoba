@@ -85,7 +85,7 @@ export function Tablero() {
             <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porCobrar)}</span><small>nos deben los clientes hoy</small></Link>
             <Link to="/cuentas" className="tile-link"><span className="cifra">{formatPesos(t.porPagar)}</span><small>les debemos a proveedores hoy</small></Link>
             <Link to="/caja" className="tile-link"><span className="cifra">{formatPesos(t.caja)}</span><small>en caja chica</small></Link>
-            <Link to="/palets" className="tile-link"><span className="cifra">{t.paletsListos.cantidad ? plural(t.paletsListos.cantidad, 'palet', 'palets') : 'Ninguno'}</span><small>{t.paletsListos.cantidad ? `listos para salir · ${plural(t.paletsListos.paquetes, 'paquete', 'paquetes')}` : 'palet listo para salir'}</small></Link>
+            <Link to="/palets" className="tile-link"><span className="cifra">{t.paletsListos.cantidad ? plural(t.paletsListos.cantidad, 'pallet', 'pallets') : 'Ninguno'}</span><small>{t.paletsListos.cantidad ? `listos para salir · ${plural(t.paletsListos.paquetes, 'paquete', 'paquetes')}` : 'pallet listo para salir'}</small></Link>
           </div>
           {t.materiasBajoMinimo > 0 && (
             <Link to="/materia-prima" className="atencion-item atencion" style={{ textDecoration: 'none' }}>
@@ -110,9 +110,9 @@ export function Tablero() {
           <div className="rejilla par">
             <BarrasRanking titulo="Egresos por categoría" filas={t.porCategoria} color={C_EGRESOS} vacio="Sin egresos en el período." />
             <BarrasRanking titulo="Ventas por calidad" filas={t.porCalidad.map((c) => ({ id: c.calidad, nombre: `${c.calidad === 'segunda' ? 'Segunda' : 'Primera'} · ${c.maples.toLocaleString('es-AR')} maples`, total: c.total }))} color={C_INGRESOS} vacio="Sin ventas en el período." />
-            <section className="hoja">
-              <div className="fila"><h3>Producción</h3><Link to="/produccion" className="chico">Ver planilla</Link></div>
-              {!t.produccion.length && <p className="tenue" style={{ padding: '0 18px 18px' }}>Sin producción en el período.</p>}
+            {/* La producción por turno quedó escondida (pedido 01): el bloque aparece solo si alguien la cargó. */}
+            {(t.produccion.length > 0 || t.consumo.length > 0) && <section className="hoja">
+              <div className="fila"><h3>Producción por turno</h3></div>
               {t.produccion.map((p) => (
                 <div className="fila" key={p.codigo}>
                   <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo}</span><br /><span className="chico tenue">{formatMinutos(p.minutos)} de máquina</span></span></span>
@@ -128,7 +128,7 @@ export function Tablero() {
                   </div>
                 );
               })}
-            </section>
+            </section>}
           </div>
         </>
       )}

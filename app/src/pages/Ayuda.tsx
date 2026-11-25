@@ -182,7 +182,7 @@ function EditarProcedimiento({ inicial, onCerrar }: { inicial: Partial<Procedimi
       </Campo>
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {inicial.id && <button className="boton fantasma" onClick={() => setBorrar(true)}>Borrar</button>}
+        {inicial.id && <button className="boton fantasma peligro" onClick={() => setBorrar(true)}>Borrar</button>}
         <button className="boton secundario" onClick={onCerrar}>Cancelar</button>
         <button className="boton primario" onClick={guardar}>Guardar</button>
       </div>

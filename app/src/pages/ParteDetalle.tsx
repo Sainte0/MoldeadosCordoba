@@ -62,7 +62,7 @@ export function ParteDetalle() {
       {p.anuladoAt && <Aviso>Anulado por {p.anuladoPor}, {verMomento(p.anuladoAt)}: {p.motivoAnulacion}</Aviso>}
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {!p.anuladoAt && puede('produccion', 2) && <Link to="/palets/nuevo" className="boton primario grande"><Layers size={20} aria-hidden /> Armar palet</Link>}
-        {!p.anuladoAt && puede('produccion', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
+        {!p.anuladoAt && puede('produccion', 3) && <button className="boton fantasma peligro" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
       </div>
 
       <dl className="resumen hoja relleno">

@@ -13,7 +13,6 @@ import { LABEL_ROL, type Modulo } from '@moldeados/shared/base';
 import { useSesion } from './api';
 import { Login } from './pages/Login';
 import { Campana } from './Campana';
-import { BotonAtencion } from './pages/Avisos';
 import { Recorrido } from './Recorrido';
 import { useAvisosEnVivo, type AvisoVivo } from './vivo';
 import { desactivarPush, reafirmarPush } from './push';
@@ -38,7 +37,6 @@ const NuevoPalet = cargar(() => import('./pages/NuevoPalet').then((m) => ({ defa
 const Escanear = cargar(() => import('./pages/Escanear').then((m) => ({ default: m.Escanear })));
 const PaletDetalle = cargar(() => import('./pages/PaletDetalle').then((m) => ({ default: m.PaletDetalle })));
 const Maples = cargar(() => import('./pages/Maples').then((m) => ({ default: m.Maples })));
-const Despacho = cargar(() => import('./pages/Despacho').then((m) => ({ default: m.Despacho })));
 const Ventas = cargar(() => import('./pages/Ventas').then((m) => ({ default: m.Ventas })));
 const VentaDetalle = cargar(() => import('./pages/VentaDetalle').then((m) => ({ default: m.VentaDetalle })));
 const Clientes = cargar(() => import('./pages/Clientes').then((m) => ({ default: m.Clientes })));
@@ -135,7 +133,6 @@ export function App() {
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
           <Reloj />
           <button type="button" className="boton icono buscar-movil" onClick={() => setBuscando(true)} aria-label="Buscar"><Search size={22} aria-hidden /></button>
-          <BotonAtencion />
           <Campana alAbrir={() => setAsoma(null)} />
           {/* En el teléfono, arriba solo lo que avisa; navegar es abajo, al alcance del pulgar (BarraInferior). */}
         </div>
@@ -188,7 +185,6 @@ export function App() {
       )}
       <main className="contenido">
         <div className="barra-arriba" aria-label="Avisos">
-          <BotonAtencion />
           <Campana alAbrir={() => setAsoma(null)} />
         </div>
         <ColaPendiente />
@@ -208,7 +204,8 @@ export function App() {
           <Route path="/gastos" element={<Navigate to={`/egresos${location.search}`} replace />} />
           <Route path="/gastos/nuevo" element={<Navigate to="/egresos/nuevo" replace />} />
           {p('gastos') && <Route path="/caja" element={<Caja />} />}
-          {p('ventas', 2) && <Route path="/ventas/nueva" element={<Despacho />} />}
+          {/* La venta sale de la orden de venta (pedido 01): el link viejo de "Vender palets" lleva ahí. */}
+          <Route path="/ventas/nueva" element={<Navigate to="/ordenes/nueva" replace />} />
           {p('ventas') && <Route path="/ventas" element={<Ventas />} />}
           {p('ventas') && <Route path="/pedidos" element={<Pedidos />} />}
           {p('ventas', 2) && <Route path="/pedidos/nuevo" element={<NuevoPedido />} />}
@@ -232,7 +229,7 @@ export function App() {
           {p('ventas') && <Route path="/choferes" element={<Choferes />} />}
           {/* El QR del palet: cualquiera con usuario lo abre; lo que ve depende de sus permisos. */}
           {/* Sin permiso para cargar, "…/nuevo" no tiene que caer en la ficha de detalle (pediría el registro "nuevo"). */}
-          {([['/compras/nueva', 'compras'], ['/ventas/nueva', 'ventas'], ['/pedidos/nuevo', 'ventas'], ['/produccion/nuevo', 'produccion'], ['/palets/nuevo', 'produccion']] as const)
+          {([['/compras/nueva', 'compras'], ['/pedidos/nuevo', 'ventas'], ['/produccion/nuevo', 'produccion'], ['/palets/nuevo', 'produccion']] as const)
             .filter(([, m]) => !p(m, 2)).map(([r]) => <Route key={r} path={r} element={<Navigate to="/" replace />} />)}
           <Route path="/escanear" element={<Escanear />} />
           {/* La planilla del día es el inicio ("Hoy"); el link viejo lleva ahí, con su fecha. */}

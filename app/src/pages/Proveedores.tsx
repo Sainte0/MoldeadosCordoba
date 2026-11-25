@@ -62,6 +62,11 @@ function FichaProveedor({ inicial, onCerrar }: { inicial: Partial<Proveedor>; on
   const guardar = async () => {
     setError(null);
     try {
+      // Un proveedor nuevo con el mismo nombre que otro sería un duplicado (dos cuentas para el mismo).
+      if (nuevo) {
+        const iguales = await api<Proveedor[]>(`/proveedores?q=${encodeURIComponent(p.nombre.trim())}`);
+        if (iguales.some((x) => x.nombre.trim().toLowerCase() === p.nombre.trim().toLowerCase())) return setError(`Ya hay un proveedor "${p.nombre.trim()}". Buscalo en la lista.`);
+      }
       const body = { nombre: p.nombre, cuit: p.cuit || undefined, telefono: p.telefono || undefined, email: p.email || undefined, direccion: p.direccion || undefined, tipos: p.tipos, notas: p.notas || undefined };
       await api(nuevo ? '/proveedores' : `/proveedores/${inicial.id}`, { method: nuevo ? 'POST' : 'PUT', body });
       await qc.invalidateQueries({ queryKey: ['proveedores'] });
@@ -90,7 +95,12 @@ function FichaProveedor({ inicial, onCerrar }: { inicial: Partial<Proveedor>; on
           <dt>Cuenta 2</dt><dd>{formatPesos(det.totales.sinFactura)}</dd>
         </dl>
       )}
-      {!nuevo && <Link className="chico" to={`/compras`}>Ver compras</Link>}
+      {!nuevo && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link className="boton secundario" to={`/cuentas/proveedor/${inicial.id}`}>Ver cuenta</Link>
+          <Link className="boton secundario" to={`/compras?q=${encodeURIComponent(p.nombre)}`}>Ver sus compras</Link>
+        </div>
+      )}
       {campo('nombre', 'Nombre o razón social', { autoFocus: nuevo })}
       <div>
         <span style={{ fontWeight: 600 }}>Qué nos vende</span>
@@ -109,7 +119,7 @@ function FichaProveedor({ inicial, onCerrar }: { inicial: Partial<Proveedor>; on
       <Campo etiqueta="Observaciones"><textarea className="entrada" value={p.notas ?? ''} disabled={!editable} onChange={(e) => setP({ ...p, notas: e.target.value })} /></Campo>
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {!nuevo && puede('proveedores', 3) && <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>}
+        {!nuevo && puede('proveedores', 3) && <button className="boton fantasma peligro" onClick={() => setBorrar(true)}>Dar de baja</button>}
         <button className="boton secundario" onClick={onCerrar}>{editable ? 'Cancelar' : 'Cerrar'}</button>
         {editable && <button className="boton primario" onClick={guardar}>{nuevo ? 'Agregar proveedor' : 'Guardar cambios'}</button>}
       </div>

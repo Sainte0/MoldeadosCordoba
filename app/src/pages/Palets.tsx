@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layers, QrCode } from 'lucide-react';
 import type { Vehiculo } from '@moldeados/shared/base';
-import { api, nroTicket, useSesion, verMomento } from '../api';
+import { api, hoy, nroTicket, useSesion, verMomento } from '../api';
 import { useDemorado, useFiltros } from '../filtros';
 import { useStockPallets } from './Plastificar';
 import { EnLaFabrica } from './Planilla';
@@ -25,7 +25,7 @@ export function Palets() {
     <div className="ancho" style={{ display: 'grid', gap: 18 }}>
       <Cabecera titulo="Stock de pallets" bajada="Lo que hay en la fábrica por tipo y alto. Cada pallet entra al terminar de plastificarlo.">
         <div className="acciones-titulo">
-          <Link to="/escanear" className="boton secundario"><QrCode size={18} aria-hidden /> Escanear</Link>
+          <Link to="/escanear" className="boton secundario solo-escritorio"><QrCode size={18} aria-hidden /> Escanear</Link>
           {puede('produccion', 2) && <Link to="/plastificar" className="boton primario"><Layers size={18} aria-hidden /> Pallet terminado</Link>}
         </div>
       </Cabecera>
@@ -34,15 +34,15 @@ export function Palets() {
 
       <section>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-          <h3>Pallets</h3><BotonExportar que="palets" />
+          <h3>Pallets</h3><span className="solo-escritorio"><BotonExportar que="palets" /></span>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
           <div className="pestanas" role="group" aria-label="Estado">
             {([['listos', 'Listos para salir'], ['vendidos', 'Vendidos'], ['', 'Todos']] as const).map(([v, t]) => <button key={v} aria-pressed={f.estado === v} onClick={() => setF({ estado: v })}>{t}</button>)}
           </div>
-          <div style={{ flex: 1, minWidth: 220 }}><Buscador placeholder="Buscar n.º de palet, código o cliente" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar palets" /></div>
+          <div style={{ flex: 1, minWidth: 220 }}><Buscador placeholder="Buscar n.º de pallet, maple o cliente" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar pallets" /></div>
         </div>
-        {isLoading ? <Cargando /> : !palets?.length ? <div className="hoja vacio"><p>{f.q ? 'No hay palets con esa búsqueda.' : f.estado === 'listos' ? 'No hay pallets en la fábrica. Entran desde "Pallet terminado".' : f.estado === 'vendidos' ? 'Todavía no se vendió ningún palet.' : 'Todavía no se armó ningún palet.'}</p></div> : (
+        {isLoading ? <Cargando /> : !palets?.length ? <div className="hoja vacio"><p>{f.q ? 'No hay pallets con esa búsqueda.' : f.estado === 'listos' ? 'No hay pallets en la fábrica. Entran desde "Pallet terminado".' : f.estado === 'vendidos' ? 'Todavía no se vendió ningún pallet.' : 'Todavía no se cargó ningún pallet.'}</p></div> : (
           <div className="hoja filas">
             {palets.map((p) => (
               <Link key={p.id} to={`/palets/${p.numero}`} className={`fila${p.anuladoAt ? ' anulada' : ''}`}>
@@ -50,7 +50,7 @@ export function Palets() {
                   <Muestra color={p.colorHex} />
                   <div>
                     <div className="principal">{p.suelto ? `${p.paquetes} paquetes sueltos · ${p.codigo}` : `${p.codigo} de ${p.alto}`}</div>
-                    <div className="chico tenue">N.º {nroTicket(p.numero)} · {p.ventaId ? `vendido a ${p.cliente}` : verMomento(p.armadoAt)}</div>
+                    <div className="chico tenue">N.º {nroTicket(p.numero)} · {p.ventaId ? `vendido a ${p.cliente}` : cuando(p.armadoAt)}</div>
                   </div>
                 </div>
                 <div className="derecha"><div className="cifra">{(p.paquetes * p.maplesPorPaquete).toLocaleString('es-AR')} <small className="tenue">maples</small></div>{p.anuladoAt ? <span className="marca-texto">Anulado</span> : p.ventaId ? (f.estado !== 'vendidos' && <span className="marca-texto">Vendido</span>) : f.estado !== 'listos' && <Estado nivel="ok">En la fábrica</Estado>}</div>
@@ -61,4 +61,11 @@ export function Palets() {
       </section>
     </div>
   );
+}
+
+/** "hoy 09:27" o "25 nov": lo justo para ubicar el pallet sin que el renglón ocupe dos líneas. */
+function cuando(iso: string) {
+  const dia = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(iso));
+  const [fecha = '', hora = ''] = verMomento(iso).split(', ');
+  return dia === hoy() ? `hoy ${hora}` : fecha;
 }

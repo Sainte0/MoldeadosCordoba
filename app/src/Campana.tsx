@@ -5,6 +5,7 @@ import { Bell, BellRing, CalendarClock, ClipboardList, X } from 'lucide-react';
 import { api, verMomento } from './api';
 import { activarPush, estadoPush, type EstadoPush } from './push';
 import { Aviso, Dialogo } from './ui';
+import { ListaAtencion, useAvisos } from './pages/Avisos';
 
 export interface Notificacion { id: string; tipo: string; titulo: string; detalle: string | null; ruta: string | null; leida: string | null; creada: string }
 
@@ -25,16 +26,22 @@ export function haceCuanto(iso: string): string {
 
 const ICONO: Record<string, typeof Bell> = { recordatorio: BellRing, agenda: CalendarClock, pedido: ClipboardList };
 
-/** Botón de la campana con la cantidad sin leer; abre la lista de avisos. */
+/**
+ * Un solo ícono arriba para todo lo que avisa: lo que hay que atender (stock agotado, atrasos, cheques) y los avisos
+ * (recordatorios, pedidos nuevos). Antes eran dos íconos casi iguales con su numerito cada uno: confundía.
+ */
 export function Campana({ alAbrir }: { alAbrir?: () => void }) {
   const [abierta, setAbierta] = useState(false);
   const { data } = useNotificaciones();
-  const n = data?.sinLeer ?? 0;
+  const { data: avisos, isError } = useAvisos();
+  const atencion = isError ? [] : avisos?.atencion ?? [];
+  const n = (data?.sinLeer ?? 0) + atencion.length;
+  const rojos = atencion.some((a) => a.nivel === 'critico');
   return (
     <>
-      <button className="boton icono campana" onClick={() => { alAbrir?.(); setAbierta(true); }} aria-label={n ? `Avisos: ${n} sin leer` : 'Avisos'}>
+      <button className="boton icono campana" data-guia="atencion" onClick={() => { alAbrir?.(); setAbierta(true); }} aria-label={n ? `Avisos: ${n} para ver` : 'Avisos'}>
         <Bell size={22} aria-hidden />
-        {n > 0 && <span className="globito" aria-hidden>{n > 9 ? '9+' : n}</span>}
+        {n > 0 && <span className={`globito${rojos || (data?.sinLeer ?? 0) > 0 ? '' : ' ambar'}`} aria-hidden>{n > 9 ? '9+' : n}</span>}
       </button>
       {abierta && <PanelAvisos onCerrar={() => setAbierta(false)} />}
     </>
@@ -55,12 +62,17 @@ function PanelAvisos({ onCerrar }: { onCerrar: () => void }) {
     if (x.ruta) ir(x.ruta);
   };
   const lista = data?.lista ?? [];
+  const { data: avisos, isError } = useAvisos();
+  const hayAtencion = !isError && !!avisos?.atencion.length;
 
   return (
     <Dialogo titulo="Avisos" onCerrar={onCerrar}>
       <button className="boton icono cerrar-dialogo" onClick={onCerrar} aria-label="Cerrar"><X size={22} /></button>
+      {/* Primero lo que no puede esperar, cada cosa con su botón para resolverla. */}
+      {hayAtencion && <><h3>Para atender</h3><ListaAtencion onIr={onCerrar} /></>}
+      {hayAtencion && lista.length > 0 && <h3>Recordatorios y pedidos</h3>}
       <ActivarEnTelefono />
-      {lista.length === 0 ? <p className="tenue">No tenés avisos. Acá llegan los recordatorios de la agenda y los pedidos nuevos.</p> : (
+      {lista.length === 0 ? (!hayAtencion && <p className="tenue">Todo en orden. Acá aparece lo que hay que atender, los recordatorios de la agenda y los pedidos nuevos.</p>) : (
         <div className="lista-avisos">
           {lista.map((x) => {
             const I = ICONO[x.tipo] ?? Bell;

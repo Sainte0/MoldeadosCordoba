@@ -22,14 +22,14 @@ export function Clientes() {
       <Cabecera titulo="Clientes" bajada="Granjas, distribuidores y todo el que compra maples.">
         {puede('ventas', 2) && <button className="boton primario" onClick={() => setEditando({ ...VACIO })}><Plus size={18} aria-hidden /> Nuevo cliente</button>}
       </Cabecera>
-      <div style={{ marginBottom: 20 }}><ParaVender /></div>
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
         <div className="pestanas" role="group" aria-label="Cómo ver">
-          {([['lista', 'Lista'], ['tabla', 'Precios y condición']] as const).map(([v, t]) => <button key={v} aria-pressed={f.ver === v} onClick={() => setF({ ver: v })}>{t}</button>)}
+          {([['lista', 'Lista'], ['tabla', 'Precios'], ['vender', 'Para llamar']] as const).map(([v, t]) => <button key={v} aria-pressed={f.ver === v} onClick={() => setF({ ver: v })}>{t}</button>)}
         </div>
-        <div style={{ flex: 1, minWidth: 220 }}><Buscador placeholder="Buscar por nombre" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar cliente" /></div>
+        {f.ver !== 'vender' && <div style={{ flex: 1, minWidth: 220 }}><Buscador placeholder="Buscar por nombre" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar cliente" /></div>}
       </div>
-      {isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay clientes. Se agregan acá o al vender.'}</p></div> : f.ver === 'tabla' ? (
+      {/* Los que dejaron de comprar, en su pestaña: arriba de la lista empujaban a los clientes fuera de la pantalla. */}
+      {f.ver === 'vender' ? <ParaVender onFicha={(id) => { const c = data?.find((x) => x.id === id); if (c) setEditando(c); }} /> : isLoading ? <Cargando /> : !data?.length ? <div className="hoja vacio"><p>{f.q ? 'Nadie con ese nombre.' : 'Todavía no hay clientes. Se agregan acá o al vender.'}</p></div> : f.ver === 'tabla' ? (
         // Todos los clientes juntos con su precio acordado por maple y su condición de pago.
         <div className="hoja tabla-scroll">
           <table className="tabla-balance">
@@ -140,7 +140,7 @@ function FichaCliente({ inicial, onCerrar }: { inicial: Partial<Cliente>; onCerr
       )}
       <Aviso>{error}</Aviso>
       <div className="acciones">
-        {!nuevo && puede('ventas', 3) && <button className="boton fantasma" onClick={() => setBorrar(true)}>Dar de baja</button>}
+        {!nuevo && puede('ventas', 3) && <button className="boton fantasma peligro" onClick={() => setBorrar(true)}>Dar de baja</button>}
         <button className="boton secundario" onClick={onCerrar}>{editable ? 'Cancelar' : 'Cerrar'}</button>
         {editable && <button className="boton primario" onClick={guardar}>{nuevo ? 'Agregar cliente' : 'Guardar cambios'}</button>}
       </div>

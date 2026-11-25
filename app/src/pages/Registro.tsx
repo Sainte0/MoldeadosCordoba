@@ -9,24 +9,24 @@ interface Evento { id: string; accion: string; entidad: string; entidadId: strin
 const ACCION: Record<string, string> = { crear: 'cargó', editar: 'editó', anular: 'anuló', borrar: 'dio de baja', ajustar: 'corrigió el stock de', login: 'entró al sistema' };
 const ENTIDAD: Record<string, string> = {
   compra: 'una compra', proveedor: 'un proveedor', materia_prima: 'una materia prima', usuario: 'un usuario', permiso: 'un permiso',
-  maquina: 'una máquina', variante: 'un código de maple', empleado: 'una persona del personal', parte: 'una producción', palet: 'un palet',
+  maquina: 'una máquina', variante: 'un código de maple', empleado: 'una persona del personal', parte: 'una producción', palet: 'un pallet',
   empresa: 'los datos de la empresa', cliente: 'un cliente', venta: 'una venta', cobro: 'un cobro', pago: 'un pago', precio: 'un precio',
   banco: 'un banco', gasto: 'un egreso', categoria_gasto: 'una categoría de egresos', caja: 'la caja chica', instructivo: 'un instructivo',
-  procedimiento: 'un procedimiento', importacion: 'una importación', pedido: 'un pedido', recordatorio: 'un recordatorio',
+  procedimiento: 'un procedimiento', importacion: 'una importación', pedido: 'un pedido', recordatorio: 'un recordatorio', chofer: 'un chofer', orden: 'una orden de venta',
 };
 // Dónde se ve cada cosa (las pantallas de detalle aceptan el id y lo cambian por el número).
 const ENLACE: Record<string, (id: string) => string> = {
   compra: (id) => `/compras/${id}`, venta: (id) => `/ventas/${id}`, palet: (id) => `/palets/${id}`, parte: (id) => `/produccion/${id}`,
-  pedido: (id) => `/pedidos/${id}`, cliente: (id) => `/cuentas/cliente/${id}`, proveedor: (id) => `/cuentas/proveedor/${id}`, recordatorio: (id) => `/agenda/${id}`,
+  pedido: (id) => `/pedidos/${id}`, orden: (id) => `/ordenes/${id}`, cliente: (id) => `/cuentas/cliente/${id}`, proveedor: (id) => `/cuentas/proveedor/${id}`, recordatorio: (id) => `/agenda/${id}`,
 };
 // "Qué": agrupado como lo piensa alguien de la fábrica, no como está guardado.
 const QUE: { valor: string; texto: string }[] = [
   { valor: '', texto: 'Todo' },
-  { valor: 'venta,pedido,cliente,precio', texto: 'Ventas, pedidos y clientes' },
+  { valor: 'orden,venta,pedido,cliente,chofer,precio', texto: 'Órdenes, ventas y clientes' },
   { valor: 'cobro,pago,banco,caja', texto: 'Cobros, pagos y caja' },
   { valor: 'gasto,categoria_gasto', texto: 'Egresos' },
   { valor: 'compra,proveedor,materia_prima', texto: 'Compras y materia prima' },
-  { valor: 'parte,palet', texto: 'Producción y palets' },
+  { valor: 'parte,palet', texto: 'Producción y pallets' },
   { valor: 'variante,maquina,empleado', texto: 'Maples, máquinas y personal' },
   { valor: 'usuario,permiso,empresa,instructivo,procedimiento,importacion', texto: 'Ajustes e importaciones' },
   { valor: 'recordatorio', texto: 'Agenda' },

@@ -94,6 +94,17 @@ export function Equipo() {
   );
 }
 
+// Qué hace cada rol, en una línea, para elegir sin tener que mirar la tabla de permisos.
+const QUE_HACE: Record<Rol, string> = {
+  dueno: 'Ve y hace todo',
+  gerente: 'Todo menos el equipo: emite órdenes de venta y anula pallets',
+  administracion: 'Ventas, compras, cobros, pagos y egresos',
+  encargado: 'Planta: pallets, carga, materia prima y entrada de cartón',
+  operario: 'Plastificadora, carga de camiones y entrada de cartón',
+};
+// "Juan Pérez" → "juan.perez" (sin acentos ni espacios), mientras no lo escriban a mano.
+const sugerirUsuario = (n: string) => n.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '');
+
 function EditarUsuario({ inicial, onCerrar }: { inicial: Partial<Usuario>; onCerrar: () => void }) {
   const { sesion } = useSesion();
   const qc = useQueryClient();
@@ -119,13 +130,13 @@ function EditarUsuario({ inicial, onCerrar }: { inicial: Partial<Usuario>; onCer
 
   return (
     <Dialogo titulo={inicial.id ? inicial.nombre ?? '' : 'Agregar persona'} onCerrar={onCerrar}>
-      <Campo etiqueta="Nombre y apellido"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus /></Campo>
+      <Campo etiqueta="Nombre y apellido"><Entrada value={nombre} onChange={(e) => { if (!inicial.id && usuario === sugerirUsuario(nombre)) setUsuario(sugerirUsuario(e.target.value)); setNombre(e.target.value); }} autoFocus /></Campo>
       <Campo etiqueta="Usuario" ayuda="Con esto entra. Sin espacios, ej.: juan.perez"><Entrada value={usuario} onChange={(e) => setUsuario(e.target.value)} autoCapitalize="none" /></Campo>
       <Campo etiqueta="Mail" ayuda="Opcional. Con el mail puede recuperar la contraseña sola, con un código."><Entrada type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoCapitalize="none" autoComplete="off" placeholder="nombre@ejemplo.com" /></Campo>
       <Campo etiqueta={inicial.id ? 'Contraseña nueva' : 'Contraseña'} ayuda={inicial.id ? 'Dejalo vacío para no cambiarla' : 'Al menos 6 caracteres. Pasásela en persona.'}>
         <Entrada type="text" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
       </Campo>
-      <Campo etiqueta="Rol"><Opciones columnas valor={rol} onChange={setRol} opciones={roles.map((r) => ({ valor: r, titulo: LABEL_ROL[r] }))} /></Campo>
+      <Campo etiqueta="Rol"><Opciones columnas valor={rol} onChange={setRol} opciones={roles.map((r) => ({ valor: r, titulo: LABEL_ROL[r], detalle: QUE_HACE[r] }))} /></Campo>
       {inicial.id && <Opciones columnas valor={activo} onChange={setActivo} opciones={[{ valor: true, titulo: 'Puede entrar' }, { valor: false, titulo: 'Sin acceso', detalle: 'Lo que cargó queda registrado' }]} />}
       <Aviso>{error}</Aviso>
       <div className="acciones">
@@ -217,7 +228,7 @@ function DatosEmpresa({ editable }: { editable: boolean }) {
   const campo = (k: string, etiqueta: string) => <Campo etiqueta={etiqueta}><Entrada value={d[k] ?? ''} disabled={!editable} onChange={(e) => setD({ ...d, [k]: e.target.value })} /></Campo>;
   return (
     <section>
-      <Cabecera titulo="Datos de la empresa" bajada="Salen en los tickets de cartón y en las etiquetas de los palets." />
+      <Cabecera titulo="Datos de la empresa" bajada="Salen en los tickets de cartón y en las etiquetas de los pallets." />
       <div className="hoja relleno" style={{ display: 'grid', gap: 14 }}>
         {campo('razonSocial', 'Razón social')}
         {campo('direccion', 'Dirección')}

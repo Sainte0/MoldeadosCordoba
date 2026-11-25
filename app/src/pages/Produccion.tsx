@@ -33,7 +33,7 @@ export function Produccion() {
 
   return (
     <div className="ancho" style={{ display: 'grid', gap: 18 }}>
-      <Cabecera titulo="Producción" bajada="Lo que hizo cada máquina, cuánto rindió y qué se gastó.">
+      <Cabecera titulo="Producción por turno" bajada="Opcional, para costos: lo que hizo cada máquina y qué se gastó. Los pallets entran al stock desde Planta › Plastificadora, no desde acá.">
         {puede('produccion', 2) && <Link to="/produccion/nuevo" className="boton primario"><Plus size={18} aria-hidden /> Cargar producción</Link>}
       </Cabecera>
 

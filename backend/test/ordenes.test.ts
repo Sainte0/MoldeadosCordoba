@@ -8,7 +8,7 @@ describe('pedido 01: pallet de plastificadora y orden de venta con QR (moldeados
   let u: string, roj: string, nat: string, cliente: string;
 
   beforeEach(async () => {
-    await db.raw('truncate orden_palets, orden_items, ordenes, chofer_clientes, choferes, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, variantes, maquinas, auditoria, usuarios cascade');
+    await db.raw('truncate orden_palets, orden_items, ordenes, pedido_items, pedidos, chofer_clientes, choferes, movimientos_dinero, venta_items, ventas, precios_cliente, clientes, palet_lotes, palets, variantes, maquinas, auditoria, usuarios cascade');
     [{ id: u }] = await db('usuarios').insert({ nombre: 'Gerente', usuario: 'gerente', password_hash: 'x', rol: 'gerente' }).returning('id');
     const [{ id: maq }] = await db('maquinas').insert({ codigo: 'MP-1', nombre: 'Chica' }).returning('id');
     [{ id: roj }] = await db('variantes').insert({ codigo: 'MCH-ROJ', nombre: 'Chico rojo', tamano: 'chico', color: 'Rojo', maquina_id: maq, precio_maple_centavos: 10000 }).returning('id');
@@ -19,7 +19,7 @@ describe('pedido 01: pallet de plastificadora y orden de venta con QR (moldeados
 
   const pallet = async (varianteId: string, alto: number) => (await cargarPalletPlastificado(db, u, { varianteId, alto })).numero;
   const orden = (items: { varianteId: string; alto: number; cantidad: number }[], condicionPago: 'cuenta1' | 'cuenta2' | 'mixta' = 'mixta') =>
-    crearOrden(db, u, { clienteId: cliente, choferId: null, condicionPago, porcentajeCuenta1: condicionPago === 'mixta' ? 10 : null, items, notas: null });
+    crearOrden(db, u, { clienteId: cliente, choferId: null, pedidoId: null, condicionPago, porcentajeCuenta1: condicionPago === 'mixta' ? 10 : null, items, notas: null });
 
   it('el pallet entra al stock sin producción: 7 de alto = 42 paquetes = 2.520 maples, visto por tipo y alto', async () => {
     await pallet(roj, 7); await pallet(roj, 7); await pallet(roj, 6);
@@ -81,6 +81,19 @@ describe('pedido 01: pallet de plastificadora y orden de venta con QR (moldeados
     expect(await db('ventas').where({ orden_id: o2.id }).count('* as c').first()).toMatchObject({ c: 0 });
     const o3 = await orden([{ varianteId: roj, alto: 7, cantidad: 1 }], 'cuenta1');
     expect(await escanear(db, u, o3.id, String(b))).toMatchObject({ completa: true }); // volvió al stock al cancelar
+  });
+
+  it('orden que sale de un pedido: al cerrarla el pedido se da por entregado; al anular la venta vuelve a abierto', async () => {
+    const a = await pallet(roj, 7);
+    const [{ id: pedidoId }] = await db('pedidos').insert({ cliente_id: cliente, usuario_id: u }).returning('id');
+    await db('pedido_items').insert({ pedido_id: pedidoId, variante_id: roj, paquetes: 42 });
+    const o = await crearOrden(db, u, { clienteId: cliente, choferId: null, pedidoId, condicionPago: 'cuenta1', porcentajeCuenta1: null, items: [{ varianteId: roj, alto: 7, cantidad: 1 }], notas: null });
+    expect(await escanear(db, u, o.id, String(a))).toMatchObject({ completa: true });
+    expect(await db('pedidos').where({ id: pedidoId }).first('estado')).toMatchObject({ estado: 'entregado' });
+    const v = await db('ventas').where({ orden_id: o.id }).first('id', 'pedido_id');
+    expect(v.pedido_id).toBe(pedidoId);
+    await anularVenta(db, u, v.id, 'error de carga');
+    expect(await db('pedidos').where({ id: pedidoId }).first('estado')).toMatchObject({ estado: 'abierto' });
   });
 
   it('reparto por pallet: siempre suma los maples cargados', () => {

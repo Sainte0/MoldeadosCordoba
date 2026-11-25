@@ -7,6 +7,13 @@ import { useDemorado, useFiltros } from '../filtros';
 import { BotonExportar } from './Exportar';
 import { Buscador, Cabecera, Cargando, Entrada, MasFiltros } from '../ui';
 
+/** "25 nov" en el año; "28 sept 2025" si es de otro año. */
+const fechaLista = (f: string) => {
+  const d = new Date(`${f}T12:00:00-03:00`);
+  const otroAnio = f.slice(0, 4) !== new Date().toLocaleDateString('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).slice(0, 4);
+  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short', ...(otroAnio ? { year: 'numeric' } : {}), timeZone: 'America/Argentina/Buenos_Aires' }).replace('.', '').replace(/ de /g, ' ');
+};
+
 interface VentaFila { id: string; numero: number; fecha: string; total: number; conFactura: boolean; retira: string | null; anuladoAt: string | null; cliente: string; palets: number; maples: number; segunda: boolean; cobro: { cobrado: number; debe: number } | null; firmado: boolean; ordenId: string | null }
 
 export function Ventas() {
@@ -23,13 +30,15 @@ export function Ventas() {
         {puede('ventas', 3) && <Link to="/ordenes/nueva" className="boton primario grande"><Truck size={20} aria-hidden /> Orden de venta</Link>}
       </Cabecera>
       {/* Cuenta 2 es un sector aparte de las ventas. */}
-      <div className="pestanas" role="group" aria-label="Cuenta" style={{ marginBottom: 12 }}>
-        <button aria-pressed={f.cuenta !== '2'} onClick={() => setF({ cuenta: '1' })}>Cuenta 1</button>
-        <button aria-pressed={f.cuenta === '2'} onClick={() => setF({ cuenta: '2' })}>Cuenta 2</button>
-      </div>
-      <div className="pestanas" role="group" aria-label="Estado de cobro" style={{ marginBottom: 12 }}>
-        <button aria-pressed={f.cobro !== 'pendientes'} onClick={() => setF({ cobro: '' })}>Todas</button>
-        <button aria-pressed={f.cobro === 'pendientes'} onClick={() => setF({ cobro: 'pendientes' })}>Pendientes de cobro</button>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+        <div className="pestanas" role="group" aria-label="Cuenta">
+          <button aria-pressed={f.cuenta !== '2'} onClick={() => setF({ cuenta: '1' })}>Cuenta 1</button>
+          <button aria-pressed={f.cuenta === '2'} onClick={() => setF({ cuenta: '2' })}>Cuenta 2</button>
+        </div>
+        <div className="pestanas" role="group" aria-label="Estado de cobro">
+          <button aria-pressed={f.cobro !== 'pendientes'} onClick={() => setF({ cobro: '' })}>Todas</button>
+          <button aria-pressed={f.cobro === 'pendientes'} onClick={() => setF({ cobro: 'pendientes' })}>Sin cobrar</button>
+        </div>
       </div>
       <div style={{ marginBottom: 12 }}><Buscador placeholder="Buscar cliente, n.º de remito, quién retiró o patente" value={f.q} onChange={(e) => setF({ q: e.target.value })} aria-label="Buscar ventas" /></div>
       <div style={{ marginBottom: 12 }}>
@@ -47,15 +56,16 @@ export function Ventas() {
               <Link key={v.id} to={`/ventas/${v.numero}`} className={`fila${v.anuladoAt ? ' anulada' : ''}`}>
                 <div>
                   <div className="principal">{v.cliente}</div>
-                  <div className="chico tenue">{verFecha(v.fecha)} · Remito {nroTicket(v.numero)} {v.maples > 0 ? ` · ${v.palets ? `${plural(v.palets, 'palet', 'palets')}, ` : ''}${plural(v.maples, 'maple', 'maples')}` : ''}{v.segunda ? ' · segunda' : ''}{v.retira ? ` · retiró ${v.retira}` : ''}</div>
+                  <div className="chico tenue">{fechaLista(v.fecha)}{v.maples > 0 ? ` · ${plural(v.maples, 'maple', 'maples')}` : ''}{v.segunda ? ' · segunda' : ''}</div>
+                  <div className="chico tenue">Remito {nroTicket(v.numero)}{v.retira ? ` · ${v.retira}` : ''}</div>
                 </div>
                 <div className="derecha" style={{ display: 'grid', gap: 4, justifyItems: 'end' }}>
                   <div className="cifra">{formatPesos(v.total)}</div>
+                  {/* Solo se marca lo que pide atención: cobrada es lo normal y no lleva marca. */}
                   {v.anuladoAt ? <span className="marca-texto peligro">Anulada</span>
-                    : !v.cobro || v.cobro.debe <= 0 ? <span className="marca-texto ok">Cobrado</span>
+                    : !v.cobro || v.cobro.debe <= 0 ? null
                     : v.cobro.cobrado > 0 ? <span className="marca-texto alerta">Debe {formatPesos(v.cobro.debe)}</span>
-                    : <span className="marca-texto alerta">Pendiente</span>}
-                  {!v.anuladoAt && !v.firmado && !v.ordenId && <span className="marca-texto">Sin firmar</span>}
+                    : <span className="marca-texto alerta">Sin cobrar</span>}
                 </div>
               </Link>
             ))}

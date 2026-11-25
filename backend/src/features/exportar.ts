@@ -34,7 +34,7 @@ const entre = (col: string, p: Periodo) => (q: Knex.QueryBuilder) => { if (p.des
 
 /** Cada conjunto exportable: quién lo puede bajar, si usa período, y cómo se arma. */
 const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boolean; armar: (p: Periodo) => Promise<Buffer> }> = {
-  ventas: { titulo: 'Ventas (un renglón por palet)', modulo: 'ventas', periodo: true, armar: async (p) => csv(
+  ventas: { titulo: 'Ventas (un renglón por pallet)', modulo: 'ventas', periodo: true, armar: async (p) => csv(
     await db('venta_items as i').join('ventas as v', 'v.id', 'i.venta_id').join('clientes as c', 'c.id', 'v.cliente_id').leftJoin('palets as pa', 'pa.id', 'i.palet_id').join('variantes as va', 'va.id', 'i.variante_id')
       .modify(entre('v.fecha', p)).orderBy(['v.fecha', 'v.numero', 'pa.numero'])
       .select('v.fecha', 'v.numero', 'c.nombre as cliente', 'c.cuit', 'v.retira', 'v.vehiculo', 'v.patente', 'pa.numero as palet', 'va.codigo', 'i.calidad', 'i.maples', 'i.precio_maple_centavos as precio', 'i.subtotal_centavos as subtotal',
@@ -64,7 +64,7 @@ const CONJUNTOS: Record<string, { titulo: string; modulo: Modulo; periodo: boole
       .whereNull('p.anulado_at').modify(entre('p.fecha', p)).orderBy(['p.fecha', 'p.numero', 'm.nombre'])
       .select('p.fecha', 'p.numero', 'v.codigo', 'm.nombre as materia', 'm.unidad', 'c.teorico', 'c.real'),
     [['Fecha', 'fecha', fecha], ['Parte', 'numero', nro], ['Código', 'codigo'], ['Materia prima', 'materia'], ['Unidad', 'unidad', (v) => (v === 'kg' ? 'kg' : 'L')], ['Según receta', 'teorico', mili], ['Usado', 'real', mili]]) },
-  palets: { titulo: 'Palets', modulo: 'produccion', periodo: false, armar: async () => csv(
+  palets: { titulo: 'Pallets', modulo: 'produccion', periodo: false, armar: async () => csv(
     await db('palets as pa').join('variantes as v', 'v.id', 'pa.variante_id').leftJoin('ventas as ve', 've.id', 'pa.venta_id').leftJoin('clientes as c', 'c.id', 've.cliente_id')
       .orderBy('pa.numero').select('pa.numero', 'pa.created_at', 'v.codigo', 'pa.paquetes', db.raw('pa.paquetes * v.maples_por_paquete as maples'), db.raw("pa.ancho || 'x' || pa.largo || 'x' || pa.alto as armado"),
         'pa.vehiculo', 'pa.destino', db.raw("case when pa.anulado_at is not null then 'Desarmado' when pa.venta_id is not null then 'Vendido' else 'Listo para salir' end as estado"), 've.numero as remito', 'c.nombre as cliente'),

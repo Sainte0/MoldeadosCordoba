@@ -105,7 +105,7 @@ export function useSesion(): Ctx {
 export const hoy = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
 
 const fmtFecha = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-const fmtHora = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+const fmtHora = new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Argentina/Buenos_Aires' });
 /** 'YYYY-MM-DD' (columna date) → "3 nov 2026". */
 export const verFecha = (d: string) => fmtFecha.format(new Date(d + 'T00:00:00Z'));
 /** timestamp → "3 nov, 14:05" en hora Argentina. */

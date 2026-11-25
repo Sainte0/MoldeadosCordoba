@@ -987,7 +987,7 @@ a.fila:active, button.fila:active { background: #ececf0; }
 /* Botón "fantasma": ya no es texto suelto, tiene fondo y forma de botón. */
 .boton.fantasma { background: rgba(118, 118, 128, 0.12); color: var(--tinta); padding: 0 16px; }
 .boton.fantasma:hover { background: rgba(118, 118, 128, 0.2); }
-.boton.fantasma.peligro, .dialogo .boton.fantasma { color: var(--peligro); background: var(--peligro-claro); }
+.boton.fantasma.peligro { color: var(--peligro); background: var(--peligro-claro); }
 /* Renglón que abre algo: flecha a la derecha, como en iOS (si no trae la suya). */
 a.fila:not(:has(.lucide-chevron-right)):not(.mostrar-mas), button.fila:not(:disabled):not(:has(.lucide-chevron-right)):not(.mostrar-mas) {
   padding-right: 36px;
@@ -1001,4 +1001,36 @@ a.fila:not(:has(.lucide-chevron-right)):not(.mostrar-mas), button.fila:not(:disa
 @media (max-width: 560px) {
   .dialogo .acciones:not(.confirmar) { display: flex; flex-direction: column-reverse; align-items: stretch; }
   .dialogo .acciones:not(.confirmar) .boton { width: 100%; justify-content: center; min-height: 50px; }
+}
+
+/* Auditoría A: Hoy y la barra. */
+/* En el iPhone el escáner está en la barra de abajo: el chip "Escanear un pallet" de Hoy solo en iPad y compu. */
+@media (max-width: 760px) { .chip-carga.solo-ancho, .otras-cargas.solo-ancho { display: none; } }
+/* ⌘K no significa nada en una pantalla táctil. */
+@media (hover: none) { .abrir-buscador kbd { display: none; } }
+/* Avisos: los títulos de cada parte (Para atender / Recordatorios y pedidos). */
+.dialogo h3 + .atencion-lista { margin-top: 0; }
+
+/* Auditoría C (Ventas) */
+/* Aviso informativo (no es un error): azul suave en vez del rojo de .aviso. */
+.aviso.info { background: var(--accion-suave); color: #2b3a55; font-weight: 400; }
+/* Remito en el iPhone: los números no se parten en dos renglones ("00000 / 2"). */
+@media (max-width: 520px) {
+  .remito-tabla { font-size: 0.75rem; }
+  .remito-tabla td { white-space: nowrap; }
+  .remito-tabla th, .remito-tabla td { padding-left: 2px; padding-right: 2px; }
+  .remito-tabla .con-muestra > :first-child { display: none; }
+}
+
+/* Auditoría D: Compras, Plata, Ajustes. */
+/* Ticket de compra en el iPhone: los números y encabezados no se parten a mitad de palabra. */
+.ticket th, .ticket td { white-space: nowrap; padding-right: 10px; }
+.ticket td:first-child { white-space: normal; }
+.ticket td:last-child, .ticket th:last-child { padding-right: 0; }
+@media (max-width: 760px) { .ticket table { font-size: 0.85rem; } .ticket table .cifra { font-size: 1.15rem !important; } }
+
+/* Pestañas del área en el iPhone: entran todas a lo ancho, sin cortarse ("Cl…", "Materia prim"). */
+@media (max-width: 759px) {
+  .subnav { display: flex; width: 100%; }
+  .subnav a { flex: 1 1 auto; justify-content: center; padding: 5px 6px; font-size: 0.82rem; }
 }

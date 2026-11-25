@@ -217,7 +217,8 @@ export async function ventasRoutes(app: FastifyInstance): Promise<void> {
       .first('v.id', 'v.numero', 'v.fecha', 'v.con_factura as conFactura', 'v.nro_factura as nroFactura', 'v.iva_bp as ivaBp', 'v.neto_centavos as neto', 'v.iva_centavos as iva',
         'v.total_centavos as total', 'v.vehiculo', 'v.patente', 'v.retira', 'v.notas', 'v.created_at as cargadaAt', 'v.anulado_at as anuladoAt', 'v.motivo_anulacion as motivoAnulacion',
         'ua.nombre as anuladoPor', 'u.nombre as cargadoPor', 'c.id as clienteId', 'c.nombre as cliente', 'c.cuit as clienteCuit', 'c.direccion as clienteDireccion',
-        'v.firma_id as firmaId', 'v.firmado_at as firmadoAt', 'v.pedido_id as pedidoId', db.raw('(select numero from pedidos where id = v.pedido_id) as "pedidoNumero"'));
+        'v.firma_id as firmaId', 'v.firmado_at as firmadoAt', 'v.pedido_id as pedidoId', db.raw('(select numero from pedidos where id = v.pedido_id) as "pedidoNumero"'),
+        db.raw('(select numero from ordenes where id = v.orden_id) as "ordenNumero"'));
     if (!v) throw new NotFoundError('No encontramos esa venta');
     const items = await db('venta_items as i').leftJoin('palets as p', 'p.id', 'i.palet_id').join('variantes as va', 'va.id', 'i.variante_id').where('i.venta_id', v.id)
       .select('i.id', 'p.id as paletId', 'p.numero as palet', 'p.suelto', 'p.paquetes', 'va.codigo', 'va.nombre as variante', 'va.color_hex as colorHex', 'i.maples', 'i.precio_maple_centavos as precioMaple', 'i.subtotal_centavos as subtotal', 'i.calidad')

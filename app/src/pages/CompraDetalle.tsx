@@ -63,7 +63,7 @@ export function CompraDetalle() {
       </header>
       <div className="no-imprimir" style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <button className="boton secundario" onClick={() => window.print()}><Printer size={18} aria-hidden /> Imprimir</button>
-        {!c.anuladaAt && puede('compras', 3) && <button className="boton fantasma" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
+        {!c.anuladaAt && puede('compras', 3) && <button className="boton fantasma peligro" onClick={() => setAnulando(true)}><Ban size={18} aria-hidden /> Anular</button>}
       </div>
       <article className="ticket">
         <div className="encabezado">

@@ -4,8 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Camera, X } from 'lucide-react';
 import { aCentavos, formatPesos, LABEL_MEDIO_GASTO, MEDIOS_GASTO, type MedioGasto } from '@moldeados/shared/base';
 import { api, comprimirFoto, hoy, verFecha } from '../api';
-import { useBancos, useCaja, useCategoriasGasto, useEmpleados } from '../datos';
-import { Asistente, Aviso, Campo, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
+import { useBancos, useCaja, useCategoriasGasto, useEmpleados, useProveedores } from '../datos';
+import { Asistente, Aviso, Campo, Cargando, Entrada, EntradaNumero, Opciones, type Paso } from '../ui';
 
 // ponytail: la categoría "de sueldos" se reconoce por el nombre; si renombran todo, agregar un tipo a la categoría.
 const esSueldo = (nombre?: string) => !!nombre && /sueldo|adelanto|jornal/i.test(nombre);
@@ -18,6 +18,8 @@ export function NuevoGasto() {
   const { data: empleados } = useEmpleados();
   const { data: bancos } = useBancos();
   const { data: caja } = useCaja();
+  const { data: proveedores } = useProveedores('');
+  const [enDolares, setEnDolares] = useState(false);
 
   const [categoriaId, setCategoriaId] = useState<string | null>(null);
   const [monto, setMonto] = useState('');
@@ -46,7 +48,7 @@ export function NuevoGasto() {
     {
       titulo: '¿De qué es el egreso?',
       ayuda: 'Elegí la categoría. Así el balance muestra en qué se va la plata, como el desglose por categoría de la planilla.',
-      contenido: <Opciones columnas valor={categoriaId} onChange={setCategoriaId} opciones={(categorias ?? []).filter((c) => c.activo).map((c) => ({ valor: c.id, titulo: c.nombre }))} />,
+      contenido: !categorias ? <Cargando /> : <Opciones columnas valor={categoriaId} onChange={setCategoriaId} opciones={(categorias ?? []).filter((c) => c.activo).map((c) => ({ valor: c.id, titulo: c.nombre }))} />,
       listo: categoriaId ? true : 'Elegí una categoría',
       rapido: true,
     },
@@ -57,8 +59,12 @@ export function NuevoGasto() {
         <>
           <EntradaNumero enorme unidad="$" value={monto} onChange={(e) => setMonto(e.target.value)} autoFocus aria-label="Monto" />
           <Campo etiqueta="Concepto / descripción"><Entrada value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder={esSueldo(categoria?.nombre) ? 'Adelanto quincena' : 'Ej.: materiales eléctricos'} /></Campo>
-          {!esSueldo(categoria?.nombre) && <Campo etiqueta="Proveedor / beneficiario" ayuda="Opcional"><Entrada value={beneficiario} onChange={(e) => setBeneficiario(e.target.value)} placeholder="Ej.: Electro Alem, ARCA, Kevin" /></Campo>}
-          <Campo etiqueta="Monto en dólares" ayuda="Opcional, solo si se pagó en dólares (ej.: tinta importada)"><EntradaNumero unidad="US$" value={usd} onChange={(e) => setUsd(e.target.value)} /></Campo>
+          {!esSueldo(categoria?.nombre) && <Campo etiqueta="Proveedor / beneficiario" ayuda="Opcional"><Entrada list="egreso-proveedores" value={beneficiario} onChange={(e) => setBeneficiario(e.target.value)} placeholder="Ej.: Electro Alem, ARCA, Kevin" autoComplete="off" />
+            {/* Sugiere los proveedores ya cargados para no escribir el mismo de dos formas; también acepta otro (ARCA, una persona). */}
+            <datalist id="egreso-proveedores">{(proveedores ?? []).map((p) => <option key={p.id} value={p.nombre} />)}</datalist></Campo>}
+          {/* Dólares: casi nunca; queda plegado para no sumar un campo a cada egreso. */}
+          {enDolares || usd ? <Campo etiqueta="Monto en dólares" ayuda="Solo si se pagó en dólares (ej.: tinta importada)"><EntradaNumero unidad="US$" value={usd} onChange={(e) => setUsd(e.target.value)} autoFocus /></Campo>
+            : <button type="button" className="boton secundario" style={{ justifySelf: 'start' }} onClick={() => setEnDolares(true)}>Se pagó en dólares</button>}
           {esSueldo(categoria?.nombre) && (
             <Campo etiqueta="¿A quién?">
               <Opciones columnas valor={empleadoId} onChange={setEmpleadoId} opciones={(empleados ?? []).filter((e) => e.activo).map((e) => ({ valor: e.id, titulo: e.nombre }))} />

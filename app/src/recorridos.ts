@@ -7,9 +7,8 @@ const SIGUIENTE = '.paso-acciones button[type=submit]';
 
 export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
   inicio: [
-    { ruta: '/', en: '.planilla .cifras, .tareas', texto: 'Hoy: arriba el resumen del día; abajo, las órdenes para cargar, los pallets que salieron de la plastificadora, lo vendido y lo que hay en la fábrica por tipo y alto.' },
-    { en: '[data-guia="atencion"]', texto: 'Atención: lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos). El número en rojo es lo urgente; adentro, cada cosa trae su botón para resolverla.' },
-    { en: '.campana', texto: 'La campana: recordatorios de la agenda, lo que te agendaron y los pedidos nuevos. El número rojo es lo que no leíste.' },
+    { ruta: '/', en: '.accesos-grandes, .planilla .cifras, .tareas', texto: 'Hoy: arriba, en grande, lo de todos los días según tu puesto; abajo, las órdenes para cargar, lo que hay en la fábrica por tipo y alto, los pallets de hoy y lo vendido.' },
+    { en: '[data-guia="atencion"]', texto: 'La campana: arriba, lo que no puede esperar (stock agotado, pedidos atrasados, cheques, vencimientos), cada cosa con su botón para resolverla; abajo, los recordatorios y pedidos nuevos.' },
     { en: '.barra-inferior, .lateral', texto: 'Para moverte: en el iPhone, la barra de abajo (Inicio, tu tarea principal, Escanear un palet, Buscar y "Más" con todas las secciones). En el iPad y la computadora, el menú del costado: Planta, Ventas, Compras, Plata y Tablero, con Buscar arriba y Ajustes y Ayuda abajo.' },
   ],
   buscar: [
@@ -28,16 +27,6 @@ export const RECORRIDOS: Record<string, PasoRecorrido[]> = {
   palet: [
     { ruta: '/plastificar', en: '.tecla-grupo', texto: 'Tocá tamaño, color y alto. Botones grandes, nada para escribir.' },
     { en: '.tecla-confirmar', texto: 'Confirmar: el pallet entra al stock y sale la etiqueta con su QR para pegar en el film.' },
-  ],
-  planilla: [
-    { ruta: '/', en: '.planilla .cifras', texto: 'El resumen del día: pallets que salieron, lo vendido, lo cobrado y lo que hay en la fábrica. Cada tarjeta se toca.' },
-    { en: '.planilla > section:first-of-type', texto: 'Las órdenes para cargar (o, si no ves ventas, los pallets de hoy). Tocá una para abrirla.' },
-    { en: '.planilla > section:last-of-type', texto: 'En la fábrica: los pallets por tipo y alto.' },
-  ],
-  parte: [
-    { ruta: '/produccion/nuevo', en: '.paso-cuerpo .opciones', texto: 'Primero el turno. Si cargás un turno de otro día, cambiá la fecha abajo.' },
-    { en: '.paso-cuerpo input[type=date]', texto: 'La fecha del turno. Por defecto, hoy.' },
-    { en: SIGUIENTE, texto: 'Después: máquina, maple, quiénes trabajaron (ya vienen marcados los del turno), horas, paquetes y lo que se usó.' },
   ],
   pesaje: [
     { ruta: '/pesaje', en: '.paso-cuerpo .opciones, .paso-cuerpo .tenue', texto: 'Elegí el proveedor del camión que está en la báscula. Tocándolo pasa solo al paso siguiente.' },

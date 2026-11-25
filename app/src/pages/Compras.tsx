@@ -48,7 +48,7 @@ export function Compras() {
         <div className="hoja vacio"><p>No hay compras {desde || hasta || tipo ? 'con estos filtros' : 'cargadas todavía'}.</p></div>
       ) : (
         <>
-          <p className="tenue chico" style={{ marginBottom: 8 }}>{data.length} en esta página · {formatPesos(total)} sin contar anuladas</p>
+          <p className="tenue chico" style={{ marginBottom: 8 }}>{data.length === 1 ? '1 compra' : `${data.length} compras`} · {formatPesos(total)}</p>
           <div className="hoja filas">
             {data.map((c) => (
               <Link key={c.id} to={`/compras/${c.numero}`} className={`fila${c.anuladaAt ? ' anulada' : ''}`}>

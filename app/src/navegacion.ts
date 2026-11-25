@@ -10,7 +10,7 @@ export interface Area { texto: string; icono: typeof Home; pestanas: Pestana[]; 
 export const AREAS: Area[] = [
   // La producción por turno queda escondida (pedido 01: más adelante para costos); sus rutas siguen andando.
   { texto: 'Planta', icono: Factory, tambien: ['/escanear', '/produccion'], pestanas: [
-    { a: '/palets', texto: 'Stock de pallets', modulo: 'produccion' },
+    { a: '/palets', texto: 'Stock', modulo: 'produccion' },
     { a: '/plastificar', texto: 'Plastificadora', modulo: 'produccion' },
     { a: '/materia-prima', texto: 'Materia prima', modulo: 'materias' },
   ] },
@@ -48,9 +48,10 @@ export const TAREAS: { a: string; titulo: string; corto: string; detalle: string
   { a: '/plastificar', titulo: 'Pallet terminado', corto: 'Pallet', detalle: 'Salió de la plastificadora: entra al stock con su etiqueta', icono: Layers, modulo: 'produccion' },
   { a: '/ordenes', titulo: 'Cargar camión', corto: 'Carga', detalle: 'Escanear los pallets de una orden', icono: ScanLine, modulo: 'produccion' },
   { a: '/ordenes/nueva', titulo: 'Orden de venta', corto: 'Orden', detalle: 'Cliente, chofer y qué se lleva', icono: Truck, modulo: 'ventas', nivel: 3 },
-  { a: '/pesaje', titulo: 'Entrada de cartón', corto: 'Cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
   { a: '/dinero/nuevo?tipo=cobro', titulo: 'Pago a cuenta', corto: 'Cobro', detalle: 'Un cliente paga: efectivo, transferencia o cheque', icono: Wallet, modulo: 'cuentas' },
   { a: '/egresos/nuevo', titulo: 'Cargar egreso', corto: 'Egreso', detalle: 'Pagado o pendiente, con foto del comprobante', icono: Coins, modulo: 'gastos' },
+  // El cartón también se anota tocándolo en Materia prima (Hoy): por eso va después de cobros y egresos.
+  { a: '/pesaje', titulo: 'Entrada de cartón', corto: 'Cartón', detalle: 'Llegó un camión a la báscula', icono: Scale, modulo: 'compras' },
   { a: '/pedidos/nuevo', titulo: 'Nuevo pedido', corto: 'Pedido', detalle: 'Un cliente encarga maples', icono: ClipboardList, modulo: 'ventas' },
   { a: '/compras/nueva', titulo: 'Compra de insumos', corto: 'Compra', detalle: 'Tinta, aglutinante u otros', icono: ShoppingCart, modulo: 'compras' },
 ];

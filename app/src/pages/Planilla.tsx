@@ -7,8 +7,8 @@ import { api, hoy, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { Muestra } from '../MapleVista';
 import { porMaple, type StockPallet } from './Plastificar';
 
-// Hoy (el inicio): todo lo del día en una pantalla. Los pallets que salieron de la plastificadora, las órdenes para
-// cargar, lo vendido, el cartón que entró y lo que hay en la fábrica por tipo y alto.
+// Hoy (el inicio): todo lo del día en una pantalla. Las órdenes para cargar, lo que hay en la fábrica por tipo y alto,
+// los pallets que salieron de la plastificadora y lo vendido. Lo que entra de materia prima está en su bloque (Inicio).
 
 interface Dia {
   fecha: string;
@@ -20,11 +20,12 @@ interface Dia {
 }
 interface OrdenAbierta { id: string; numero: number; cliente: string; detalle: string; pedidos: number; cargados: number; chofer: string | null }
 
-const hora = (iso: string) => new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(iso));
+const hora = (iso: string) => new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date(iso));
 const pallets = (n: number) => `${n} ${n === 1 ? 'pallet' : 'pallets'}`;
 
 /** El día en el inicio ("Hoy"). */
 export function PlanillaDia({ fecha }: { fecha: string }) {
+  const [todos, setTodos] = useState(false); // los pallets del día: 3 y "Ver los N" los despliega acá mismo
   const { puede } = useSesion();
   const { data: dia } = useQuery({ queryKey: ['planilla', fecha], queryFn: () => api<Dia>(`/planilla?fecha=${fecha}`), refetchInterval: 30_000 });
   const verOrdenes = puede('ventas') || puede('produccion', 2);
@@ -33,7 +34,6 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
   const vendido = dia.ventas.reduce((a, v) => a + v.total, 0);
   // Una orden Mixta son dos ventas con los mismos pallets: se cuentan una vez.
   const salieron = dia.ventas.filter((v, i) => !v.ordenId || dia.ventas.findIndex((x) => x.ordenId === v.ordenId) === i).reduce((a, v) => a + v.palets, 0);
-  const enFabrica = dia.stock.reduce((a, s) => a + s.pallets, 0);
   const esHoy = fecha === hoy();
   const abiertas = ordenes ?? [];
   // Los botones grandes, en el orden de su puesto (el primero, en azul).
@@ -51,13 +51,14 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
           ))}
         </nav>
       )}
-      {/* Lo más importante del día, en cifras cortas: lo detallado está abajo en cada bloque. */}
-      <div className="cifras resumen-dia">
-        <Tarjeta a="/palets" titulo={esHoy ? 'Pallets de hoy' : `Pallets del ${verFecha(fecha)}`} numero={pallets(dia.pallets.length)} detalle={`${dia.pallets.reduce((a, p) => a + p.maples, 0).toLocaleString('es-AR')} maples`} />
-        {puede('ventas') && <Tarjeta a={`/ventas?desde=${fecha}&hasta=${fecha}`} titulo="Vendido" numero={formatPesos(vendido)} detalle={`${pallets(salieron)} salieron`} />}
-        {puede('cuentas') && <Tarjeta a="/cuentas" titulo="Cobrado" numero={formatPesos(dia.cobrado)} detalle="lo que entró de plata" />}
-        <Tarjeta a="/palets" titulo="En la fábrica" numero={pallets(enFabrica)} detalle="listos para vender" />
-      </div>
+      {/* Plata del día, solo para quien la ve. Los pallets no van en tarjetas: ya están abajo, en su bloque y en la tabla
+          (antes "Pallets de hoy" y "En la fábrica" se repetían arriba y abajo). */}
+      {(puede('ventas') || puede('cuentas')) && (
+        <div className="cifras resumen-dia">
+          {puede('ventas') && <Tarjeta a={`/ventas?desde=${fecha}&hasta=${fecha}`} titulo="Vendido" numero={formatPesos(vendido)} detalle={`${pallets(salieron)} salieron`} />}
+          {puede('cuentas') && <Tarjeta a="/cuentas" titulo="Cobrado" numero={formatPesos(dia.cobrado)} detalle="lo que entró de plata" />}
+        </div>
+      )}
 
       {verOrdenes && abiertas.length > 0 && (
         <section className="hoja">
@@ -75,13 +76,13 @@ export function PlanillaDia({ fecha }: { fecha: string }) {
 
       {puede('produccion') && (
         <section className="hoja">
-          <div className="fila"><h3>Pallets que salieron de la plastificadora</h3></div>
-          {dia.pallets.slice(0, 3).map((p) => (
+          <div className="fila"><div><h3>{esHoy ? 'Pallets de hoy' : `Pallets del ${verFecha(fecha)}`}</h3><span className="chico tenue">{dia.pallets.length ? `${pallets(dia.pallets.length)} · ${dia.pallets.reduce((a, p) => a + p.maples, 0).toLocaleString('es-AR')} maples` : 'Los que salen de la plastificadora'}</span></div></div>
+          {dia.pallets.slice(0, todos ? undefined : 3).map((p) => (
             <Link key={p.id} to={`/palets/${p.numero}`} className="fila">
               <span className="con-muestra"><Muestra color={p.colorHex} /> <span><span className="principal">{p.codigo} de {p.alto}</span><br /><span className="chico tenue">N.º {nroTicket(p.numero)} · {hora(p.cargadoAt)}</span></span></span>
             </Link>
           ))}
-          {dia.pallets.length > 3 && <Link to="/palets" className="fila mostrar-mas">Ver los {dia.pallets.length} de hoy</Link>}
+          {dia.pallets.length > 3 && !todos && <button type="button" className="fila mostrar-mas" onClick={() => setTodos(true)}>Ver los {dia.pallets.length} de hoy</button>}
           {!dia.pallets.length && <p className="chico tenue" style={{ padding: '0 18px 14px' }}>Todavía no salió ninguno{esHoy ? ' hoy' : ''}.</p>}
         </section>
       )}
@@ -108,9 +109,10 @@ export function EnLaFabrica({ stock }: { stock: StockPallet[] }) {
   const grupos = porMaple(stock);
   const altos = [...new Set([...ALTOS_PALET, ...stock.map((s) => s.alto)])].sort((x, y) => y - x);
   const enCarga = stock.reduce((n, s) => n + s.enCarga, 0);
+  const total = stock.reduce((n, s) => n + s.pallets, 0);
   return (
     <section className="hoja">
-      <div className="fila"><div><h3>En la fábrica</h3><span className="chico tenue">Pallets por tipo y alto{enCarga ? ` · ${enCarga} ya en un camión cargando` : ''}</span></div></div>
+      <div className="fila"><div><h3>En la fábrica</h3><span className="chico tenue">{total ? `${pallets(total)} listos para vender, ` : ''}por tipo y alto{enCarga ? ` · ${enCarga} ya en un camión cargando` : ''}</span></div></div>
       {grupos.length ? (
         <div className="tabla-scroll">
           <table className="tabla-stock">
@@ -118,12 +120,12 @@ export function EnLaFabrica({ stock }: { stock: StockPallet[] }) {
             <tbody>
               {grupos.map((g) => {
                 const v = g[0]!;
-                const total = g.reduce((n, x) => n + x.pallets, 0);
+                const suma = g.reduce((n, x) => n + x.pallets, 0);
                 return (
                   <tr key={v.varianteId}>
                     <th><Link to={`/palets?q=${v.codigo}`} className="con-muestra"><Muestra color={v.colorHex} /> {v.codigo}</Link></th>
                     {altos.map((a) => { const n = g.find((x) => x.alto === a)?.pallets ?? 0; return <td key={a} className={n ? '' : 'cero'}>{n || '·'}</td>; })}
-                    <td><b>{total}</b></td>
+                    <td><b>{suma}</b></td>
                     <td className="tenue">{g.reduce((n, x) => n + x.paquetes * x.maplesPorPaquete, 0).toLocaleString('es-AR')}</td>
                   </tr>
                 );

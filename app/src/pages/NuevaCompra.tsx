@@ -49,12 +49,16 @@ export function NuevaCompra() {
     setMpId(null); setCantidad(''); setPrecio(''); setErrorItem(null);
   };
 
-  const totales = calcularCompra(items, factura.conFactura ? factura.ivaBp : 0);
+  // Si completó cantidad y precio pero no tocó "Agregar a la compra", ese producto también entra (antes quedaba trabado en este paso).
+  const cPend = aMili(cantidad), pPend = aCentavos(precio);
+  const pendiente = mpId && cPend !== null && cPend > 0 && pPend !== null && pPend >= 0 ? { materiaPrimaId: mpId, cantidad: cPend, precioUnitario: pPend } : null;
+  const todos = pendiente ? [...items, pendiente] : items;
+  const totales = calcularCompra(todos, factura.conFactura ? factura.ivaBp : 0);
   const unidadMp = mpId ? (mp(mpId)?.unidad === 'kg' ? 'kg' : 'L') : '';
 
-  const listaItems = items.length > 0 && (
+  const lista = (filas: Item[], quitar: boolean) => filas.length > 0 && (
     <div className="hoja filas">
-      {items.map((it, i) => {
+      {filas.map((it, i) => {
         const m = mp(it.materiaPrimaId);
         return (
           <div className="fila" key={i}>
@@ -64,7 +68,7 @@ export function NuevaCompra() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span className="cifra">{formatPesos(subtotalItem(it.cantidad, it.precioUnitario))}</span>
-              <button type="button" className="boton icono" aria-label={`Quitar ${m?.nombre}`} onClick={() => setItems(items.filter((_, j) => j !== i))}><Trash2 size={18} /></button>
+              {quitar && <button type="button" className="boton icono" aria-label={`Quitar ${m?.nombre}`} onClick={() => setItems(items.filter((_, j) => j !== i))}><Trash2 size={18} /></button>}
             </div>
           </div>
         );
@@ -85,7 +89,7 @@ export function NuevaCompra() {
       ayuda: 'Agregá cada producto con su cantidad y precio por litro o kilo, sin IVA. Si son varios, agregalos uno por uno.',
       contenido: (
         <>
-          {listaItems}
+          {lista(items, true)}
           <div className="hoja relleno" style={{ display: 'grid', gap: 14 }}>
             <Opciones columnas valor={mpId} onChange={elegirMp} opciones={activas.map((m) => ({ valor: m.id, titulo: m.nombre, detalle: m.unidad === 'kg' ? 'por kilo' : 'por litro' }))} />
             {mpId && (
@@ -99,7 +103,7 @@ export function NuevaCompra() {
           </div>
         </>
       ),
-      listo: items.length > 0 ? true : 'Agregá al menos un producto',
+      listo: todos.length > 0 ? true : 'Agregá al menos un producto',
     },
     {
       titulo: '¿Cuenta 1 o Cuenta 2?',
@@ -113,7 +117,7 @@ export function NuevaCompra() {
       contenido: (
         <>
           <p><b>{proveedor?.nombre}</b> · {factura.conFactura ? `Cuenta 1, ${formatIva(factura.ivaBp)}` : 'Cuenta 2'}</p>
-          {listaItems}
+          {lista(todos, false)}
           <div className="lectura"><span>Total{totales.iva ? ` (IVA ${formatPesos(totales.iva)})` : ''}</span><span className="cifra">{formatPesos(totales.total)}</span></div>
           <Campo etiqueta="Fecha" ayuda={fecha === hoy() ? 'Hoy' : verFecha(fecha)}>
             <Entrada type="date" value={fecha} max={hoy()} onChange={(e) => setFecha(e.target.value)} />
@@ -133,7 +137,7 @@ export function NuevaCompra() {
     try {
       const prov = await asegurarProveedor(proveedor!);
       setProveedor(prov);
-      const r = await api<{ id: string }>('/compras', { method: 'POST', body: { proveedorId: prov.id, fecha, items, notas: notas || undefined, ...facturaBody(factura) } });
+      const r = await api<{ id: string }>('/compras', { method: 'POST', body: { proveedorId: prov.id, fecha, items: todos, notas: notas || undefined, ...facturaBody(factura) } });
       await qc.invalidateQueries();
       navegar(`/compras/${r.id}?nuevo=1`, { replace: true });
     } catch (e) {
