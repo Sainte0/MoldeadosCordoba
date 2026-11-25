@@ -1034,3 +1034,5 @@ a.fila:not(:has(.lucide-chevron-right)):not(.mostrar-mas), button.fila:not(:disa
   .subnav { display: flex; width: 100%; }
   .subnav a { flex: 1 1 auto; justify-content: center; padding: 5px 6px; font-size: 0.82rem; }
 }
+.precio-acordado .entrada { flex: 1; min-width: 0; }
+.precio-acordado .boton { flex: none; }

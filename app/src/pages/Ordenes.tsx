@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, Plus, Printer, ScanLine, Trash2, Truck } from 'lucide-react';
-import { ALTOS_PALET, CONDICIONES, formatPesos, IVA_CUENTA1, LABEL_CONDICION, LABEL_VEHICULO, verCondicion, type Condicion, type Vehiculo } from '@moldeados/shared/base';
+import { aCentavos, ALTOS_PALET, CONDICIONES, formatPesos, IVA_CUENTA1, LABEL_CONDICION, LABEL_VEHICULO, verCondicion, type Condicion, type Vehiculo } from '@moldeados/shared/base';
 import { api, nroTicket, useSesion, verFecha, verMomento } from '../api';
 import { useFiltros } from '../filtros';
 import { useChoferes, useClientes, useEmpresa, useVariantes } from '../datos';
 import { Muestra } from '../MapleVista';
-import { Aviso, Cabecera, Campo, Cargando, Confirmar, Entrada, Opciones, Volver } from '../ui';
+import { Aviso, Cabecera, Campo, Cargando, Confirmar, Dialogo, Entrada, Opciones, Volver } from '../ui';
 import { useStockPallets } from './Plastificar';
 
 // Orden de venta (pedido N° 01, punto 3): el gerente la emite desde la compu, queda abierta en la pantalla de carga,
@@ -57,6 +57,71 @@ const fechaCorta = (f: string) => new Date(`${f}T12:00:00-03:00`).toLocaleDateSt
 
 interface Renglon { varianteId: string; alto: number; cantidad: string }
 
+/** Vender a alguien que no está cargado: lo mínimo (nombre y condición). El resto se completa después en su ficha. */
+function ClienteRapido({ onCerrar, onListo }: { onCerrar: () => void; onListo: (id: string) => void }) {
+  const qc = useQueryClient();
+  const [nombre, setNombre] = useState('');
+  const [c, setC] = useState<Condicion>('cuenta1');
+  const [pct, setPct] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [guardando, setGuardando] = useState(false);
+  const guardar = async (e: React.FormEvent) => {
+    e.preventDefault(); e.stopPropagation(); // el diálogo está dentro del formulario de la orden: que no lo envíe
+    if (nombre.trim().length < 2) return setError('Escribí el nombre del cliente');
+    if (c === 'mixta' && !(Number(pct) > 0 && Number(pct) < 100)) return setError('En Mixta poné qué porcentaje va a Cuenta 1 (de 1 a 99)');
+    setError(null); setGuardando(true);
+    try {
+      const n = await api<{ id: string }>('/clientes', { method: 'POST', body: { nombre: nombre.trim(), condicionPago: c, porcentajeCuenta1: c === 'mixta' ? Number(pct) : null } });
+      await qc.invalidateQueries({ queryKey: ['clientes'] });
+      onListo(n.id);
+    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo agregar'); setGuardando(false); }
+  };
+  return (
+    <Dialogo titulo="Cliente nuevo" onCerrar={onCerrar}>
+      <form onSubmit={guardar} style={{ display: 'grid', gap: 14 }}>
+        <Campo etiqueta="Nombre o razón social"><Entrada value={nombre} onChange={(e) => setNombre(e.target.value)} autoFocus required /></Campo>
+        <Campo etiqueta="Condición de pago">
+          <Opciones columnas valor={c} onChange={setC} opciones={CONDICIONES.map((x) => ({ valor: x, titulo: LABEL_CONDICION[x] }))} />
+        </Campo>
+        {c === 'mixta' && <Campo etiqueta="Porcentaje a Cuenta 1"><Entrada inputMode="numeric" unidad="%" value={pct} onChange={(e) => setPct(e.target.value.replace(/\D/g, '').slice(0, 2))} required /></Campo>}
+        <p className="chico tenue">CUIT, teléfono y dirección se completan después en Ventas › Clientes. El precio de cada maple lo ponés acá abajo, en la orden.</p>
+        <Aviso>{error}</Aviso>
+        <div className="acciones">
+          <button type="button" className="boton secundario" onClick={onCerrar}>Cancelar</button>
+          <button className="boton primario" disabled={guardando}>{guardando ? 'Agregando…' : 'Agregar cliente'}</button>
+        </div>
+      </form>
+    </Dialogo>
+  );
+}
+
+/** El maple no tiene precio para este cliente: se pone acá y queda guardado en su ficha. */
+function PrecioAcordado({ clienteId, varianteId, codigo }: { clienteId: string; varianteId: string; codigo: string }) {
+  const qc = useQueryClient();
+  const [precio, setPrecio] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const guardar = async () => {
+    const c = aCentavos(precio);
+    if (!c) return setError('Poné el precio por maple');
+    setError(null);
+    try {
+      await api('/precios', { method: 'PUT', body: { clienteId, varianteId, precioMaple: c } });
+      await qc.invalidateQueries({ queryKey: ['precios-cliente', clienteId] });
+    } catch (err) { setError(err instanceof Error ? err.message : 'No se pudo guardar el precio'); }
+  };
+  return (
+    <div className="renglon-dato precio-acordado">
+      <Campo etiqueta={`Precio del ${codigo} para este cliente`} ayuda="Sin IVA. Queda guardado en su ficha.">
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Entrada inputMode="decimal" value={precio} onChange={(e) => setPrecio(e.target.value.replace(/[^\d,]/g, ''))} placeholder="Por maple" />
+          <button type="button" className="boton secundario" onClick={guardar}>Guardar precio</button>
+        </div>
+      </Campo>
+      <Aviso>{error}</Aviso>
+    </div>
+  );
+}
+
 export function NuevaOrden() {
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -67,6 +132,7 @@ export function NuevaOrden() {
   const desdePedido = useSearchParams()[0].get('pedido');
   const { data: pedido } = useQuery({ queryKey: ['pedido', desdePedido], queryFn: () => api<{ id: string; numero: number; clienteId: string; estado: string; items: { varianteId: string; paquetes: number; despachado: number }[] }>(`/pedidos/${desdePedido}`), enabled: !!desdePedido });
   const [clienteId, setClienteId] = useState('');
+  const [clienteNuevo, setClienteNuevo] = useState(false);
   const cliente = clientes?.find((c) => c.id === clienteId);
   const { data: choferes } = useChoferes(clienteId);
   const { data: precios } = useQuery({ queryKey: ['precios-cliente', clienteId], queryFn: () => api<Record<string, number>>(`/precios/cliente/${clienteId}`), enabled: !!clienteId });
@@ -111,7 +177,7 @@ export function NuevaOrden() {
     if (!cliente || !condicion) return setError('Elegí el cliente');
     if (!validos.length) return setError('Completá qué se lleva: maple, alto y cuántos pallets');
     const sinPrecio = validos.map((r) => activas.find((v) => v.id === r.varianteId)).find((v) => v && !precios?.[v.id]);
-    if (sinPrecio) return setError(`El ${sinPrecio.codigo} no tiene precio para ${cliente.nombre}. Cargalo en su ficha (Ventas › Clientes) o en Ajustes › Precios.`);
+    if (sinPrecio) return setError(`El ${sinPrecio.codigo} no tiene precio para ${cliente.nombre}. Ponelo en el renglón.`);
     if (condicion.c === 'mixta' && !(Number(condicion.pct) > 0 && Number(condicion.pct) < 100)) return setError('En Mixta poné qué porcentaje va a Cuenta 1 (de 1 a 99)');
     setError(null); setConfirmando(true);
   };
@@ -134,9 +200,10 @@ export function NuevaOrden() {
         : <p className="aviso info">El pedido {nroTicket(pedido.numero)} ya no está abierto: esta orden queda suelta.</p>)}
       <div className="hoja relleno" style={{ display: 'grid', gap: 14 }}>
         <Campo etiqueta="Cliente">
-          <select className="entrada" value={clienteId} onChange={(e) => setClienteId(e.target.value)} required autoFocus>
+          <select className="entrada" value={clienteId} onChange={(e) => e.target.value === 'nuevo' ? setClienteNuevo(true) : setClienteId(e.target.value)} required autoFocus>
             <option value="">Elegí el cliente</option>
             {(clientes ?? []).map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+            <option value="nuevo">+ Cliente nuevo…</option>
           </select>
         </Campo>
         {cliente && (
@@ -166,7 +233,8 @@ export function NuevaOrden() {
                 </select>
                 <Entrada inputMode="numeric" value={r.cantidad} onChange={(e) => cambiar(i, { cantidad: e.target.value.replace(/\D/g, '') })} placeholder="Pallets" aria-label="Cantidad de pallets" required />
                 {renglones.length > 1 && <button type="button" className="boton icono" aria-label="Quitar renglón" onClick={() => setRenglones(renglones.filter((_, j) => j !== i))}><Trash2 size={18} /></button>}
-                {v && <p className="chico tenue renglon-dato">{precios?.[v.id] ? `${formatPesos(precios[v.id]!)} el maple` : 'Sin precio: cargalo en la ficha del cliente'} · en la fábrica: {s ? `${s.pallets - s.enCarga} de ${r.alto}` : `ninguno de ${r.alto}`}</p>}
+                {v && <p className="chico tenue renglon-dato">{precios?.[v.id] ? `${formatPesos(precios[v.id]!)} el maple · ` : ''}en la fábrica: {s ? `${s.pallets - s.enCarga} de ${r.alto}` : `ninguno de ${r.alto}`}</p>}
+                {v && precios && !precios[v.id] && <PrecioAcordado clienteId={clienteId} varianteId={v.id} codigo={v.codigo} />}
               </div>
             );
           })}
@@ -189,6 +257,7 @@ export function NuevaOrden() {
       )}
 
       <Aviso>{error}</Aviso>
+      {clienteNuevo && <ClienteRapido onCerrar={() => setClienteNuevo(false)} onListo={(id) => { setClienteNuevo(false); setClienteId(id); }} />}
       {confirmando && cliente && condicion && (
         <Confirmar titulo="¿Emitir esta orden?" texto="Sí, emitir orden" onSi={emitir} onNo={() => setConfirmando(false)}>
           <dl className="resumen">
